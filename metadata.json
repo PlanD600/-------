@@ -1,0 +1,6 @@
+{
+  "name": "ProjectFlow - Project Management",
+  "description": "A client application for the project management system, allowing users to manage projects, tasks, and teams with a clean, modern interface inspired by high-end UI designs. It includes real-time collaboration features through chat and notifications.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}
