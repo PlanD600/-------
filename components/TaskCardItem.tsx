@@ -17,7 +17,7 @@ const statusStyles: { [key in TaskStatus]: { bg: string; text: string; } } = {
 
 const TaskCardItem = ({ task, onView }: TaskCardItemProps) => {
     const style = statusStyles[task.status] || statusStyles['מתוכנן'];
-    const assigneeNames = task.assignees.map(u => u.fullName).join(', ');
+    const assigneeNames = (task.assignees || []).map(u => u.fullName).join(', ');
 
     return (
         <button

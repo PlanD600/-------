@@ -20,7 +20,7 @@ const Dashboard = () => {
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('סקירה כללית'); 
+    const [activeTab, setActiveTab] = useState('סקירה כללית');
 
     // עוטפים את fetchData ב-useCallback כדי למנוע יצירה מחדש של הפונקציה בכל רינדור
     const fetchData = useCallback(async () => {
@@ -45,12 +45,15 @@ const Dashboard = () => {
             setLoading(false);
         }
     }, [currentOrgId]); // התלות נשארת currentOrgId
-    
+
     // useEffect זה יפעל רק פעם אחת כשהארגון משתנה, וגם בכל פעם שהטאב משתנה
     useEffect(() => {
+        console.log('Dashboard useEffect triggered'); // הוסף את השורה הזו
+        console.log('currentOrgId:', currentOrgId); // הוסף את השורה הזו
+        console.log('activeTab:', activeTab);
         fetchData();
-    }, [currentOrgId, activeTab, fetchData]); // הוספנו את activeTab ו-fetchData כתלויות
-    
+    }, [currentOrgId, activeTab]); // הוספנו את activeTab ו-fetchData כתלויות
+
     // WebSocket connection - ללא שינוי
     useEffect(() => {
         if (!currentOrgId || !user) return;
@@ -70,12 +73,12 @@ const Dashboard = () => {
             console.log('New notification received:', payload);
             setNotifications(prev => [payload, ...prev]);
         });
-        
+
         newSocket.on('new_message', (payload) => {
             console.log('New message received:', payload);
             const { conversationId, ...message } = payload;
-            setConversations(prev => prev.map(c => 
-                c.id === conversationId 
+            setConversations(prev => prev.map(c =>
+                c.id === conversationId
                     ? { ...c, messages: [...(c.messages || []), message] }
                     : c
             ));
@@ -104,11 +107,11 @@ const Dashboard = () => {
 
 
     const usersInOrg = useMemo(() => orgMembers.map(m => m.user), [orgMembers]);
-    
+
     const { teamLeads, teamMembers } = useMemo(() => {
         const leads = new Map<string, User>();
         const members: { id: string, name: string }[] = [];
-        
+
         orgMembers.forEach(m => {
             members.push({ id: m.user.id, name: m.user.fullName });
             if (m.role === 'TEAM_LEADER' || m.role === 'ADMIN' || m.role === 'SUPER_ADMIN') {
@@ -117,7 +120,7 @@ const Dashboard = () => {
                 }
             }
         });
-        
+
         return { teamLeads: Array.from(leads.values()), teamMembers: members };
     }, [orgMembers]);
 
@@ -125,24 +128,24 @@ const Dashboard = () => {
     const handleNavigate = (view: 'settings' | 'dashboard') => {
         setCurrentView(view);
     }
-    
+
     if (loading) {
         return <div className="p-8 text-center text-xl">טוען נתונים...</div>
     }
 
     if (currentView === 'settings') {
-        return <SettingsPage 
-            onBack={() => setCurrentView('dashboard')} 
-            users={usersInOrg} 
+        return <SettingsPage
+            onBack={() => setCurrentView('dashboard')}
+            users={usersInOrg}
             teams={teams}
-            allMemberships={orgMembers} 
+            allMemberships={orgMembers}
             refreshData={fetchData}
         />;
     }
 
     return (
         <div className="flex flex-col h-screen">
-            <Header 
+            <Header
                 onNavigate={handleNavigate}
                 notifications={notifications}
                 setNotifications={setNotifications}
@@ -151,7 +154,7 @@ const Dashboard = () => {
                 {/* חשוב לוודא שהקומפוננטה TabView מקבלת את 
                   activeTab ו-setActiveTab כ-props כדי שהיא תוכל לעדכן את ה-state כאן
                 */}
-                <TabView 
+                <TabView
                     activeTab={activeTab}
                     onTabChange={setActiveTab} // הוספנו onTabChange
                     projects={projects}

@@ -50,10 +50,10 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
     const [selectedProjectId, setSelectedProjectId] = useState<string>('');
     const [tasks, setTasks] = useState<Task[]>([]);
     const [loadingTasks, setLoadingTasks] = useState(false);
-    
+
     const [userFilter, setUserFilter] = useState<string>('all');
     const [view, setView] = useState<'list' | 'card'>('list');
-    
+
     const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
     const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
     const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
@@ -89,7 +89,7 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
 
         fetchTasks();
     }, [selectedProjectId]);
-    
+
     const filteredTasks = useMemo(() => {
         if (userFilter === 'all') {
             return tasks;
@@ -97,7 +97,7 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
         const filteredUser = teamMembers.find(member => member.name === userFilter);
         if (!filteredUser) return tasks;
 
-        return tasks.filter(task => task.assignees.some(assignee => assignee.id === filteredUser.id));
+        return tasks.filter(task => task.assignees?.some(assignee => assignee.id === filteredUser.id));
     }, [tasks, userFilter, teamMembers]);
 
     const isManager = useMemo(() => {
@@ -126,7 +126,7 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
             const response = await api.getTasksForProject(selectedProjectId);
             setTasks(response.data);
             setIsAddTaskOpen(false);
-        } catch(error) {
+        } catch (error) {
             console.error("Failed to create task", error);
             alert(`Error: ${(error as Error).message}`);
         }
@@ -134,13 +134,13 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
 
     const handleUpdateTask = async (updatedTaskData: Partial<TaskPayload>) => {
         if (!selectedProjectId || !taskToEdit) return;
-        
+
         try {
             await api.updateTask(selectedProjectId, taskToEdit.id, updatedTaskData);
             const response = await api.getTasksForProject(selectedProjectId);
             setTasks(response.data);
             setTaskToEdit(null);
-        } catch(error) {
+        } catch (error) {
             console.error("Failed to update task", error);
             alert(`Error: ${(error as Error).message}`);
         }
@@ -151,7 +151,7 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
         try {
             const updatedTask = await api.updateTask(selectedProjectId, taskId, updates);
             setTasks(prevTasks => prevTasks.map(t => t.id === taskId ? updatedTask : t));
-        } catch(error) {
+        } catch (error) {
             console.error("Failed to update task field", error);
             alert(`Error: ${(error as Error).message}`);
         }
@@ -171,15 +171,15 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
             alert(`Error: ${(error as Error).message}`);
         }
     };
-    
+
     const handleAddTaskComment = async (commentText: string) => {
         if (!currentTaskToView || !selectedProject || !user) return;
-        
+
         try {
-           const newComment = await api.addTaskComment(selectedProject.id, currentTaskToView.id, commentText);
-           const updatedTask = { ...currentTaskToView, comments: [...currentTaskToView.comments, newComment] };
-           setTasks(prevTasks => prevTasks.map(t => t.id === currentTaskToView.id ? updatedTask : t));
-        } catch(error) {
+            const newComment = await api.addTaskComment(selectedProject.id, currentTaskToView.id, commentText);
+            const updatedTask = { ...currentTaskToView, comments: [...currentTaskToView.comments, newComment] };
+            setTasks(prevTasks => prevTasks.map(t => t.id === currentTaskToView.id ? updatedTask : t));
+        } catch (error) {
             console.error("Failed to add comment", error);
             alert(`Error: ${(error as Error).message}`);
         }
@@ -217,8 +217,8 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
                         {teamMembers.map(member => <option key={member.id} value={member.name}>{member.name}</option>)}
                     </select>
 
-                     <span id={viewToggleLabelId} className="sr-only">בחר תצוגת משימות</span>
-                     <ViewToggle view={view} setView={setView} labelledby={viewToggleLabelId} />
+                    <span id={viewToggleLabelId} className="sr-only">בחר תצוגת משימות</span>
+                    <ViewToggle view={view} setView={setView} labelledby={viewToggleLabelId} />
                     {isManager && (
                         <button
                             onClick={() => setIsAddTaskOpen(true)}
@@ -231,7 +231,7 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
                     )}
                 </div>
             </div>
-            
+
             <div className="min-h-[400px]">
                 {!selectedProjectId ? (
                     <div className="text-center py-16 px-4 bg-gray-50 rounded-2xl">
@@ -242,14 +242,14 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
                 ) : filteredTasks.length === 0 ? (
                     <div className="text-center py-16 px-4 bg-gray-50 rounded-2xl">
                         <p className="text-gray-500">
-                             {tasks.length > 0
-                                 ? 'לא נמצאו משימות התואמות לסינון הנוכחי.'
-                                 : 'לא נמצאו משימות עבור פרויקט זה.'
-                             }
+                            {tasks.length > 0
+                                ? 'לא נמצאו משימות התואמות לסינון הנוכחי.'
+                                : 'לא נמצאו משימות עבור פרויקט זה.'
+                            }
                         </p>
                     </div>
                 ) : view === 'list' ? (
-                     <div className="space-y-3">
+                    <div className="space-y-3">
                         <div className="hidden md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_minmax(0,1.5fr)_minmax(0,1.5fr)] gap-x-4 px-3 py-2 text-xs font-bold text-gray-500 uppercase tracking-wider border-b">
                             <span>סטטוס</span>
                             <span>שם המשימה</span>
@@ -268,7 +268,7 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
                     </div>
                 )}
             </div>
-            
+
             <Modal isOpen={isAddTaskOpen} onClose={() => setIsAddTaskOpen(false)} titleId={addTaskTitleId} size="sm">
                 <AddTaskForm titleId={addTaskTitleId} onSubmit={handleCreateTask} onCancel={() => setIsAddTaskOpen(false)} allUsers={users} />
             </Modal>
@@ -276,7 +276,7 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
             <Modal isOpen={!!taskToEdit} onClose={() => setTaskToEdit(null)} titleId={editTaskTitleId} size="sm">
                 {taskToEdit && <EditTaskForm titleId={editTaskTitleId} task={taskToEdit} onSubmit={handleUpdateTask} onCancel={() => setTaskToEdit(null)} users={users} />}
             </Modal>
-            
+
             <TaskDetailModal
                 isOpen={!!taskToView}
                 onClose={() => setTaskToView(null)}
