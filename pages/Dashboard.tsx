@@ -5,12 +5,13 @@ import Header from '../components/Header';
 import TabView from '../components/TabView';
 import SettingsPage from './SettingsPage';
 import { useAuth } from '../hooks/useAuth';
+import { io, Socket } from 'socket.io-client'; // חשוב: ייבוא 'io' ו-'Socket'
 
 
 const Dashboard = () => {
     const { user, currentOrgId } = useAuth();
     const [currentView, setCurrentView] = useState<'dashboard' | 'projectDetail' | 'settings'>('dashboard');
-    const [socket, setSocket] = useState<WebSocket | null>(null);
+    const [socket, setSocket] = useState<Socket | null>(null);
 
     // State management for data from the API
     const [projects, setProjects] = useState<Project[]>([]);
@@ -54,53 +55,50 @@ const Dashboard = () => {
     useEffect(() => {
         if (!currentOrgId || !user) return;
 
-        const ws = new WebSocket('ws://localhost:3000');
-        setSocket(ws);
+        const newSocket = io('http://localhost:3000'); // Socket.IO משתמש ב-http/https, לא ws/wss באופן ישיר
+        setSocket(newSocket);
 
-        ws.onopen = () => {
-            console.log('WebSocket connected');
+        newSocket.on('connect', () => {
+            console.log('Socket.IO connected');
             // Register user for notifications
             if (user?.id) {
-                ws.send(JSON.stringify({ event: 'register_for_notifications', payload: user.id }));
+                newSocket.emit('register_for_notifications', user.id);
             }
-        };
+        });
 
-        ws.onmessage = (event) => {
-            try {
-                const messageData = JSON.parse(event.data);
-                
-                // The server might send different event structures
-                const eventName = messageData.event || messageData.type;
-                const payload = messageData.payload || messageData;
+        newSocket.on('new_notification', (payload) => {
+            console.log('New notification received:', payload);
+            setNotifications(prev => [payload, ...prev]);
+        });
+        
+        newSocket.on('new_message', (payload) => {
+            console.log('New message received:', payload);
+            const { conversationId, ...message } = payload;
+            setConversations(prev => prev.map(c => 
+                c.id === conversationId 
+                    ? { ...c, messages: [...(c.messages || []), message] }
+                    : c
+            ));
+        });
 
-                if (eventName === 'new_notification') {
-                    setNotifications(prev => [payload, ...prev]);
-                }
-                
-                if (eventName === 'new_message') {
-                    const { conversationId, ...message } = payload;
-                    setConversations(prev => prev.map(c => 
-                        c.id === conversationId 
-                            ? { ...c, messages: [...(c.messages || []), message] }
-                            : c
-                    ));
-                }
-            } catch (error) {
-                console.error('Error parsing WebSocket message:', event.data, error);
-            }
-        };
-
-        ws.onclose = () => {
-            console.log('WebSocket disconnected');
+        newSocket.on('disconnect', () => {
+            console.log('Socket.IO disconnected');
             setSocket(null);
-        };
+        });
 
-        ws.onerror = (error) => {
-            console.error('WebSocket error:', error);
-        };
+        newSocket.on('connect_error', (error) => {
+            console.error('Socket.IO connection error:', error);
+            // Socket.IO מטפל בדרך כלל בניסיונות חיבור מחדש אוטומטיים
+        });
+
+        newSocket.on('error_message', (data) => {
+            console.error('Server error message:', data.message);
+            // הצג הודעת שגיאה למשתמש אם יש צורך
+        });
 
         return () => {
-            ws.close();
+            // סגור את חיבור ה-Socket.IO כאשר הקומפוננטה נפרקת
+            newSocket.disconnect();
         };
     }, [currentOrgId, user]);
 

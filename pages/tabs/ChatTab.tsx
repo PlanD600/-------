@@ -4,18 +4,19 @@
 
 
 import React, { useState, useMemo, useEffect, useRef, useId } from 'react';
-import { Conversation, User, Message, TaskPayload } from '../../types';
+import { Conversation, User, Message, } from '../../types';
 import * as api from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
 import Modal from '../../components/Modal';
 import ConfirmationModal from '../../components/ConfirmationModal';
 import { PlusIcon, PaperAirplaneIcon, TrashIcon, ChevronLeftIcon } from '../../components/icons';
+import { Socket } from 'socket.io-client'; // **ודא שאתה מייבא Socket מ-socket.io-client גם כאן!**
 
 interface ChatTabProps {
     conversations: Conversation[];
     setConversations: React.Dispatch<React.SetStateAction<Conversation[]>>;
     users: User[];
-    socket: WebSocket | null;
+    socket: Socket | null; // שונה מ-WebSocket | null ל-Socket | null
 }
 
 const CreateConversationModal = ({ isOpen, onClose, users, currentUserId, onCreate, titleId }: { isOpen: boolean, onClose: () => void, users: User[], currentUserId: string, onCreate: (data: { type: 'private' | 'group', participantIds: string[], name?: string, avatarUrl?: string }) => void, titleId: string }) => {
@@ -118,8 +119,6 @@ const ChatTab = ({ conversations, setConversations, users, socket }: ChatTabProp
             socket.send(JSON.stringify({ event: 'join_conversation', payload: activeConversationId }));
         }
     }, [socket, activeConversationId]);
-
-    const usersMap = useMemo(() => new Map(users.map(u => [u.id, u])), [users]);
 
     const activeConversation = useMemo(() => {
         return conversations.find(c => c.id === activeConversationId);

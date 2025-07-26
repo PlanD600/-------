@@ -9,6 +9,7 @@ import FinanceTab from '../pages/tabs/FinanceTab';
 import GanttTab from '../pages/tabs/GanttTab';
 import ChatTab from '../pages/tabs/ChatTab';
 import { useAuth } from '../hooks/useAuth';
+import { Socket } from 'socket.io-client'; // **ודא שאתה מייבא Socket מ-socket.io-client גם כאן!**
 
 interface TeamMember {
     id: string;
@@ -26,7 +27,7 @@ interface TabViewProps {
     setTeams: React.Dispatch<React.SetStateAction<Team[]>>;
     conversations: Conversation[];
     setConversations: React.Dispatch<React.SetStateAction<Conversation[]>>;
-    socket: WebSocket | null;
+    socket: Socket | null; // שונה מ-WebSocket | null ל-Socket | null
     refreshData: () => void;
 }
 
