@@ -1,6 +1,4 @@
-
-
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Project, User, Team, Conversation, Notification, Membership } from '../types';
 import * as api from '../services/api';
 import Header from '../components/Header';
@@ -21,10 +19,13 @@ const Dashboard = () => {
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState('סקירה כללית'); 
 
-    const fetchData = async () => {
+    // עוטפים את fetchData ב-useCallback כדי למנוע יצירה מחדש של הפונקציה בכל רינדור
+    const fetchData = useCallback(async () => {
         if (!currentOrgId) return;
         setLoading(true);
+        console.log("Fetching latest data from server..."); // נוספה הדפסה לבדיקה
         try {
             const [projectsResponse, teamsResponse, orgMembersResponse, conversationsData] = await Promise.all([
                 api.getProjects(),
@@ -42,65 +43,65 @@ const Dashboard = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [currentOrgId]); // התלות נשארת currentOrgId
     
-    // Fetch initial data
+    // useEffect זה יפעל רק פעם אחת כשהארגון משתנה, וגם בכל פעם שהטאב משתנה
     useEffect(() => {
         fetchData();
-    }, [currentOrgId]);
+    }, [currentOrgId, activeTab, fetchData]); // הוספנו את activeTab ו-fetchData כתלויות
     
-    // WebSocket connection
+    // WebSocket connection - ללא שינוי
     useEffect(() => {
-      if (!currentOrgId || !user) return;
+        if (!currentOrgId || !user) return;
 
-      const ws = new WebSocket('ws://localhost:3000');
-      setSocket(ws);
+        const ws = new WebSocket('ws://localhost:3000');
+        setSocket(ws);
 
-      ws.onopen = () => {
-          console.log('WebSocket connected');
-          // Register user for notifications
-          if (user?.id) {
-             ws.send(JSON.stringify({ event: 'register_for_notifications', payload: user.id }));
-          }
-      };
+        ws.onopen = () => {
+            console.log('WebSocket connected');
+            // Register user for notifications
+            if (user?.id) {
+                ws.send(JSON.stringify({ event: 'register_for_notifications', payload: user.id }));
+            }
+        };
 
-      ws.onmessage = (event) => {
-          try {
-              const messageData = JSON.parse(event.data);
-              
-              // The server might send different event structures
-              const eventName = messageData.event || messageData.type;
-              const payload = messageData.payload || messageData;
+        ws.onmessage = (event) => {
+            try {
+                const messageData = JSON.parse(event.data);
+                
+                // The server might send different event structures
+                const eventName = messageData.event || messageData.type;
+                const payload = messageData.payload || messageData;
 
-              if (eventName === 'new_notification') {
-                  setNotifications(prev => [payload, ...prev]);
-              }
-              
-              if (eventName === 'new_message') {
-                  const { conversationId, ...message } = payload;
-                  setConversations(prev => prev.map(c => 
-                      c.id === conversationId 
-                          ? { ...c, messages: [...(c.messages || []), message] }
-                          : c
-                  ));
-              }
-          } catch (error) {
-              console.error('Error parsing WebSocket message:', event.data, error);
-          }
-      };
+                if (eventName === 'new_notification') {
+                    setNotifications(prev => [payload, ...prev]);
+                }
+                
+                if (eventName === 'new_message') {
+                    const { conversationId, ...message } = payload;
+                    setConversations(prev => prev.map(c => 
+                        c.id === conversationId 
+                            ? { ...c, messages: [...(c.messages || []), message] }
+                            : c
+                    ));
+                }
+            } catch (error) {
+                console.error('Error parsing WebSocket message:', event.data, error);
+            }
+        };
 
-      ws.onclose = () => {
-          console.log('WebSocket disconnected');
-          setSocket(null);
-      };
+        ws.onclose = () => {
+            console.log('WebSocket disconnected');
+            setSocket(null);
+        };
 
-      ws.onerror = (error) => {
-          console.error('WebSocket error:', error);
-      };
+        ws.onerror = (error) => {
+            console.error('WebSocket error:', error);
+        };
 
-      return () => {
-          ws.close();
-      };
+        return () => {
+            ws.close();
+        };
     }, [currentOrgId, user]);
 
 
@@ -149,7 +150,12 @@ const Dashboard = () => {
                 setNotifications={setNotifications}
             />
             <main className="flex-1 overflow-y-auto">
+                {/* חשוב לוודא שהקומפוננטה TabView מקבלת את 
+                  activeTab ו-setActiveTab כ-props כדי שהיא תוכל לעדכן את ה-state כאן
+                */}
                 <TabView 
+                    activeTab={activeTab}
+                    onTabChange={setActiveTab} // הוספנו onTabChange
                     projects={projects}
                     teamMembers={teamMembers}
                     teamLeads={teamLeads}

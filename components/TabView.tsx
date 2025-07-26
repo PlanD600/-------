@@ -1,7 +1,7 @@
 
 
 
-import React, { useState, useMemo } from 'react';
+import React, {  useMemo } from 'react';
 import { Project, User, Team, Conversation } from '../types';
 import OverviewTab from '../pages/tabs/OverviewTab';
 import TasksTab from '../pages/tabs/TasksTab';
@@ -16,6 +16,8 @@ interface TeamMember {
 }
 
 interface TabViewProps {
+    activeTab: string; // הוסף את זה
+    onTabChange: (tab: string) => void; // הוסף את זה
     projects: Project[];
     teamMembers: TeamMember[];
     teamLeads: User[];
@@ -35,19 +37,17 @@ const TabButton = ({ label, isActive, onClick, id, controlsId }: { label: string
         aria-selected={isActive}
         aria-controls={controlsId}
         onClick={onClick}
-        className={`px-4 py-3 font-semibold text-sm transition-colors ${
-            isActive 
-            ? 'text-[#4A2B2C] border-b-2 border-[#4A2B2C]' 
+        className={`px-4 py-3 font-semibold text-sm transition-colors ${isActive
+            ? 'text-[#4A2B2C] border-b-2 border-[#4A2B2C]'
             : 'text-gray-500 hover:text-gray-800'
-        }`}
+            }`}
     >
         {label}
     </button>
 );
 
 
-const TabView = ({ projects, teamMembers, teamLeads, users, teams, setTeams, conversations, setConversations, socket, refreshData }: TabViewProps) => {
-    const [activeTab, setActiveTab] = useState('overview');
+const TabView = ({ activeTab,onTabChange, projects, teamMembers, teamLeads, users, teams, conversations, setConversations, socket, refreshData }: TabViewProps) => {
     const { memberships, currentOrgId } = useAuth();
 
     const currentUserRole = useMemo(() => {
@@ -60,7 +60,7 @@ const TabView = ({ projects, teamMembers, teamLeads, users, teams, setTeams, con
         { id: 'overview', label: 'מבט על', component: <OverviewTab projects={projects} teamLeads={teamLeads} users={users} teams={teams} refreshData={refreshData} /> },
         { id: 'tasks', label: 'משימות', component: <TasksTab projects={projects} teamMembers={teamMembers} refreshData={refreshData} users={users} /> },
         canViewFinance ? { id: 'finance', label: 'כספים', component: <FinanceTab projects={projects} refreshData={refreshData} /> } : null,
-        { id: 'gantt', label: 'גאנט', component: <GanttTab projects={projects} teamMembers={teamMembers} users={users} refreshData={refreshData}/> },
+        { id: 'gantt', label: 'גאנט', component: <GanttTab projects={projects} teamMembers={teamMembers} users={users} refreshData={refreshData} /> },
         { id: 'chat', label: 'הודעות', component: <ChatTab conversations={conversations} setConversations={setConversations} users={users} socket={socket} /> }
 
     ].filter(Boolean) as { id: string, label: string, component: React.ReactNode }[], [projects, teamMembers, teamLeads, users, teams, conversations, socket, refreshData, canViewFinance]);
@@ -71,19 +71,19 @@ const TabView = ({ projects, teamMembers, teamLeads, users, teams, setTeams, con
             <div className="border-b border-gray-200 bg-white/50 backdrop-blur-sm sticky top-0 z-10">
                 <nav role="tablist" aria-label="ניווט ראשי" className="flex space-x-reverse space-x-4 px-4">
                     {tabs.map(tab => (
-                        <TabButton 
+                        <TabButton
                             key={tab.id}
                             id={`tab-${tab.id}`}
                             controlsId={`tabpanel-${tab.id}`}
-                            label={tab.label} 
-                            isActive={activeTab === tab.id} 
-                            onClick={() => setActiveTab(tab.id)} 
+                            label={tab.label}
+                            isActive={activeTab === tab.id}
+                            onClick={() => onTabChange(tab.id)}
                         />
                     ))}
                 </nav>
             </div>
             <div className="p-4 md:p-6 lg:p-8">
-               {tabs.map((tab) => (
+                {tabs.map((tab) => (
                     <div
                         key={tab.id}
                         role="tabpanel"

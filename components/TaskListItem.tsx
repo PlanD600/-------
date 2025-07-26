@@ -1,6 +1,5 @@
 
 
-import React from 'react';
 import { Task, TaskStatus } from '../types';
 
 interface TaskListItemProps {
@@ -17,10 +16,9 @@ const statusStyles: { [key in TaskStatus]: { text: string; dot: string; } } = {
 
 const TaskListItem = ({ task, onView }: TaskListItemProps) => {
     const style = statusStyles[task.status] || statusStyles['מתוכנן'];
-    const assigneeNames = task.assignees.map(u => u.fullName).join(', ');
-
+    const assigneeNames = Array.isArray(task.assignees) ? task.assignees.map(u => u.fullName).join(', ') : '';
     return (
-        <button 
+        <button
             type="button"
             className="w-full text-right bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer"
             onClick={onView}
@@ -30,7 +28,7 @@ const TaskListItem = ({ task, onView }: TaskListItemProps) => {
             <div className="p-3 md:hidden">
                 <div className="flex justify-between items-start gap-4">
                     <p className="font-bold text-gray-800 break-words flex-1">{task.title}</p>
-                     <div className="flex items-center flex-shrink-0">
+                    <div className="flex items-center flex-shrink-0">
                         <span className={`w-2 h-2 rounded-full ml-2 ${style.dot}`}></span>
                         <span className={`text-sm ${style.text}`}>{task.status}</span>
                     </div>
@@ -45,9 +43,9 @@ const TaskListItem = ({ task, onView }: TaskListItemProps) => {
                         </span>
                     </div>
                     <div className="flex items-center">
-                         <span className="font-semibold w-20">משויכים:</span>
-                         <span className="truncate" title={assigneeNames}>
-                           {assigneeNames || 'טרם שויך'}
+                        <span className="font-semibold w-20">משויכים:</span>
+                        <span className="truncate" title={assigneeNames}>
+                            {assigneeNames || 'טרם שויך'}
                         </span>
                     </div>
                 </div>
