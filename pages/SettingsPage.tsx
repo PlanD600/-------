@@ -40,7 +40,7 @@ const SettingsPage = ({ onBack, users, teams, allMemberships, refreshData }: Set
         const menuStructure: { [key: string]: any[] } = {
             'SUPER_ADMIN': [
                 baseMenu[0],
-                { id: 'orgs', label: 'ניהול ארגונים', icon: <BuildingOfficeIcon className="w-5 h-5" />, component: <OrganizationSettings /> },
+                { id: 'orgs', label: 'ניהול ארגונים', icon: <BuildingOfficeIcon className="w-5 h-5" />, component: <OrganizationSettings refreshData={refreshData} /> },
                 ...adminMenu
             ],
             'ADMIN': [...baseMenu, ...adminMenu],

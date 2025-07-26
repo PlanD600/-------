@@ -1,5 +1,5 @@
 
-import { Project, Task, FinanceEntry, FinanceSummary, PaginatedResponse, User, Membership, Team, Conversation, Message, Comment, ProjectPayload, TaskPayload, TeamPayload } from '../types';
+import { Organization, Project, Task, FinanceEntry, FinanceSummary, PaginatedResponse, User, Membership, Team, Conversation, Message, Comment, ProjectPayload, TaskPayload, TeamPayload } from '../types';
 
 const BASE_URL = 'http://localhost:3000/api';
 
@@ -45,6 +45,14 @@ const buildQueryString = (params: Record<string, any>): string => {
     const queryString = usp.toString();
     return queryString ? `?${queryString}` : '';
 }
+
+export const createOrganization = (data: { name: string }): Promise<Organization> => {
+    return fetch(`${BASE_URL}/organizations`, { // נקודת הקצה תלויה ב-backend שלך
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(data),
+    }).then(handleResponse);
+};
 
 
 // AUTH

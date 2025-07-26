@@ -6,6 +6,7 @@ interface ModalProps {
     onClose: () => void;
     children: ReactNode;
     titleId: string;
+    title?: string; // הופך את ה-title לאופציונלי
     zIndex?: number;
     size?: 'sm' | 'md' | 'lg';
 }
