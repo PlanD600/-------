@@ -1,5 +1,4 @@
-
-
+// src/pages/settings/UserSettings.tsx
 
 import React, { useState, useMemo, useId } from 'react';
 import { useAuth } from '../../hooks/useAuth';
@@ -8,6 +7,7 @@ import { User, Membership } from '../../types';
 import Modal from '../../components/Modal';
 import ConfirmationModal from '../../components/ConfirmationModal';
 import { PlusIcon, EditIcon, TrashIcon } from '../../components/icons';
+import InviteUserForm from '../../components/InviteUserForm'; // ייבוא הקומפוננטה החדשה
 
 
 const roleHierarchy: { [key in Membership['role']]: number } = {
@@ -31,11 +31,12 @@ const UserSettings = ({ allMemberships, refreshData }: UserSettingsProps) => {
     const [userToEdit, setUserToEdit] = useState<DisplayUser | null>(null);
     const [userToRemove, setUserToRemove] = useState<DisplayUser | null>(null);
     
-    // State for forms
-    const [inviteFullName, setInviteFullName] = useState('');
-    const [invitePhone, setInvitePhone] = useState('');
-    const [inviteJobTitle, setInviteJobTitle] = useState('');
-    const [inviteRole, setInviteRole] = useState<Membership['role']>('EMPLOYEE');
+    // **הסרה:** אין צורך יותר ב-stateים של הטופס כאן
+    // const [inviteFullName, setInviteFullName] = useState('');
+    // const [invitePhone, setInvitePhone] = useState('');
+    // const [inviteJobTitle, setInviteJobTitle] = useState('');
+    // const [inviteRole, setInviteRole] = useState<Membership['role']>('EMPLOYEE');
+
     const [editingRole, setEditingRole] = useState<Membership['role']>('EMPLOYEE');
     
     const [loading, setLoading] = useState(false);
@@ -54,26 +55,19 @@ const UserSettings = ({ allMemberships, refreshData }: UserSettingsProps) => {
     }, [allMemberships, currentOrgId]);
 
 
+    // **שינוי:** handleCloseInviteModal מנקה רק את error
     const handleCloseInviteModal = () => {
         setIsInviteModalOpen(false);
         setError('');
-        setInviteFullName('');
-        setInvitePhone('');
-        setInviteJobTitle('');
-        setInviteRole('EMPLOYEE');
+        // ה-state של הטופס ינוקה בתוך InviteUserForm עצמו
     };
 
-    const handleInviteUser = async (e: React.FormEvent) => {
-        e.preventDefault();
+    // **שינוי:** handleInviteUser מקבל את הנתונים ישירות מהטופס**
+    const handleInviteUser = async (data: { fullName: string; phone: string; jobTitle: string; role: Membership['role'] }) => {
         setLoading(true);
         setError('');
         try {
-            await api.inviteUser({
-                fullName: inviteFullName,
-                phone: invitePhone,
-                jobTitle: inviteJobTitle,
-                role: inviteRole
-            });
+            await api.inviteUser(data); // העבר את הנתונים ישירות
             await refreshData();
             handleCloseInviteModal();
         } catch (err) {
@@ -124,9 +118,9 @@ const UserSettings = ({ allMemberships, refreshData }: UserSettingsProps) => {
     };
 
     const currentUserRoleValue = roleHierarchy[currentUserRole || 'EMPLOYEE'];
-    const availableRolesForInvite = Object.entries(roleHierarchy)
+    const availableRolesForInvite = useMemo(() => Object.entries(roleHierarchy)
         .filter(([, value]) => value < currentUserRoleValue)
-        .map(([key]) => key as Membership['role']);
+        .map(([key]) => key as Membership['role']), [currentUserRoleValue]);
     
     const renderUserTable = () => (
         <div className="overflow-x-auto">
@@ -190,45 +184,26 @@ const UserSettings = ({ allMemberships, refreshData }: UserSettingsProps) => {
             </div>
 
             {/* Invite User Modal */}
-            <Modal isOpen={isInviteModalOpen} onClose={handleCloseInviteModal} titleId={inviteModalTitleId}>
-                <form onSubmit={handleInviteUser} className="space-y-4" key="invite-user-form">
-                     <h3 id={inviteModalTitleId} className="text-lg font-bold text-gray-800">הזמנת משתמש חדש</h3>
-                     {error && <p className="text-red-500 text-sm">{error}</p>}
-                     <div>
-                        <label htmlFor="invite-fullName" className="block text-sm font-medium text-gray-700">שם מלא</label>
-                        <input type="text" id="invite-fullName" value={inviteFullName} onChange={e => setInviteFullName(e.target.value)} required className="mt-1 w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#4A2B2C] focus:border-[#4A2B2C]"/>
-                     </div>
-                     <div>
-                        <label htmlFor="invite-phone" className="block text-sm font-medium text-gray-700">מספר טלפון</label>
-                        <input type="tel" id="invite-phone" value={invitePhone} onChange={e => setInvitePhone(e.target.value)} required className="mt-1 w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#4A2B2C] focus:border-[#4A2B2C]"/>
-                     </div>
-                      <div>
-                        <label htmlFor="invite-jobTitle" className="block text-sm font-medium text-gray-700">תפקיד</label>
-                        <input type="text" id="invite-jobTitle" value={inviteJobTitle} onChange={e => setInviteJobTitle(e.target.value)} required className="mt-1 w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#4A2B2C] focus:border-[#4A2B2C]"/>
-                     </div>
-                     <div>
-                        <label htmlFor="invite-role" className="block text-sm font-medium text-gray-700">הרשאה</label>
-                        <select id="invite-role" value={inviteRole} onChange={e => setInviteRole(e.target.value as Membership['role'])} className="mt-1 w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#4A2B2C] focus:border-[#4A2B2C]">
-                           {availableRolesForInvite.map(r => <option key={r} value={r}>{r}</option>)}
-                        </select>
-                     </div>
-                     <div className="flex justify-end space-x-2 space-x-reverse pt-2">
-                        <button type="button" onClick={handleCloseInviteModal} className="px-4 py-2 bg-gray-200 rounded-md">ביטול</button>
-                        <button type="submit" disabled={loading} className="px-4 py-2 bg-[#4A2B2C] text-white rounded-md disabled:opacity-50">
-                            {loading ? 'שולח...' : 'שלח הזמנה'}
-                        </button>
-                     </div>
-                </form>
+            <Modal isOpen={isInviteModalOpen} onClose={handleCloseInviteModal} titleId={inviteModalTitleId} title="הזמנת משתמש חדש">
+                {/* **שינוי כאן:** שימוש בקומפוננטה החדשה */}
+                <InviteUserForm
+                    onSubmit={handleInviteUser}
+                    onCancel={handleCloseInviteModal}
+                    loading={loading}
+                    error={error}
+                    availableRoles={availableRolesForInvite}
+                    titleId={inviteModalTitleId} // העבר את titleId לקומפוננטת הטופס אם תרצה שהיא תטפל בכותרת
+                />
             </Modal>
 
             {/* Edit User Modal */}
             <Modal isOpen={!!userToEdit} onClose={handleCloseEditModal} titleId={editModalTitleId}>
-                 {userToEdit && (
+                {userToEdit && (
                     <form onSubmit={handleEditUserRole} className="space-y-4" key={userToEdit.id}>
-                         <h3 id={editModalTitleId} className="text-lg font-bold text-gray-800">עריכת הרשאה עבור: {userToEdit.fullName}</h3>
-                         <p className="text-sm text-gray-600">משתמש זה כרגע בתפקיד: {userToEdit.role}.</p>
-                         {error && <p className="text-red-500 text-sm">{error}</p>}
-                         <div>
+                        <h3 id={editModalTitleId} className="text-lg font-bold text-gray-800">עריכת הרשאה עבור: {userToEdit.fullName}</h3>
+                        <p className="text-sm text-gray-600">משתמש זה כרגע בתפקיד: {userToEdit.role}.</p>
+                        {error && <p className="text-red-500 text-sm">{error}</p>}
+                        <div>
                             <label htmlFor="edit-role" className="block text-sm font-medium text-gray-700">הרשאה חדשה</label>
                             <select
                                 id="edit-role"
@@ -236,22 +211,22 @@ const UserSettings = ({ allMemberships, refreshData }: UserSettingsProps) => {
                                 onChange={e => setEditingRole(e.target.value as Membership['role'])}
                                 className="mt-1 w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#4A2B2C] focus:border-[#4A2B2C]"
                             >
-                               {availableRolesForInvite.map(r => <option key={r} value={r}>{r}</option>)}
+                                {availableRolesForInvite.map(r => <option key={r} value={r}>{r}</option>)}
                             </select>
-                         </div>
-                         <div className="flex justify-end space-x-2 space-x-reverse pt-2">
+                        </div>
+                        <div className="flex justify-end space-x-2 space-x-reverse pt-2">
                             <button type="button" onClick={handleCloseEditModal} className="px-4 py-2 bg-gray-200 rounded-md">ביטול</button>
                             <button type="submit" disabled={loading} className="px-4 py-2 bg-[#4A2B2C] text-white rounded-md disabled:opacity-50">
                                 {loading ? 'שומר...' : 'שמור שינויים'}
                             </button>
-                         </div>
+                        </div>
                     </form>
-                 )}
+                )}
             </Modal>
 
             {/* Remove User Confirmation */}
-            <ConfirmationModal 
-                isOpen={!!userToRemove} 
+            <ConfirmationModal
+                isOpen={!!userToRemove}
                 onClose={() => setUserToRemove(null)}
                 onConfirm={confirmRemoveUser}
                 title="אישור הסרת משתמש"

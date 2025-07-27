@@ -1,3 +1,4 @@
+// src/services/api.ts
 
 import { Organization, Project, Task, FinanceEntry, FinanceSummary, PaginatedResponse, User, Membership, Team, Conversation, Message, Comment, ProjectPayload, TaskPayload, TeamPayload } from '../types';
 
@@ -46,53 +47,71 @@ const buildQueryString = (params: Record<string, any>): string => {
     return queryString ? `?${queryString}` : '';
 }
 
-export const createOrganization = (data: { name: string }): Promise<Organization> => {
-    return fetch(`${BASE_URL}/organizations`, { // נקודת הקצה תלויה ב-backend שלך
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(data),
-    }).then(handleResponse);
-};
-
 
 // AUTH
-export const register = (data: { fullName: string; phone: string; organizationName: string; }) => 
+export const register = (data: { fullName: string; phone: string; organizationName: string; }) =>
   fetch(`${BASE_URL}/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   }).then(handleResponse);
 
-export const sendOtp = (phone: string) => 
+export const sendOtp = (phone: string) =>
   fetch(`${BASE_URL}/auth/otp/send`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ phone }),
   }).then(handleResponse);
 
-export const verifyOtp = (phone: string, otpCode: string): Promise<{ token: string, user: User, memberships: Membership[] }> => 
+export const verifyOtp = (phone: string, otpCode: string): Promise<{ token: string, user: User, memberships: Membership[] }> =>
   fetch(`${BASE_URL}/auth/otp/verify`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ phone, otpCode }),
   }).then(handleResponse);
 
-export const getMyMemberships = (): Promise<Membership[]> => 
+export const getMyMemberships = (): Promise<Membership[]> =>
   fetch(`${BASE_URL}/auth/me/memberships`, {
     headers: getAuthHeaders(),
   }).then(handleResponse);
 
-export const getMyProfile = (): Promise<User> => 
+export const getMyProfile = (): Promise<User> =>
   fetch(`${BASE_URL}/auth/me`, {
     headers: getAuthHeaders(),
   }).then(handleResponse);
-  
+
 export const updateMyProfile = (data: Partial<User>): Promise<User> =>
   fetch(`${BASE_URL}/auth/me`, {
     method: 'PUT',
     headers: getAuthHeaders(),
     body: JSON.stringify(data),
   }).then(handleResponse);
+
+// ORGANIZATIONS **הסעיף הזה חסר בקובץ שלך**
+export const createOrganization = (data: { name: string }): Promise<Organization> => {
+  return fetch(`${BASE_URL}/organizations`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  }).then(handleResponse);
+};
+
+export const updateOrganization = (id: string, data: { name: string }): Promise<Organization> => {
+  return fetch(`${BASE_URL}/organizations/${id}`, {
+    method: 'PATCH', // או PUT, תלוי בהגדרת ה-backend
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  }).then(handleResponse);
+};
+
+export const deleteOrganization = (id: string): Promise<{ message: string }> => {
+  return fetch(`${BASE_URL}/organizations/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  }).then(handleResponse);
+};
+// סוף סעיף ORGANIZATIONS
+
 
 // PROJECTS
 export const getProjects = (page = 1, limit = 25, sortBy?: string, sortOrder?: 'asc' | 'desc'): Promise<PaginatedResponse<Project>> => {
@@ -109,7 +128,7 @@ export const createProject = (projectData: ProjectPayload): Promise<Project> => 
       body: JSON.stringify(projectData),
     }).then(handleResponse);
 };
-  
+
 export const updateProject = (projectId: string, projectData: Partial<ProjectPayload>): Promise<Project> => {
     return fetch(`${BASE_URL}/projects/${projectId}`, {
       method: 'PUT',
@@ -117,7 +136,7 @@ export const updateProject = (projectId: string, projectData: Partial<ProjectPay
       body: JSON.stringify(projectData),
     }).then(handleResponse);
 };
-  
+
 export const archiveProject = (projectId: string, isArchived: boolean): Promise<Project> =>
   fetch(`${BASE_URL}/projects/${projectId}`, {
     method: 'PATCH',
@@ -140,13 +159,13 @@ export const getTasksForProject = (projectId: string, page = 1, limit = 25, sort
   }).then(handleResponse);
 }
 
-export const createTask = (projectId: string, taskData: TaskPayload): Promise<Task> => 
+export const createTask = (projectId: string, taskData: TaskPayload): Promise<Task> =>
   fetch(`${BASE_URL}/projects/${projectId}/tasks`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify(taskData),
   }).then(handleResponse);
-  
+
 export const updateTask = (projectId: string, taskId: string, taskData: Partial<TaskPayload>): Promise<Task> =>
     fetch(`${BASE_URL}/projects/${projectId}/tasks/${taskId}`, {
         method: 'PUT',
@@ -169,7 +188,7 @@ export const addTaskComment = (projectId: string, taskId: string, content: strin
 
 
 // FINANCE API
-export const getFinanceSummary = (projectId: string = 'all'): Promise<FinanceSummary> => 
+export const getFinanceSummary = (projectId: string = 'all'): Promise<FinanceSummary> =>
   fetch(`${BASE_URL}/finance/summary?projectId=${projectId}`, {
     headers: getAuthHeaders()
   }).then(handleResponse);
@@ -186,7 +205,7 @@ export const createFinanceEntry = (entryData: Omit<FinanceEntry, 'id' | 'created
     headers: getAuthHeaders(),
     body: JSON.stringify(entryData),
   }).then(handleResponse);
-  
+
 // USERS & TEAMS
 export const getUsersInOrg = (page = 1, limit = 25, sortBy?: string, sortOrder?: 'asc' | 'desc'): Promise<PaginatedResponse<Membership>> => {
     const query = buildQueryString({ page, limit, sortBy, sortOrder });
@@ -198,7 +217,7 @@ export const inviteUser = (data: { fullName: string; phone: string; jobTitle: st
     headers: getAuthHeaders(),
     body: JSON.stringify(data),
   }).then(handleResponse);
-  
+
 export const updateUserRole = (userId: string, role: Membership['role']): Promise<Membership> =>
   fetch(`${BASE_URL}/users/${userId}/membership`, {
     method: 'PUT',
@@ -222,7 +241,7 @@ export const createTeam = (teamData: TeamPayload): Promise<Team> =>
     headers: getAuthHeaders(),
     body: JSON.stringify(teamData),
   }).then(handleResponse);
-  
+
 export const updateTeam = (teamId: string, teamData: Partial<TeamPayload>): Promise<Team> =>
   fetch(`${BASE_URL}/teams/${teamId}`, {
     method: 'PUT',
@@ -235,11 +254,11 @@ export const deleteTeam = (teamId: string): Promise<void> =>
     method: 'DELETE',
     headers: getAuthHeaders(),
   }).then(handleResponse);
-  
+
 // CONVERSATIONS
 export const getConversations = (): Promise<Conversation[]> =>
   fetch(`${BASE_URL}/conversations`, { headers: getAuthHeaders() }).then(handleResponse);
-  
+
 export const createConversation = (data: { type: 'private' | 'group', participantIds: string[], name?: string, avatarUrl?: string }): Promise<Conversation> =>
   fetch(`${BASE_URL}/conversations`, {
     method: 'POST',

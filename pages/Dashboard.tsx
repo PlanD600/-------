@@ -13,6 +13,8 @@ const Dashboard = () => {
     const [currentView, setCurrentView] = useState<'dashboard' | 'projectDetail' | 'settings'>('dashboard');
     const [socket, setSocket] = useState<Socket | null>(null);
 
+    const [activeSettingsCategory, setActiveSettingsCategory] = useState('profile');
+
     // State management for data from the API
     const [projects, setProjects] = useState<Project[]>([]);
     const [teams, setTeams] = useState<Team[]>([]);
@@ -140,6 +142,8 @@ const Dashboard = () => {
             teams={teams}
             allMemberships={orgMembers}
             refreshData={fetchData}
+            activeCategory={activeSettingsCategory}
+            setActiveCategory={setActiveSettingsCategory}
         />;
     }
 
