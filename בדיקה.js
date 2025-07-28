@@ -1,9 +1,9 @@
-import React, { useState, useMemo, useId, Dispatch, SetStateAction } from 'react'; // <-- שינוי כאן: הוספת Dispatch ו-SetStateAction לייבוא
+import React, { useState, useMemo, useId } from 'react';
 import { Project, ProjectStatus, User, Team, ProjectPayload, TeamPayload } from '../../types';
 import * as api from '../../services/api';
 import ProjectCard from '../../components/ProjectCard';
 import Modal from '../../components/Modal';
-import { PlusIcon } from '../../components/icons';
+import { PlusIcon } = from '../../components/icons';
 import ProjectTasksModal from '../../components/ProjectTasksModal';
 import AddProjectForm from '../../components/AddProjectForm';
 import EditProjectForm from '../../components/EditProjectForm';
@@ -11,16 +11,12 @@ import ConfirmationModal from '../../components/ConfirmationModal';
 import TeamForm from '../../components/TeamForm';
 import { useAuth } from '../../hooks/useAuth';
 
-// שינוי 1: עדכון הממשק (Interface) של הפרופס
 interface OverviewTabProps {
     projects: Project[];
     teamLeads: User[];
     users: User[];
     teams: Team[];
     refreshData: () => void;
-    // פרופסים חדשים שיגיעו מ-Dashboard דרך TabView
-    projectsView: 'active' | 'archived'; // מצב התצוגה הנוכחי (פעילים/ארכיון)
-    setProjectsView: Dispatch<SetStateAction<'active' | 'archived'>>; // פונקציה לעדכון מצב התצוגה
 }
 
 const FilterSelect = ({ label, value, onChange, options, defaultOption, id }: { id: string, label: string, value: string, onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void, options: string[], defaultOption: string }) => (
@@ -38,7 +34,6 @@ const FilterSelect = ({ label, value, onChange, options, defaultOption, id }: { 
     </div>
 );
 
-// קומפוננטת Toggle ללא שינוי מהותי, רק קבלה של פרופסים חדשים
 const ViewToggle = ({ view, setView, labelledby }: { view: 'active' | 'archived', setView: (view: 'active' | 'archived') => void, labelledby: string }) => (
     <div role="radiogroup" aria-labelledby={labelledby} className="flex items-center rounded-lg bg-gray-200 p-1">
         <button
@@ -60,8 +55,7 @@ const ViewToggle = ({ view, setView, labelledby }: { view: 'active' | 'archived'
     </div>
 );
 
-// שינוי 2: קבלת פרופסים חדשים ב-OverviewTab
-const OverviewTab = ({ projects, teamLeads, users, teams, refreshData, projectsView, setProjectsView }: OverviewTabProps) => {
+const OverviewTab = ({ projects, teamLeads, users, teams, refreshData }: OverviewTabProps) => {
     const { user, currentUserRole } = useAuth();
     const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] = useState(false);
     const [isCreateTeamModalOpen, setIsCreateTeamModalOpen] = useState(false);
@@ -71,7 +65,7 @@ const OverviewTab = ({ projects, teamLeads, users, teams, refreshData, projectsV
 
     const [statusFilter, setStatusFilter] = useState('all');
     const [teamFilter, setTeamFilter] = useState('all');
-    // מ ה ק נ ו את השורה הזו: const [view, setView] = useState<'active' | 'archived'>('active');
+    const [view, setView] = useState<'active' | 'archived'>('active');
     
     const viewToggleLabelId = useId();
     const createProjectModalTitleId = useId();
@@ -85,17 +79,16 @@ const OverviewTab = ({ projects, teamLeads, users, teams, refreshData, projectsV
     const projectStatuses: ProjectStatus[] = ['מתוכנן', 'בתהליך', 'לקראת סיום', 'בסיכון', 'מוקפא', 'הושלם'];
     const projectTeams = useMemo(() => Array.from(new Set(projects.flatMap(p => p.team?.map(t => t.name) || []))), [projects]);
 
-    // שינוי 3: השתמש ב-projectsView במקום view ב-useMemo
     const filteredProjects = useMemo(() => {
         console.log("OverviewTab: Re-calculating filteredProjects.");
         console.log("OverviewTab: Current projects prop:", projects);
-        console.log("OverviewTab: Current projectsView state (from prop):", projectsView); // שינה את שם הלוג
+        console.log("OverviewTab: Current view state:", view);
 
         return projects
-            .filter(p => (projectsView === 'active' ? !p.isArchived : p.isArchived)) // השתמש ב-projectsView
+            .filter(p => (view === 'active' ? !p.isArchived : p.isArchived))
             .filter(p => statusFilter === 'all' || p.status === statusFilter)
             .filter(p => teamFilter === 'all' || p.team.some(t => t.name === teamFilter));
-    }, [projects, projectsView, statusFilter, teamFilter]); // עדכן את התלויות
+    }, [projects, view, statusFilter, teamFilter]);
 
     const handleCreateProject = async (projectData: ProjectPayload) => {
         try {
@@ -125,10 +118,6 @@ const OverviewTab = ({ projects, teamLeads, users, teams, refreshData, projectsV
             await api.updateProject(projectToEdit.id, updatedData);
             refreshData();
             setProjectToEdit(null);
-            // אם אתה רוצה שהלשונית תעבור למצב "פעילים" אם הפרויקט לא מאורכב,
-            // או "ארכיון" אם הוא מאורכב, הוסף:
-            // setProjectsView(projectToEdit.isArchived ? 'archived' : 'active');
-            // אחרת, אין צורך לעדכן כאן, והטאב יישאר במקום.
         } catch (error) {
             console.error("Failed to update project:", error);
             alert(`Error: ${(error as Error).message}`);
@@ -142,17 +131,16 @@ const OverviewTab = ({ projects, teamLeads, users, teams, refreshData, projectsV
         }
     };
     
-    // שינוי 4: עדכון handleArchive להשתמש ב-setProjectsView
     const handleArchive = async (id: string) => {
         const project = projects.find(p => p.id === id);
         if (!project) return;
         try {
-            const newIsArchivedStatus = !project.isArchived; 
+            const newIsArchivedStatus = !project.isArchived; // שמור את הסטטוס החדש
             await api.archiveProject(id, newIsArchivedStatus);
             console.log(`OverviewTab: Archive/Unarchive API call completed for project ${id}. Calling refreshData.`); 
             refreshData();
-            console.log("OverviewTab: Setting projectsView to:", newIsArchivedStatus ? 'archived' : 'active');
-            setProjectsView(newIsArchivedStatus ? 'archived' : 'active'); // השתמש בפונקציה מהפרופס
+            // שינוי קריטי: שנה את מצב התצוגה בהתאם לפעולה
+            setView(newIsArchivedStatus ? 'archived' : 'active'); // <-- הוסף/שנה שורה זו
         } catch (error) {
              console.error("Failed to archive project:", error);
             alert(`Error: ${(error as Error).message}`);
@@ -169,8 +157,6 @@ const OverviewTab = ({ projects, teamLeads, users, teams, refreshData, projectsV
                 await api.deleteProject(projectToDeleteId);
                 refreshData();
                 setProjectToDeleteId(null);
-                // לאחר מחיקה, אין צורך לשנות את ה-projectsView, כי הפרויקט כבר לא קיים
-                // והטאב הנוכחי אמור להישאר במקומו.
             } catch (error) {
                 console.error("Failed to delete project:", error);
                 alert(`Error: ${(error as Error).message}`);
@@ -196,8 +182,7 @@ const OverviewTab = ({ projects, teamLeads, users, teams, refreshData, projectsV
                     <div className="flex items-center gap-x-4">
                         <h2 className="text-2xl font-bold text-gray-800">כל הפרויקטים</h2>
                         <span id={viewToggleLabelId} className="sr-only">בחר תצוגת פרויקטים</span>
-                        {/* שינוי 5: העברת פרופסים חדשים ל-ViewToggle */}
-                        <ViewToggle view={projectsView} setView={setProjectsView} labelledby={viewToggleLabelId} /> 
+                        <ViewToggle view={view} setView={setView} labelledby={viewToggleLabelId} />
                     </div>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                         <FilterSelect id={statusFilterId} label="סינון לפי סטטוס" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} options={projectStatuses} defaultOption="כל הסטטוסים" />

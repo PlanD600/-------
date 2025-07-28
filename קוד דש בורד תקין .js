@@ -23,63 +23,42 @@ const Dashboard = () => {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('סקירה כללית');
-    const [projectsView, setProjectsView] = useState<'active' | 'archived'>('active'); // <-- הוסף שורה זו
-
 
     // עוטפים את fetchData ב-useCallback כדי למנוע יצירה מחדש של הפונקציה בכל רינדור
-    const fetchData = useCallback(async (signal?: AbortSignal) => {
-        if (!currentOrgId) {
-            setProjects([]); // נקה פרויקטים אם אין ארגון נבחר
-            setTeams([]);
-            setOrgMembers([]);
-            setConversations([]);
-            setLoading(false);
-            return;
-        }
+    const fetchData = useCallback(async () => {
+        if (!currentOrgId) return;
         setLoading(true);
-        console.log("Fetching latest data from server...");
+        console.log("Fetching latest data from server..."); // נוספה הדפסה לבדיקה
         try {
             const [projectsResponse, teamsResponse, orgMembersResponse, conversationsData] = await Promise.all([
-                api.getProjects(1, 25, undefined, undefined, signal),
-                api.getTeams(1, 25, undefined, undefined, signal),
-                api.getUsersInOrg(1, 25, undefined, undefined, signal),
-                api.getConversations(signal),
+                api.getProjects(),
+                api.getTeams(),
+                api.getUsersInOrg(),
+                api.getConversations(),
             ]);
             setProjects(projectsResponse.data);
-            console.log("Projects after refresh (from server):", projectsResponse.data);
+            console.log("Projects after refresh (from server):", projectsResponse.data); // <--- הוסף את השורה הזו
 
             setTeams(teamsResponse.data);
             setOrgMembers(orgMembersResponse.data);
             setConversations(conversationsData);
-        } catch (error: any) {
-            if (error.name === 'AbortError') {
-                console.log('Fetch aborted by user/component unmount:', error.message);
-                return; // התעלם משגיאות שנובעות מביטול מכוון של קריאה
-            }
+        } catch (error) {
             console.error("Failed to fetch dashboard data:", error);
             // Optionally, show an error message to the user
         } finally {
             setLoading(false);
         }
-    }, [currentOrgId, activeTab, projectsView]); // <-- הוסף את projectsView כאן
+    }, [currentOrgId]); // התלות נשארת currentOrgId
 
-    // שינוי: useEffect זה יכיל את ה-AbortController, והתלות `fetchData` הוסרה
+    // useEffect זה יפעל רק פעם אחת כשהארגון משתנה, וגם בכל פעם שהטאב משתנה
     useEffect(() => {
-        console.log('Dashboard useEffect triggered');
-        console.log('currentOrgId:', currentOrgId);
+        console.log('Dashboard useEffect triggered'); // הוסף את השורה הזו
+        console.log('currentOrgId:', currentOrgId); // הוסף את השורה הזו
         console.log('activeTab:', activeTab);
+        fetchData();
+    }, [currentOrgId, activeTab]); // הוספנו את activeTab ו-fetchData כתלויות
 
-        const abortController = new AbortController(); // יצירת AbortController חדש
-        fetchData(abortController.signal); // קריאה ל-fetchData והעברת ה-signal
-
-        return () => { // פונקציית ניקוי עבור useEffect
-            console.log("Dashboard useEffect cleanup: Aborting fetch requests.");
-            abortController.abort(); // ביטול כל קריאות ה-fetch שעדיין רצות
-        };
-        // השינוי המרכזי כאן: הסרת `fetchData` ממערך התלויות
-    }, [currentOrgId, activeTab]);
-
-    // WebSocket connection - ללא שינוי, כי ה-AbortController לא משפיע על סוקטים
+    // WebSocket connection - ללא שינוי
     useEffect(() => {
         if (!currentOrgId || !user) return;
 
@@ -164,7 +143,7 @@ const Dashboard = () => {
             users={usersInOrg}
             teams={teams}
             allMemberships={orgMembers}
-            refreshData={() => fetchData(new AbortController().signal)} // עדכון כאן
+            refreshData={fetchData}
             activeCategory={activeSettingsCategory}
             setActiveCategory={setActiveSettingsCategory}
         />;
@@ -178,9 +157,12 @@ const Dashboard = () => {
                 setNotifications={setNotifications}
             />
             <main className="flex-1 overflow-y-auto">
+                {/* חשוב לוודא שהקומפוננטה TabView מקבלת את 
+                  activeTab ו-setActiveTab כ-props כדי שהיא תוכל לעדכן את ה-state כאן
+                */}
                 <TabView
                     activeTab={activeTab}
-                    onTabChange={setActiveTab}
+                    onTabChange={setActiveTab} // הוספנו onTabChange
                     projects={projects}
                     teamMembers={teamMembers}
                     teamLeads={teamLeads}
@@ -190,9 +172,7 @@ const Dashboard = () => {
                     conversations={conversations}
                     setConversations={setConversations}
                     socket={socket}
-                    refreshData={() => fetchData(new AbortController().signal)}
-                    projectsView={projectsView}
-                    setProjectsView={setProjectsView}
+                    refreshData={fetchData}
                 />
             </main>
         </div>
