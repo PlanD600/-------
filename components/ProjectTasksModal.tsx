@@ -1,5 +1,3 @@
-
-
 import React, { useState, useId, useEffect } from 'react';
 import { Project, Task, TaskStatus, User, TaskPayload } from '../types';
 import * as api from '../services/api';
@@ -74,22 +72,29 @@ const ProjectTasksModal = ({ isOpen, project, onClose, users, refreshProject }: 
     return (
         <>
             <Modal isOpen={isOpen} onClose={onClose} titleId={mainModalTitleId}>
-                <div className="p-2 flex flex-col max-h-[85vh]">
-                    <div className="flex justify-between items-start mb-4 pb-4 border-b border-gray-200">
-                        <h3 id={mainModalTitleId} className="text-xl font-bold text-[#3D2324] truncate pr-4">{project.title}</h3>
+                {/* שינוי 1: הסרנו את ה-p-2 והשארנו flex flex-col max-h-[85vh] */}
+                <div className="flex flex-col max-h-[85vh]">
+                    {/* שינוי 2: הוספנו px-4 (padding אופקי) לכותרת */}
+                    <div className="flex justify-between items-start mb-4 pb-4 border-b border-gray-200 px-4">
+                        <h3 id={mainModalTitleId} className="text-xl font-bold text-[#3D2324] flex-1 truncate pr-4">
+                            {project.title}
+                        </h3>
                         <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-200 flex-shrink-0">
                             <CloseIcon className="w-6 h-6"/>
                         </button>
                     </div>
 
+                    {/* שינוי 3: ה-p-4 כבר קיים כאן וזה טוב */}
                     <div className="mb-4 p-4 bg-gray-50 rounded-lg text-sm">
-                        <p className="text-gray-600 mb-3">{project.description || 'אין תיאור לפרויקט זה.'}</p>
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                        <p className="text-gray-600 mb-3 overflow-y-auto max-h-[100px] pr-2 break-words">
+                            {project.description || 'אין תיאור לפרויקט זה.'}
+                        </p>
+                        <div className="grid grid-cols-1 gap-y-2 mt-4">
                             <InfoItem label="סטטוס" value={project.status} />
-                            <InfoItem label="צוות" value={project.team?.map(t => t.name).join(', ') || 'לא משויך'} />
+                            <InfoItem label="צוות" value={<span className="whitespace-normal break-words">{project.team?.map(t => t.name).join(', ') || 'לא משויך'}</span>} />
                             <InfoItem 
                                 label={project.teamLeads && project.teamLeads.length > 1 ? "ראשי צוות" : "ראש צוות"} 
-                                value={project.teamLeads && project.teamLeads.length > 0 ? project.teamLeads.map(u => u.fullName).join(', ') : 'לא צוין'}
+                                value={<span className="whitespace-normal break-words">{project.teamLeads && project.teamLeads.length > 0 ? project.teamLeads.map(u => u.fullName).join(', ') : 'לא צוין'}</span>}
                             />
                              <InfoItem 
                                 label="תקופה"
@@ -98,7 +103,8 @@ const ProjectTasksModal = ({ isOpen, project, onClose, users, refreshProject }: 
                         </div>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto space-y-3 pr-2">
+                    {/* שינוי 4: הוספנו px-4 לבלוק המשימות */}
+                    <div className="flex-1 overflow-y-auto space-y-3 px-4 pr-2"> {/* שימו לב ל-px-4 */}
                         {isLoading ? (
                             <p className="text-center text-gray-500 py-8">טוען משימות...</p>
                         ) : tasks.length > 0 ? (
@@ -107,15 +113,19 @@ const ProjectTasksModal = ({ isOpen, project, onClose, users, refreshProject }: 
                                 return (
                                     <div key={task.id} className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
                                         <div className="flex justify-between items-start">
-                                            <p className="font-semibold text-gray-800 flex-1 pr-2">{task.title}</p>
+                                            <p className="font-semibold text-gray-800 flex-1 pr-2 truncate">
+                                                {task.title}
+                                            </p>
                                             <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full flex-shrink-0 ${style.bg} ${style.text}`}>
                                                 {task.status}
                                             </span>
                                         </div>
-                                        <p className="text-sm text-gray-500 mt-1">{task.description}</p>
+                                        <p className="text-sm text-gray-500 mt-1 overflow-y-auto max-h-[60px] pr-2 break-words">
+                                            {task.description}
+                                        </p>
                                         <div className="mt-2 pt-2 border-t border-gray-100 text-xs">
                                             <span className="text-gray-500">משויך ל: </span>
-                                            <span className="font-medium text-gray-700">
+                                            <span className="font-medium text-gray-700 whitespace-normal break-words">
                                                 {task.assignees && task.assignees.length > 0 ? task.assignees.map(u => u.fullName).join(', ') : 'טרם שויך'}
                                             </span>
                                         </div>
@@ -127,7 +137,8 @@ const ProjectTasksModal = ({ isOpen, project, onClose, users, refreshProject }: 
                         )}
                     </div>
 
-                    <div className="mt-4 pt-4 border-t border-gray-200">
+                    {/* שינוי 5: הוספנו px-4 לכפתור הוסף משימה */}
+                    <div className="mt-4 pt-4 border-t border-gray-200 px-4">
                         <button
                             onClick={() => setIsAddTaskModalOpen(true)}
                             className="w-full flex items-center justify-center space-x-2 space-x-reverse bg-[#4A2B2C] text-white px-4 py-2 rounded-lg shadow hover:bg-opacity-90 transition-colors"
