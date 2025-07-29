@@ -199,7 +199,7 @@ const ChatTab = ({ conversations, setConversations, users, socket }: ChatTabProp
                 avatar: conv.avatarUrl || `https://i.pravatar.cc/150?u=${conv.id}`
             };
         }
-        const otherParticipant = conv.participants.find(p => p.id !== currentUser.id);
+        const otherParticipant = conv.participants && conv.participants.find(p => p.id !== currentUser.id);
         return {
             name: otherParticipant?.fullName || 'משתמש לא ידוע',
             avatar: otherParticipant?.profilePictureUrl || `https://i.pravatar.cc/150?u=${otherParticipant?.id}`
