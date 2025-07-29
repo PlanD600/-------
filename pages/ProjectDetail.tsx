@@ -1,9 +1,8 @@
-import React from 'react';
 import { Project } from '../types';
 import { ChevronLeftIcon } from '../components/icons';
 
 interface ProjectDetailProps {
-    project: Project | undefined;
+    project: Project | null;
     onBack: () => void;
 }
 

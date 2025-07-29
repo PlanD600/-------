@@ -1,286 +1,232 @@
-import React, { useState, useMemo, useId } from 'react';
-import { Project, ProjectStatus, User, Team, ProjectPayload, TeamPayload } from '../../types';
-import * as api from '../../services/api';
-import ProjectCard from '../../components/ProjectCard';
-import Modal from '../../components/Modal';
-import { PlusIcon } = from '../../components/icons';
-import ProjectTasksModal from '../../components/ProjectTasksModal';
-import AddProjectForm from '../../components/AddProjectForm';
-import EditProjectForm from '../../components/EditProjectForm';
-import ConfirmationModal from '../../components/ConfirmationModal';
-import TeamForm from '../../components/TeamForm';
-import { useAuth } from '../../hooks/useAuth';
+src/services/projectService.js
 
-interface OverviewTabProps {
-    projects: Project[];
-    teamLeads: User[];
-    users: User[];
-    teams: Team[];
-    refreshData: () => void;
-}
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 
-const FilterSelect = ({ label, value, onChange, options, defaultOption, id }: { id: string, label: string, value: string, onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void, options: string[], defaultOption: string }) => (
-    <div>
-        <label htmlFor={id} className="sr-only">{label}</label>
-        <select
-            id={id}
-            value={value}
-            onChange={onChange}
-            className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-[#4A2B2C] focus:border-[#4A2B2C] block w-full p-2"
-        >
-            <option value="all">{defaultOption}</option>
-            {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-        </select>
-    </div>
-);
+const getAllProjects = async (organizationId, userId, userRole, { page = 1, limit = 25, sortBy = 'createdAt', sortOrder = 'desc' }) => {
+    const offset = (page - 1) * limit;
 
-const ViewToggle = ({ view, setView, labelledby }: { view: 'active' | 'archived', setView: (view: 'active' | 'archived') => void, labelledby: string }) => (
-    <div role="radiogroup" aria-labelledby={labelledby} className="flex items-center rounded-lg bg-gray-200 p-1">
-        <button
-            role="radio"
-            aria-checked={view === 'active'}
-            onClick={() => setView('active')}
-            className={`px-4 py-1 text-sm font-semibold rounded-md transition-colors ${view === 'active' ? 'bg-white shadow-sm text-[#4A2B2C]' : 'text-gray-600 hover:bg-gray-100'}`}
-        >
-            פעילים
-        </button>
-        <button
-            role="radio"
-            aria-checked={view === 'archived'}
-            onClick={() => setView('archived')}
-            className={`px-4 py-1 text-sm font-semibold rounded-md transition-colors ${view === 'archived' ? 'bg-white shadow-sm text-[#4A2B2C]' : 'text-gray-600 hover:bg-gray-100'}`}
-        >
-            ארכיון
-        </button>
-    </div>
-);
+    let whereClause = {
+        organizationId: organizationId,
+    };
 
-const OverviewTab = ({ projects, teamLeads, users, teams, refreshData }: OverviewTabProps) => {
-    const { user, currentUserRole } = useAuth();
-    const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] = useState(false);
-    const [isCreateTeamModalOpen, setIsCreateTeamModalOpen] = useState(false);
-    const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-    const [projectToEdit, setProjectToEdit] = useState<Project | null>(null);
-    const [projectToDeleteId, setProjectToDeleteId] = useState<string | null>(null);
+    if (userRole === 'EMPLOYEE') {
+        whereClause.projectTeamLeads = {
+            some: {
+                userId: userId,
+            },
+        };
+    }
 
-    const [statusFilter, setStatusFilter] = useState('all');
-    const [teamFilter, setTeamFilter] = useState('all');
-    const [view, setView] = useState<'active' | 'archived'>('active');
-    
-    const viewToggleLabelId = useId();
-    const createProjectModalTitleId = useId();
-    const createTeamModalTitleId = useId();
-    const editModalTitleId = useId();
-    const statusFilterId = useId();
-    const teamFilterId = useId();
+    const projects = await prisma.project.findMany({
+        where: whereClause,
+        skip: offset,
+        take: limit,
+        orderBy: {
+            [sortBy]: sortOrder,
+        },
+        include: {
+            // ================== התחלת התיקון ==================
+            tasks: {
+                // שינינו את ה-select כדי שיכלול את כל השדות הנדרשים לגאנט
+                select: {
+                    id: true,
+                    title: true,
+                    startDate: true,
+                    endDate: true,
+                    status: true,
+                    color: true,
+                    displayOrder: true,
+                    // חשוב לכלול גם את המשתמשים המשויכים כדי שנוכל לבדוק הרשאות
+                    assignees: {
+                        select: {
+                            user: {
+                                select: { id: true, fullName: true }
+                            }
+                        }
+                    }
+                },
+                orderBy: {
+                    displayOrder: 'asc' // מיון המשימות לפי הסדר שנקבע
+                }
+            },
+            // =================== סוף התיקון ===================
+            projectTeamLeads: {
+                include: {
+                    user: {
+                        select: { id: true, fullName: true, email: true, profilePictureUrl: true, jobTitle: true }
+                    }
+                }
+            },
+        },
+    });
 
-    const canManageOrg = currentUserRole === 'ADMIN' || currentUserRole === 'SUPER_ADMIN';
+    const formattedProjects = projects.map(project => {
+        // המרת המבנה של assignees למבנה שטוח יותר שהלקוח מצפה לו
+        const formattedTasks = project.tasks.map(task => ({
+            ...task,
+            assignees: task.assignees.map(a => a.user)
+        }));
 
-    const projectStatuses: ProjectStatus[] = ['מתוכנן', 'בתהליך', 'לקראת סיום', 'בסיכון', 'מוקפא', 'הושלם'];
-    const projectTeams = useMemo(() => Array.from(new Set(projects.flatMap(p => p.team?.map(t => t.name) || []))), [projects]);
+        return {
+            ...project,
+            tasks: formattedTasks, // שימוש במשימות המעובדות
+            teamLeads: project.projectTeamLeads.map(ptl => ptl.user),
+            projectTeamLeads: undefined,
+        };
+    });
 
-    const filteredProjects = useMemo(() => {
-        console.log("OverviewTab: Re-calculating filteredProjects.");
-        console.log("OverviewTab: Current projects prop:", projects);
-        console.log("OverviewTab: Current view state:", view);
+    const totalProjects = await prisma.project.count({
+        where: whereClause,
+    });
 
-        return projects
-            .filter(p => (view === 'active' ? !p.isArchived : p.isArchived))
-            .filter(p => statusFilter === 'all' || p.status === statusFilter)
-            .filter(p => teamFilter === 'all' || p.team.some(t => t.name === teamFilter));
-    }, [projects, view, statusFilter, teamFilter]);
+    const totalPages = Math.ceil(totalProjects / limit);
 
-    const handleCreateProject = async (projectData: ProjectPayload) => {
-        try {
-            await api.createProject(projectData);
-            refreshData();
-            setIsCreateProjectModalOpen(false);
-        } catch (error) {
-            console.error("Failed to create project:", error);
-            alert(`Error: ${(error as Error).message}`);
-        }
-    };
-
-    const handleCreateTeam = async (teamData: TeamPayload) => {
-        try {
-            await api.createTeam(teamData);
-            refreshData();
-            setIsCreateTeamModalOpen(false);
-        } catch (error) {
-            console.error("Failed to create team:", error);
-            alert(`Error: ${(error as Error).message}`);
-        }
-    };
-    
-    const handleUpdateProjectDetails = async (updatedData: Partial<ProjectPayload>) => {
-        if (!projectToEdit) return;
-        try {
-            await api.updateProject(projectToEdit.id, updatedData);
-            refreshData();
-            setProjectToEdit(null);
-        } catch (error) {
-            console.error("Failed to update project:", error);
-            alert(`Error: ${(error as Error).message}`);
-        }
-    };
-
-    const handleEdit = (id: string) => {
-        const project = projects.find(p => p.id === id);
-        if (project) {
-            setProjectToEdit(project);
-        }
-    };
-    
-    const handleArchive = async (id: string) => {
-        const project = projects.find(p => p.id === id);
-        if (!project) return;
-        try {
-            const newIsArchivedStatus = !project.isArchived; // שמור את הסטטוס החדש
-            await api.archiveProject(id, newIsArchivedStatus);
-            console.log(`OverviewTab: Archive/Unarchive API call completed for project ${id}. Calling refreshData.`); 
-            refreshData();
-            // שינוי קריטי: שנה את מצב התצוגה בהתאם לפעולה
-            setView(newIsArchivedStatus ? 'archived' : 'active'); // <-- הוסף/שנה שורה זו
-        } catch (error) {
-             console.error("Failed to archive project:", error);
-            alert(`Error: ${(error as Error).message}`);
-        }
-    };
-
-    const handleDelete = (id: string) => {
-        setProjectToDeleteId(id);
-    };
-
-    const confirmDelete = async () => {
-        if (projectToDeleteId) {
-            try {
-                await api.deleteProject(projectToDeleteId);
-                refreshData();
-                setProjectToDeleteId(null);
-            } catch (error) {
-                console.error("Failed to delete project:", error);
-                alert(`Error: ${(error as Error).message}`);
-            }
-        }
-    };
-    
-    const getProjectPermissions = (project: Project) => {
-        const isTeamLeadOfProject = currentUserRole === 'TEAM_LEADER' && project.teamLeads.some(lead => lead.id === user?.id);
-        const canEditOrArchive = canManageOrg || isTeamLeadOfProject;
-        const canDelete = canManageOrg;
-
-        return {
-            canEditOrArchive,
-            canDelete
-        };
-    };
-
-    return (
-        <div className="space-y-6">
-            <div className="flex flex-wrap gap-x-6 gap-y-4 justify-between items-center">
-                <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
-                    <div className="flex items-center gap-x-4">
-                        <h2 className="text-2xl font-bold text-gray-800">כל הפרויקטים</h2>
-                        <span id={viewToggleLabelId} className="sr-only">בחר תצוגת פרויקטים</span>
-                        <ViewToggle view={view} setView={setView} labelledby={viewToggleLabelId} />
-                    </div>
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                        <FilterSelect id={statusFilterId} label="סינון לפי סטטוס" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} options={projectStatuses} defaultOption="כל הסטטוסים" />
-                        <FilterSelect id={teamFilterId} label="סינון לפי צוות" value={teamFilter} onChange={(e) => setTeamFilter(e.target.value)} options={projectTeams} defaultOption="כל הצוותים" />
-                    </div>
-                </div>
-                 <div className="flex items-center space-x-2 space-x-reverse">
-                    {canManageOrg && (
-                        <>
-                            <button
-                                onClick={() => setIsCreateProjectModalOpen(true)}
-                                className="flex items-center space-x-2 space-x-reverse bg-[#4A2B2C] text-white px-4 py-2 rounded-lg shadow hover:bg-opacity-90 transition-colors"
-                            >
-                                <PlusIcon className="w-5 h-5" />
-                                <span>צור פרויקט</span>
-                            </button>
-                            <button
-                                onClick={() => setIsCreateTeamModalOpen(true)}
-                                className="flex items-center space-x-2 space-x-reverse bg-white text-[#4A2B2C] border border-gray-300 px-4 py-2 rounded-lg shadow-sm hover:bg-gray-50 transition-colors"
-                            >
-                                <PlusIcon className="w-5 h-5" />
-                                <span>צור צוות</span>
-                            </button>
-                        </>
-                    )}
-                </div>
-            </div>
-
-            {filteredProjects.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {filteredProjects.map(project => {
-                        const permissions = getProjectPermissions(project);
-                        return (
-                             <ProjectCard 
-                                key={project.id} 
-                                project={project}
-                                onClick={() => setSelectedProject(project)}
-                                onEdit={permissions.canEditOrArchive ? handleEdit : undefined}
-                                onArchive={permissions.canEditOrArchive ? handleArchive : undefined}
-                                onDelete={permissions.canDelete ? handleDelete : undefined}
-                            />
-                        )
-                    })}
-                </div>
-            ) : (
-                <div className="text-center py-16 px-4 bg-gray-50 rounded-2xl">
-                    <p className="text-gray-600">לא נמצאו פרויקטים התואמים את הסינון הנוכחי.</p>
-                    <p className="text-gray-400 text-sm mt-2">אפשר לשנות את אפשרויות הסינון או ליצור פרויקט חדש.</p>
-                </div>
-            )}
-
-            <Modal isOpen={isCreateProjectModalOpen} onClose={() => setIsCreateProjectModalOpen(false)} titleId={createProjectModalTitleId} size="md">
-                <AddProjectForm 
-                    titleId={createProjectModalTitleId}
-                    onSubmit={handleCreateProject}
-                    onCancel={() => setIsCreateProjectModalOpen(false)}
-                    teamLeads={teamLeads}
-                />
-            </Modal>
-            
-            <Modal isOpen={isCreateTeamModalOpen} onClose={() => setIsCreateTeamModalOpen(false)} titleId={createTeamModalTitleId}>
-                <TeamForm
-                    titleId={createTeamModalTitleId}
-                    users={users}
-                    onSubmit={handleCreateTeam}
-                    onCancel={() => setIsCreateTeamModalOpen(false)}
-                />
-            </Modal>
-            
-            <Modal isOpen={!!projectToEdit} onClose={() => setProjectToEdit(null)} titleId={editModalTitleId} size="md">
-                {projectToEdit && (
-                    <EditProjectForm
-                        titleId={editModalTitleId}
-                        project={projectToEdit}
-                        onSubmit={handleUpdateProjectDetails}
-                        onCancel={() => setProjectToEdit(null)}
-                        teamLeads={teamLeads}
-                    />
-                )}
-            </Modal>
-
-            <ProjectTasksModal
-                isOpen={!!selectedProject}
-                project={selectedProject}
-                onClose={() => setSelectedProject(null)}
-                refreshProject={refreshData}
-                users={users}
-            />
-
-            <ConfirmationModal
-                isOpen={!!projectToDeleteId}
-                onClose={() => setProjectToDeleteId(null)}
-                onConfirm={confirmDelete}
-                title="אישור מחיקה"
-                message="האם אתה בטוח שברצונך למחוק פרויקט זה? פעולה זו היא בלתי הפיכה."
-            />
-        </div>
-    );
+    return {
+        data: formattedProjects,
+        totalItems: totalProjects,
+        totalPages,
+        currentPage: page,
+    };
 };
 
-export default OverviewTab;
+
+// --- שאר הפונקציות בקובץ נשארות ללא שינוי ---
+// (הקוד המלא של שאר הפונקציות נמצא למטה)
+
+const createProject = async (organizationId, { title, description, teamLeads: teamLeadIds, startDate, endDate, budget }) => {
+    if (teamLeadIds && teamLeadIds.length > 0) {
+        const existingUsers = await prisma.user.findMany({
+            where: {
+                id: { in: teamLeadIds },
+                memberships: { some: { organizationId: organizationId } }
+            },
+            select: { id: true }
+        });
+        if (existingUsers.length !== teamLeadIds.length) {
+            throw new Error('One or more specified team leads are invalid or not members of this organization.');
+        }
+    }
+
+    const newProject = await prisma.project.create({
+        data: {
+            organizationId,
+            title,
+            description,
+            startDate: startDate ? new Date(startDate) : undefined,
+            endDate: endDate ? new Date(endDate) : undefined,
+            budget,
+            projectTeamLeads: {
+                create: teamLeadIds.map(userId => ({ userId }))
+            }
+        },
+        include: {
+            projectTeamLeads: { include: { user: true } },
+            tasks: true
+        }
+    });
+
+    return {
+        ...newProject,
+        teamLeads: newProject.projectTeamLeads.map(ptl => ptl.user),
+        projectTeamLeads: undefined,
+        team: []
+    };
+};
+
+const updateProject = async (projectId, organizationId, updateData) => {
+    const project = await prisma.project.findUnique({
+        where: { id: projectId, organizationId },
+    });
+
+    if (!project) {
+        throw new Error('Project not found in this organization.');
+    }
+
+    const { teamLeads: newTeamLeadIds, ...dataToUpdate } = updateData;
+
+    if (newTeamLeadIds !== undefined) {
+        const existingUsers = await prisma.user.findMany({
+            where: {
+                id: { in: newTeamLeadIds },
+                memberships: { some: { organizationId: organizationId } }
+            },
+            select: { id: true }
+        });
+        if (existingUsers.length !== newTeamLeadIds.length) {
+            throw new Error('One or more specified new team leads are invalid or not members of this organization.');
+        }
+        await prisma.$transaction([
+            prisma.projectTeamLead.deleteMany({ where: { projectId: projectId } }),
+            prisma.projectTeamLead.createMany({ data: newTeamLeadIds.map(userId => ({ projectId, userId })) })
+        ]);
+    }
+
+    const updatedProject = await prisma.project.update({
+        where: { id: projectId, organizationId },
+        data: {
+            ...dataToUpdate,
+            startDate: dataToUpdate.startDate ? new Date(dataToUpdate.startDate) : undefined,
+            endDate: dataToUpdate.endDate ? new Date(dataToUpdate.endDate) : undefined,
+        },
+        include: {
+            projectTeamLeads: { include: { user: true } },
+            tasks: true
+        }
+    });
+
+    return {
+        ...updatedProject,
+        teamLeads: updatedProject.projectTeamLeads.map(ptl => ptl.user),
+        projectTeamLeads: undefined,
+        team: []
+    };
+};
+
+const archiveProject = async (projectId, organizationId, isArchived) => {
+    const project = await prisma.project.findUnique({
+        where: { id: projectId, organizationId },
+    });
+
+    if (!project) {
+        throw new Error('Project not found in this organization.');
+    }
+
+    const updatedProject = await prisma.project.update({
+        where: { id: projectId },
+        data: { isArchived },
+        include: {
+            projectTeamLeads: { include: { user: true } },
+            tasks: true
+        }
+    });
+    
+    return {
+        ...updatedProject,
+        teamLeads: updatedProject.projectTeamLeads.map(ptl => ptl.user),
+        projectTeamLeads: undefined,
+        team: []
+    };
+};
+
+const deleteProject = async (projectId, organizationId) => {
+    const project = await prisma.project.findUnique({
+        where: { id: projectId, organizationId },
+    });
+
+    if (!project) {
+        throw new Error('Project not found in this organization.');
+    }
+    
+    await prisma.project.delete({
+        where: { id: projectId },
+    });
+};
+
+module.exports = {
+    getAllProjects,
+    createProject,
+    updateProject,
+    archiveProject,
+    deleteProject,
+};

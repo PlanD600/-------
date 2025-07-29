@@ -1,3 +1,4 @@
+// types.ts
 
 export interface BaseModel {
   id: string;
@@ -40,6 +41,7 @@ export interface Comment extends BaseModel {
 
 export type TaskStatus = 'מתוכנן' | 'בתהליך' | 'תקוע' | 'הושלם';
 
+// ---  שינוי: עדכון הממשק Task ---
 export interface Task extends BaseModel {
   title: string;
   description?: string;
@@ -50,8 +52,14 @@ export interface Task extends BaseModel {
   status: TaskStatus;
   color: string;
   comments: Comment[]; // Populated array of Comment objects
+  
+  // --- שדות חדשים שנוספו ---
+  displayOrder: number; // שדה לשמירת הסדר האנכי של המשימות
+  type?: 'task' | 'milestone'; // סוג המשימה: רגילה או אבן דרך
+  dependencies?: string[]; // מערך של מזהי משימות (task IDs) שהמשימה הזו תלויה בהן
 }
 
+// ---  שינוי: עדכון הממשק TaskPayload ---
 export interface TaskPayload {
     title?: string;
     description?: string;
@@ -61,6 +69,11 @@ export interface TaskPayload {
     expense?: number;
     color?: string;
     status?: TaskStatus;
+
+    // --- שדות חדשים שנוספו ---
+    displayOrder?: number;
+    type?: 'task' | 'milestone';
+    dependencies?: string[];
 }
 
 export type ProjectStatus = 'מתוכנן' | 'בתהליך' | 'לקראת סיום' | 'בסיכון' | 'מוקפא' | 'הושלם';

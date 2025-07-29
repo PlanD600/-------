@@ -61,7 +61,7 @@ const ViewToggle = ({ view, setView, labelledby }: { view: 'active' | 'archived'
 );
 
 // שינוי 2: קבלת פרופסים חדשים ב-OverviewTab
-const OverviewTab = ({ projects, teamLeads, users, teams, refreshData, projectsView, setProjectsView }: OverviewTabProps) => {
+const OverviewTab = ({ projects, teamLeads, users, refreshData, projectsView, setProjectsView }: OverviewTabProps) => {
     const { user, currentUserRole } = useAuth();
     const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] = useState(false);
     const [isCreateTeamModalOpen, setIsCreateTeamModalOpen] = useState(false);
@@ -71,7 +71,6 @@ const OverviewTab = ({ projects, teamLeads, users, teams, refreshData, projectsV
 
     const [statusFilter, setStatusFilter] = useState('all');
     const [teamFilter, setTeamFilter] = useState('all');
-    // מ ה ק נ ו את השורה הזו: const [view, setView] = useState<'active' | 'archived'>('active');
     
     const viewToggleLabelId = useId();
     const createProjectModalTitleId = useId();

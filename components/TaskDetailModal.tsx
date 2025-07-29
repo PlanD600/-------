@@ -8,7 +8,7 @@ interface TaskDetailModalProps {
     isOpen: boolean;
     onClose: () => void;
     task: Task | null;
-    project: Project | undefined;
+    project: Project | null;
     isManager: boolean;
     onEdit: () => void;
     onDelete: () => void;
