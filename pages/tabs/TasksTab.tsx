@@ -202,7 +202,7 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
                         className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-[#4A2B2C] focus:border-[#4A2B2C] block w-full sm:w-auto p-2"
                     >
                         <option value="">-- בחר פרויקט --</option>
-                        {projects.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
+                        {projects.filter(p => !p.isArchived).map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
                     </select>
 
                     <label htmlFor="user-filter-select" className="sr-only">סנן לפי עובד</label>

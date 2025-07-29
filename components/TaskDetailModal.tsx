@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Project, Task, TaskStatus, TaskPayload, Comment } from '../types';
 import Modal from './Modal';
@@ -28,11 +27,10 @@ const statusStyles: { [key in TaskStatus]: { bg: string; text: string; } } = {
     'מתוכנן': { bg: 'bg-gray-100', text: 'text-gray-800' },
 };
 
-// Sub-component for displaying a piece of information, now with larger text and bolder value
 const InfoItem = ({ label, value }: { label: string, value: React.ReactNode }) => (
-    <div>
-        <dt className="text-base font-medium text-gray-500">{label}</dt>
-        <dd className="mt-1 text-lg font-semibold text-gray-900">{value}</dd>
+    <div className="flex flex-col items-start">
+        <span className="text-sm font-medium text-gray-500">{label}</span>
+        <span className="mt-1 text-base font-semibold text-gray-900 min-w-0 truncate">{value}</span>
     </div>
 );
 
@@ -58,10 +56,10 @@ const TaskDetailModal = ({ isOpen, onClose, task, project, isManager, onEdit, on
     
     return (
         <Modal isOpen={isOpen} onClose={onClose} size="lg" titleId={titleId}>
-            <div className="flex flex-col max-h-[90vh]">
+            <div className="flex flex-col max-h-[90vh] p-4 overflow-y-auto">
                 {/* Header */}
-                <div className="flex justify-between items-start pb-4 border-b border-gray-200">
-                    <div className="flex-1 min-w-0">
+                <div className="flex justify-between items-start pb-4 border-b border-gray-200 flex-shrink-0">
+                    <div className="flex-1 min-w-0 pr-4">
                         <p className="text-base text-gray-500 truncate">{project.title}</p>
                         <h2 id={titleId} className="text-3xl font-bold text-gray-800 truncate">{task.title}</h2>
                     </div>
@@ -83,11 +81,11 @@ const TaskDetailModal = ({ isOpen, onClose, task, project, isManager, onEdit, on
                 </div>
 
                 {/* Main Content Area */}
-                <div className="flex-1 overflow-y-auto py-6 px-1 space-y-8">
+                <div className="flex-1 py-6 space-y-8"> 
                     
                     {/* Details and Description in a distinct card */}
-                    <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm space-y-6">
-                        <dl className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-8">
+                    <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm space-y-6 flex-shrink-0">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-4">
                             <InfoItem 
                                 label="סטטוס" 
                                 value={
@@ -95,13 +93,13 @@ const TaskDetailModal = ({ isOpen, onClose, task, project, isManager, onEdit, on
                                         <select
                                             value={task.status}
                                             onChange={handleStatusChange}
-                                            className={`w-full p-2 text-lg font-semibold border-2 border-transparent rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-[#4A2B2C] transition-colors ${statusStyle.bg} ${statusStyle.text}`}
+                                            className={`w-full p-2 text-base font-semibold border-2 border-transparent rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-[#4A2B2C] transition-colors ${statusStyle.bg} ${statusStyle.text} truncate`}
                                             aria-label="שנה סטטוס משימה"
                                         >
                                             {ALL_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
                                         </select>
                                     ) : (
-                                        <span className={`px-3 py-1 text-sm font-medium rounded-full ${statusStyle.bg} ${statusStyle.text}`}>{task.status}</span>
+                                        <span className={`px-3 py-1 text-sm font-medium rounded-full ${statusStyle.bg} ${statusStyle.text} truncate`}>{task.status}</span>
                                     )
                                 }
                             />
@@ -109,34 +107,40 @@ const TaskDetailModal = ({ isOpen, onClose, task, project, isManager, onEdit, on
                             <InfoItem label="תאריך יעד" value={task.endDate ? new Date(task.endDate).toLocaleDateString('he-IL') : 'לא צוין'} />
                             <InfoItem label="תקציב" value={task.expense ? `₪${task.expense.toLocaleString()}` : 'לא צוין'} />
                             <div className="col-span-2 md:col-span-4">
-                                <InfoItem label="משויך ל" value={task.assignees && task.assignees.length > 0 ? task.assignees.map(u => u.fullName).join(', ') : 'טרם שויך'} />
+                                <InfoItem label="משויך ל" value={<span className="whitespace-normal break-words">{task.assignees && task.assignees.length > 0 ? task.assignees.map(u => u.fullName).join(', ') : 'טרם שויך'}</span>} />
                             </div>
-                        </dl>
+                        </div>
                         
                         {task.description && (
                             <>
-                                <div className="border-t border-gray-200"></div>
+                                {/* שינוי: המרווח בין כותרת התיאור לתוכן התיאור. שינוי pt-6 ל-pt-3 ב-div שמכיל את border-t */}
+                                <div className="border-t border-gray-200 pt-3"></div> 
                                 <div>
-                                    <h3 className="text-xl font-bold text-gray-800 mb-3">תיאור המשימה</h3>
-                                    <p className="text-base text-gray-700 leading-relaxed whitespace-pre-wrap">{task.description}</p>
+                                    {/* שינוי: הסרתי את mb-3 מכותרת תיאור המשימה כדי להקטין מרווח */}
+                                    <h3 className="text-xl font-bold text-gray-800">תיאור המשימה</h3>
+                                    <p className="text-base text-gray-700 leading-relaxed whitespace-pre-wrap overflow-y-auto max-h-[80px] pr-2 break-words">
+                                        {task.description}
+                                    </p>
                                 </div>
                             </>
                         )}
                     </div>
 
                     {/* Comments Section */}
-                    <div>
-                        <h3 className="text-xl font-bold text-gray-800 mb-4">תגובות ({task.comments.length})</h3>
-                        <div className="space-y-5">
+                    <div className="flex flex-col flex-1 min-h-0">
+                        <h3 className="text-xl font-bold text-gray-800 mb-4 flex-shrink-0">תגובות ({task.comments.length})</h3>
+                        <div className="space-y-5 flex-1 overflow-y-auto max-h-[250px] pr-2">
                             {task.comments.map(comment => (
-                                <div key={comment.id} className="flex items-start space-x-3 space-x-reverse">
+                                <div key={comment.id} className="flex items-start space-x-3 space-x-reverse bg-white rounded-lg p-4 border border-gray-200 shadow-sm min-w-30 max-h-[150px] overflow-y-auto">
                                     <img src={comment.author.profilePictureUrl || `https://i.pravatar.cc/150?u=${comment.author.id}`} alt={comment.author.fullName} className="w-10 h-10 rounded-full flex-shrink-0"/>
-                                    <div className="flex-1 bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+                                    <div className="flex-1"> 
                                         <div className="flex justify-between items-center mb-1">
-                                            <p className="font-semibold text-base text-gray-800">{comment.author.fullName}</p>
-                                            <p className="text-xs text-gray-400">{new Date(comment.createdAt).toLocaleString('he-IL')}</p>
+                                            <p className="font-semibold text-base text-gray-800 truncate">{comment.author.fullName}</p>
+                                            <p className="text-xs text-gray-400 flex-shrink-0">{new Date(comment.createdAt).toLocaleString('he-IL')}</p>
                                         </div>
-                                        <p className="text-base text-gray-600">{comment.content}</p>
+                                        <p className="text-base text-gray-600 break-words whitespace-pre-wrap overflow-y-auto max-h-[80px] pr-2 break-all">
+                                            {comment.content}
+                                        </p>
                                     </div>
                                 </div>
                             ))}
@@ -144,7 +148,7 @@ const TaskDetailModal = ({ isOpen, onClose, task, project, isManager, onEdit, on
                         </div>
                         
                         {/* Add Comment Form */}
-                        <form onSubmit={handleAddComment} className="mt-6 flex items-start space-x-3 space-x-reverse" key={`comment-form-${task.id}`}>
+                        <form onSubmit={handleAddComment} className="mt-6 flex items-start space-x-3 space-x-reverse flex-shrink-0" key={`comment-form-${task.id}`}>
                             <img src={user?.profilePictureUrl || `https://i.pravatar.cc/150?u=${user?.id}`} alt={user?.fullName || ''} className="w-10 h-10 rounded-full flex-shrink-0"/>
                             <div className="flex-1">
                                 <label htmlFor="new-comment" className="sr-only">הוסף תגובה</label>
