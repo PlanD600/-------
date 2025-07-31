@@ -1,0 +1,194 @@
+/* ===============================================
+   גידי הפול סטאק - שדרוג CSS ללוח גאנט
+   =============================================== */
+
+/* --- משתנים גלובליים לעיצוב אחיד --- */
+:root {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8f9fa;
+    --border-color: #e2e8f0;
+    --text-primary: #2d3748;
+    --text-secondary: #718096;
+    --accent-color: #3182ce; /* צבע הדגשה ראשי */
+    --bar-hover-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    --line-today: #e53e3e;
+    --line-dependency: #718096;
+    --scrollbar-track: #f1f1f1;
+    --scrollbar-thumb: #c1c1c1;
+    --scrollbar-thumb-hover: #a8a8a8;
+}
+
+/* --- עיצוב כללי וקונטיינר --- */
+.gantt-responsive-container {
+    background-color: var(--bg-primary);
+    border-radius: 12px; /* עיגול פינות עדין יותר */
+    border: 1px solid var(--border-color);
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); /* הוספת צל עדין לעומק */
+    padding: 8px; /* ריווח פנימי קטן */
+}
+
+/* --- רשימת משימות דביקה (Sticky) עם עומק --- */
+.task-list-header,
+.task-list-table-body {
+    position: sticky;
+    left: 0;
+    z-index: 10; /* Z-index גבוה יותר כדי להיות מעל כל האלמנטים */
+    background-color: var(--bg-primary);
+    width: 220px; /* רוחב מרווח יותר לדסקטופ */
+    /* צל שמעניק תחושת עומק כשהתוכן נגלל מתחת */
+    box-shadow: 5px 0 10px -5px rgba(0, 0, 0, 0.1);
+}
+
+.task-list-header {
+    border-bottom: 2px solid var(--border-color);
+    font-weight: 600; /* הדגשת הכותרת */
+    color: var(--text-primary);
+}
+
+.task-list-row {
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+    height: 40px; /* גובה שורה מרווח יותר */
+    transition: background-color 0.2s ease;
+}
+
+.task-list-row:hover {
+    background-color: #eff6ff; /* הדגשה עדינה במעבר עכבר */
+}
+
+.task-list-cell {
+    display: flex;
+    align-items: center;
+    padding: 0 16px; /* ריווח פנימי מוגדל */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 15px; /* גודל פונט קריא */
+    color: var(--text-primary);
+}
+
+/* --- אייקון הרחבה/כיווץ --- */
+.expander-open,
+.expander-closed {
+    margin-right: 8px; /* הפרדה מהטקסט */
+    cursor: pointer;
+    font-size: 16px; /* אייקון בולט יותר */
+    width: 20px;
+    flex-shrink: 0;
+    transition: transform 0.2s ease-in-out;
+}
+
+.expander-closed {
+    transform: rotate(-90deg);
+}
+
+/* --- שיפור קריאות עם "שורות זברה" --- */
+.grid-row:nth-child(even) {
+    fill: var(--bg-secondary);
+}
+
+.task-list-row:nth-child(even) {
+    background-color: var(--bg-secondary);
+}
+.task-list-row:nth-child(even):hover {
+    background-color: #eff6ff;
+}
+
+/* --- עיצוב מקצועי ל"ברים" של המשימות --- */
+.bar-wrapper {
+    transition: all 0.2s ease-in-out;
+}
+
+.bar-wrapper:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--bar-hover-shadow);
+    filter: brightness(1.1);
+    cursor: pointer;
+}
+.bar {
+    border-radius: 4px; /* פינות מעוגלות לברים */
+}
+
+/* --- אינדיקטורים ויזואליים --- */
+.today-indicator {
+    stroke: var(--line-today);
+    stroke-width: 2px;
+    opacity: 0.9;
+}
+
+.dependency-line {
+    stroke: var(--line-dependency);
+    stroke-width: 1.5;
+    fill: none; /* חשוב לקווי תלות */
+}
+
+/* --- עיצוב פס גלילה --- */
+.gantt-responsive-container::-webkit-scrollbar {
+    height: 12px;
+    background-color: var(--scrollbar-track);
+}
+
+.gantt-responsive-container::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar-thumb);
+    border-radius: 10px;
+    border: 3px solid var(--scrollbar-track);
+}
+
+.gantt-responsive-container::-webkit-scrollbar-thumb:hover {
+    background-color: var(--scrollbar-thumb-hover);
+}
+
+/*
+ ===============================================
+  התאמות מובייל ממוקדות-משתמש (לא רק הקטנה) 📱
+ ===============================================
+*/
+@media (max-width: 768px) {
+
+    /* 1. הגדלת שטחי מגע (Touch Targets) לפי חוק פיטס */
+    .task-list-row {
+        height: 44px !important; /* גובה מינימלי מומלץ למגע (Apple HIG) */
+    }
+    
+    .bar-wrapper {
+        height: 44px !important; /* התאמת גובה הבר לגובה השורה */
+    }
+
+    /* 2. התאמת רוחב הרשימה וריווחים */
+    .task-list-header,
+    .task-list-table-body {
+        width: 140px; /* רוחב סביר שלא "אוכל" את כל המסך */
+    }
+    
+    .task-list-cell {
+        padding: 0 8px;
+        font-size: 14px; /* פונט קריא ונגיש גם במובייל */
+    }
+
+    .grid-header-text { /* כותרות התאריכים בציר הזמן */
+        font-size: 12px;
+    }
+    
+    /* 3. הגדלת אזור הלחיצה של אייקון ההרחבה */
+    .expander-open,
+    .expander-closed {
+        margin-right: 4px;
+        font-size: 18px; /* הגדלת האייקון עצמו */
+        width: 24px; /* הגדלת שטח הלחיצה */
+    }
+    
+    /* 4. ביטול אפקט ה-Hover שאינו רלוונטי במגע */
+    .bar-wrapper:hover {
+        transform: none;
+        box-shadow: none;
+    }
+    .task-list-row:hover {
+        background-color: inherit;
+    }
+    .task-list-row:nth-child(even):hover {
+        background-color: var(--bg-secondary);
+    }
+}

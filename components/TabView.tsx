@@ -4,6 +4,7 @@ import OverviewTab from '../pages/tabs/OverviewTab';
 import TasksTab from '../pages/tabs/TasksTab';
 import FinanceTab from '../pages/tabs/FinanceTab';
 import GanttTab from '../pages/tabs/GanttTab';
+
 import ChatTab from '../pages/tabs/ChatTab';
 import { useAuth } from '../hooks/useAuth';
 import { Socket } from 'socket.io-client';
@@ -74,7 +75,7 @@ const TabView = ({ activeTab, onTabChange, projects, teamMembers, teamLeads, use
         },
         { id: 'tasks', label: 'משימות', component: <TasksTab projects={projects} teamMembers={teamMembers} refreshData={refreshData} users={users} /> },
         canViewFinance ? { id: 'finance', label: 'כספים', component: <FinanceTab projects={projects} refreshData={refreshData} /> } : null,
-        { id: 'gantt', label: 'גאנט', component: <GanttTab projects={projects} teamMembers={teamMembers} users={users} refreshData={refreshData} /> },
+        { id: 'gantt', label: 'גאנט', component: <GanttTab projects={projects} users={users} refreshData={refreshData} /> },
         { id: 'chat', label: 'הודעות', component: <ChatTab conversations={conversations} setConversations={setConversations} users={users} socket={socket} /> }
 
     ].filter(Boolean) as { id: string, label: string, component: React.ReactNode }[], [projects, teamMembers, teamLeads, users, teams, conversations, socket, refreshData, canViewFinance, projectsView, setProjectsView]); // <-- שינוי כאן: הוספת projectsView, setProjectsView לתלויות של useMemo
