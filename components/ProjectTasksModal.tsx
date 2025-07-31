@@ -114,14 +114,14 @@ const ProjectTasksModal = ({ isOpen, project, onClose, users, refreshProject }: 
                                     <div key={task.id} className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
                                         <div className="flex justify-between items-start">
                                             <p className="font-semibold text-gray-800 flex-1 pr-2 truncate">
-                                                {task.title}
+                                                {task?.title}
                                             </p>
                                             <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full flex-shrink-0 ${style.bg} ${style.text}`}>
                                                 {task.status}
                                             </span>
                                         </div>
                                         <p className="text-sm text-gray-500 mt-1 overflow-y-auto max-h-[60px] pr-2 break-words">
-                                            {task.description}
+                                            {task?.description}
                                         </p>
                                         <div className="mt-2 pt-2 border-t border-gray-100 text-xs">
                                             <span className="text-gray-500">משויך ל: </span>

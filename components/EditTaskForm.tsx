@@ -26,8 +26,8 @@ const EditTaskForm = ({ task, onSubmit, onCancel, users, titleId }: EditTaskForm
     const [color, setColor] = useState('#8A94A6');
 
     useEffect(() => {
-        setTitle(task.title);
-        setDescription(task.description || '');
+        setTitle(task?.title);
+        setDescription(task?.description || '');
         setAssigneesIds(task.assignees?.map(a => a.id) || []);
         setStartDate(task.startDate?.split('T')[0] || '');
         setEndDate(task.endDate?.split('T')[0] || '');

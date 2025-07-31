@@ -20,7 +20,7 @@ const mapProjectsToGanttTasks = (projects) => {
       project.tasks.forEach(task => {
         ganttTasks.push({
           id: task.id,
-          name: task.title,
+          name: task?.title,
           type: 'task',
           start: new Date(task.startDate),
           end: new Date(task.endDate),

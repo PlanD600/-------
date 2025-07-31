@@ -22,12 +22,12 @@ const TaskListItem = ({ task, onView }: TaskListItemProps) => {
             type="button"
             className="w-full text-right bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer"
             onClick={onView}
-            aria-label={`הצג פרטי משימה: ${task.title}. סטטוס: ${task.status}.`}
+            aria-label={`הצג פרטי משימה: ${task?.title}. סטטוס: ${task.status}.`}
         >
             {/* Mobile View */}
             <div className="p-3 md:hidden">
                 <div className="flex justify-between items-start gap-4">
-                    <p className="font-bold text-gray-800 break-words flex-1">{task.title}</p>
+                    <p className="font-bold text-gray-800 break-words flex-1">{task?.title}</p>
                     <div className="flex items-center flex-shrink-0">
                         <span className={`w-2 h-2 rounded-full ml-2 ${style.dot}`}></span>
                         <span className={`text-sm ${style.text}`}>{task.status}</span>
@@ -60,7 +60,7 @@ const TaskListItem = ({ task, onView }: TaskListItemProps) => {
                 </div>
 
                 {/* Task Name */}
-                <p className="font-semibold text-gray-800 truncate" title={task.title}>{task.title}</p>
+                <p className="font-semibold text-gray-800 truncate" title={task?.title}>{task?.title}</p>
 
                 {/* Dates */}
                 <div className="text-sm text-gray-500">

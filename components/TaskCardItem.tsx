@@ -24,13 +24,13 @@ const TaskCardItem = ({ task, onView }: TaskCardItemProps) => {
             type="button"
             className="w-full text-right bg-white rounded-2xl p-4 shadow-sm border border-gray-200 hover:shadow-md hover:border-gray-300 transition-shadow flex flex-col justify-between h-full cursor-pointer"
             onClick={onView}
-            aria-label={`הצג פרטי משימה: ${task.title}. סטטוס: ${task.status}.`}
+            aria-label={`הצג פרטי משימה: ${task?.title}. סטטוס: ${task.status}.`}
         >
             <div>
                 <div className="flex justify-between items-start mb-2">
-                    <h4 className="font-bold text-lg text-[#3D2324] pr-2 line-clamp-2">{task.title}</h4>
+                    <h4 className="font-bold text-lg text-[#3D2324] pr-2 line-clamp-2">{task?.title}</h4>
                 </div>
-                <p className="text-base text-gray-600 line-clamp-3 mb-4">{task.description || 'אין תיאור למשימה.'}</p>
+                <p className="text-base text-gray-600 line-clamp-3 mb-4">{task?.description || 'אין תיאור למשימה.'}</p>
                  <div className="text-sm space-y-2">
                     <div>
                         <span className="font-semibold text-gray-500">תאריכים: </span>
