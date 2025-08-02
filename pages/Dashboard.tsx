@@ -39,6 +39,7 @@ const Dashboard = () => {
         setLoading(true);
         console.log("Fetching latest data from server...");
         try {
+            const isArchivedFilter = projectsView === 'archived';
             const [projectsResponse, teamsResponse, orgMembersResponse, conversationsData] = await Promise.all([
                 api.getProjects(1, 25, undefined, undefined, signal),
                 api.getTeams(1, 25, undefined, undefined, signal),
@@ -68,6 +69,8 @@ const Dashboard = () => {
         console.log('Dashboard useEffect triggered');
         console.log('currentOrgId:', currentOrgId);
         console.log('activeTab:', activeTab);
+        console.log('projectsView:', projectsView); // יומן חדש כדי לוודא שזה עובד
+
 
         const abortController = new AbortController(); // יצירת AbortController חדש
         fetchData(abortController.signal); // קריאה ל-fetchData והעברת ה-signal
@@ -77,7 +80,7 @@ const Dashboard = () => {
             abortController.abort(); // ביטול כל קריאות ה-fetch שעדיין רצות
         };
         // השינוי המרכזי כאן: הסרת `fetchData` ממערך התלויות
-    }, [currentOrgId, activeTab]);
+    }, [currentOrgId, activeTab, projectsView]); // <-- זה התיקון המרכזי!
 
     // WebSocket connection - ללא שינוי, כי ה-AbortController לא משפיע על סוקטים
     useEffect(() => {

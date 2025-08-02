@@ -16,51 +16,51 @@ import ProjectTasksModal from '../../components/ProjectTasksModal';
 // --- רכיבים מותאמים אישית לרשימת המשימות ---
 
 const CustomTaskListHeader = ({ headerHeight, fontFamily, fontSize, rowWidth }) => {
-  return (
-    <div
-      className="task-list-header"
-      style={{ height: headerHeight, fontFamily: fontFamily, fontSize: fontSize }}
-    >
-      <div
-        className="task-list-header-cell"
-        style={{
-          minWidth: rowWidth,
-          maxWidth: rowWidth,
-          borderRight: '1px solid #e2e8f0',
-          textAlign: 'right',
-          paddingRight: '10px'
-        }}
-      >
-        שם המשימה
-      </div>
-    </div>
-  );
+    return (
+        <div
+            className="task-list-header"
+            style={{ height: headerHeight, fontFamily: fontFamily, fontSize: fontSize }}
+        >
+            <div
+                className="task-list-header-cell"
+                style={{
+                    minWidth: rowWidth,
+                    maxWidth: rowWidth,
+                    borderRight: '1px solid #e2e8f0',
+                    textAlign: 'right',
+                    paddingRight: '10px'
+                }}
+            >
+                שם המשימה
+            </div>
+        </div>
+    );
 };
 
 const CustomTaskListTable = ({ tasks, rowHeight, onExpanderClick }) => {
-  return (
-    <div className="task-list-table-body">
-      {tasks.map((task) => (
-        <div
-          className="task-list-row"
-          style={{ height: rowHeight }}
-          key={task.id}
-        >
-          <div className="task-list-cell" style={{ minWidth: '100%', maxWidth: '100%' }}>
-            <div
-              className={task.hideChildren ? 'expander-closed' : 'expander-open'}
-              onClick={() => task.type === 'project' && onExpanderClick(task)}
-            >
-              {task.type === 'project' && '▼'}
-            </div>
-            <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {task.name}
-            </div>
-          </div>
+    return (
+        <div className="task-list-table-body">
+            {tasks.map((task) => (
+                <div
+                    className="task-list-row"
+                    style={{ height: rowHeight }}
+                    key={task.id}
+                >
+                    <div className="task-list-cell" style={{ minWidth: '100%', maxWidth: '100%' }}>
+                        <div
+                            className={task.hideChildren ? 'expander-closed' : 'expander-open'}
+                            onClick={() => task.type === 'project' && onExpanderClick(task)}
+                        >
+                            {task.type === 'project' && '▼'}
+                        </div>
+                        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {task.name}
+                        </div>
+                    </div>
+                </div>
+            ))}
         </div>
-      ))}
-    </div>
-  );
+    );
 };
 
 
@@ -112,25 +112,35 @@ const GanttTab = ({ projects, users, refreshData }: { projects: Project[], users
 
         visibleProjects.forEach(project => {
             if (project.startDate && project.endDate) {
-                tasksForGantt.push({
-                    id: project.id, name: project.title, type: 'project',
-                    start: new Date(project.startDate), end: new Date(project.endDate),
-                    progress: project.completionPercentage || 0, hideChildren: project.isCollapsed,
-                    styles: { backgroundColor: '#a55eea', progressColor: '#8e44ad' }
-                });
+                // 💡 תיקון: ודא שתאריך ההתחלה לא גדול מתאריך הסיום
+                const projectStart = new Date(project.startDate);
+                const projectEnd = new Date(project.endDate);
+                if (projectStart <= projectEnd) {
+                    tasksForGantt.push({
+                        id: project.id, name: project.title, type: 'project',
+                        start: projectStart, end: projectEnd,
+                        progress: project.completionPercentage || 0, hideChildren: project.isCollapsed,
+                        styles: { backgroundColor: '#a55eea', progressColor: '#8e44ad' }
+                    });
+                }
             }
             (project.tasks || []).forEach(task => {
                 if (task.startDate && task.endDate) {
-                    let barColor = '#3498db', progressColor = '#2980b9';
-                    if (task.status === 'הושלם') { barColor = '#2ecc71'; progressColor = '#27ae60'; }
-                    else if (new Date(task.endDate) < today) { barColor = '#e74c3c'; progressColor = '#c0392b'; }
-                    tasksForGantt.push({
-                        id: task.id, name: task?.title, type: 'task',
-                        start: new Date(task.startDate), end: new Date(task.endDate),
-                        progress: task.status === 'הושלם' ? 100 : 0,
-                        project: project.id, dependencies: task.dependencies || [],
-                        styles: { backgroundColor: barColor, progressColor: progressColor }
-                    });
+                    // 💡 תיקון: ודא שתאריך ההתחלה לא גדול מתאריך הסיום
+                    const taskStart = new Date(task.startDate);
+                    const taskEnd = new Date(task.endDate);
+                    if (taskStart <= taskEnd) {
+                        let barColor = '#3498db', progressColor = '#2980b9';
+                        if (task.status === 'הושלם') { barColor = '#2ecc71'; progressColor = '#27ae60'; }
+                        else if (taskEnd < today) { barColor = '#e74c3c'; progressColor = '#c0392b'; }
+                        tasksForGantt.push({
+                            id: task.id, name: task?.title, type: 'task',
+                            start: taskStart, end: taskEnd,
+                            progress: task.status === 'הושלם' ? 100 : 0,
+                            project: project.id, dependencies: task.dependencies || [],
+                            styles: { backgroundColor: barColor, progressColor: progressColor }
+                        });
+                    }
                 }
             });
         });
@@ -200,8 +210,8 @@ const GanttTab = ({ projects, users, refreshData }: { projects: Project[], users
         const maxDate = new Date(Math.max(...dates.map(date => date.getTime())));
         const durationInDays = Math.max(1, (maxDate.getTime() - minDate.getTime()) / (1000 * 3600 * 24));
         const containerWidth = ganttContainerRef.current.getBoundingClientRect().width - 250;
-        setView(ViewMode.Day);
         setGanttColumnWidth(containerWidth / durationInDays);
+        setView(ViewMode.Day);
     };
 
     const toggleAllProjects = (collapse: boolean) => {
@@ -228,7 +238,7 @@ const GanttTab = ({ projects, users, refreshData }: { projects: Project[], users
     
     useEffect(() => {
         setTimeout(() => handleGoToToday(), 100);
-    }, [ganttTasks]);
+    }, [ganttTasks, view]);
 
     const isManagerForTask = (project: Project | null): boolean => {
         if (!user || !project) return false;
@@ -243,9 +253,8 @@ const GanttTab = ({ projects, users, refreshData }: { projects: Project[], users
     };
 
     const handleTaskClick = (task: GanttTask) => {
-        // 💡 התיקון: אם התרחשה גרירה, אל תפתח את המודל.
         if (justDragged.current) {
-            justDragged.current = false; // איפוס הדגל
+            justDragged.current = false;
             return;
         }
 
@@ -263,7 +272,6 @@ const GanttTab = ({ projects, users, refreshData }: { projects: Project[], users
         const project = localProjects.find(p => p.id === (task.project || task.id));
         if (!project || task.type !== 'task') return;
         
-        // 💡 התיקון: סמן שהתרחשה גרירה כדי למנוע פתיחת מודל.
         justDragged.current = true;
 
         const updatedTaskData = {
@@ -291,6 +299,7 @@ const GanttTab = ({ projects, users, refreshData }: { projects: Project[], users
         } catch (err) {
             console.error("Failed to update task", err);
             alert("שגיאה בעדכון המשימה.");
+            refreshData();
         }
     };
 
@@ -305,6 +314,7 @@ const GanttTab = ({ projects, users, refreshData }: { projects: Project[], users
         } catch (err) {
             console.error("Failed to delete task", err);
             alert("שגיאה במחיקת המשימה.");
+            refreshData();
         }
     };
 
@@ -352,7 +362,7 @@ const GanttTab = ({ projects, users, refreshData }: { projects: Project[], users
                         <button onClick={handleGoToToday} title="עבור להיום" className="p-2 rounded-md hover:bg-gray-100"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" /></svg></button>
                         <button onClick={handleZoomToFit} title="הצג הכל" className="p-2 rounded-md hover:bg-gray-100"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm12 0a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zM8 7a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1zm4 0a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" /></svg></button>
                         <button onClick={() => toggleAllProjects(true)} title="כווץ הכל" className="p-2 rounded-md hover:bg-gray-100"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" /></svg></button>
-                        <button onClick={() => toggleAllProjects(false)} title="הרחב הכל" className="p-2 rounded-md hover:bg-gray-100"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" /></svg></button>
+                        <button onClick={() => toggleAllProjects(false)} title="הרחב הכל" className="p-2 rounded-md hover:bg-gray-100"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" /></svg></button>
                         <button onClick={handleExportToPdf} title="ייצא ל-PDF" className="p-2 rounded-md hover:bg-gray-100"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clipRule="evenodd" /></svg></button>
                     </div>
                 </div>
@@ -383,7 +393,6 @@ const GanttTab = ({ projects, users, refreshData }: { projects: Project[], users
                 )}
             </div>
 
-            {/* Modals */}
             <TaskDetailModal isOpen={!!viewingTask} onClose={() => setViewingTask(null)} task={viewingTask?.task || null} project={viewingTask?.project || null} isManager={isManagerForTask(viewingTask?.project || null)} canUserChangeStatus={canUserChangeTaskStatus(viewingTask?.task || null, viewingTask?.project || null)} onUpdateTaskField={(taskId, updates) => { if (viewingTask) { handleUpdateTaskField(taskId, viewingTask.project.id, updates); } }} onEdit={() => { if (viewingTask) setEditingTask(viewingTask); setViewingTask(null); }} onDelete={() => { if (viewingTask) setDeletingTask(viewingTask); setViewingTask(null); }} onAddComment={handleAddTaskComment} titleId={viewTaskTitleId} />
             <ProjectTasksModal isOpen={!!viewingProject} project={viewingProject} onClose={() => setViewingProject(null)} refreshProject={refreshData} users={users} />
             <Modal isOpen={!!editingTask} onClose={() => setEditingTask(null)} size="sm" titleId={editTaskTitleId}>

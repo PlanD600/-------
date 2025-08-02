@@ -47,7 +47,7 @@ const ProjectTasksModal = ({ isOpen, project, onClose, users, refreshProject }: 
             setIsLoading(false);
         }
     };
-    
+
     useEffect(() => {
         if (isOpen && project) {
             fetchTasks();
@@ -59,9 +59,22 @@ const ProjectTasksModal = ({ isOpen, project, onClose, users, refreshProject }: 
 
     const handleAddTask = async (taskData: TaskPayload) => {
         try {
-            await api.createTask(project.id, taskData);
-            await fetchTasks(); // Refetch just this project's tasks
-            refreshProject(); // Also call the global refresh to update other parts of the app (like Gantt)
+            const newTask = await api.createTask(project.id, taskData);
+
+            // 💡 הוספנו לוגיקה ליצירת רשומת הוצאה חדשה למשימה
+            if (taskData.expense && taskData.expense > 0) {
+                await api.createFinanceEntry({
+                    type: 'EXPENSE',
+                    amount: taskData.expense,
+                    description: `הוצאה על משימה: ${newTask.title}`,
+                    date: new Date().toISOString(),
+                    projectId: project.id,
+                    taskId: newTask.id,
+                });
+            }
+
+            await fetchTasks();
+            refreshProject();
             setIsAddTaskModalOpen(false);
         } catch (error) {
             console.error("Failed to add task:", error);
@@ -80,7 +93,7 @@ const ProjectTasksModal = ({ isOpen, project, onClose, users, refreshProject }: 
                             {project.title}
                         </h3>
                         <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-200 flex-shrink-0">
-                            <CloseIcon className="w-6 h-6"/>
+                            <CloseIcon className="w-6 h-6" />
                         </button>
                     </div>
 
@@ -92,11 +105,11 @@ const ProjectTasksModal = ({ isOpen, project, onClose, users, refreshProject }: 
                         <div className="grid grid-cols-1 gap-y-2 mt-4">
                             <InfoItem label="סטטוס" value={project.status} />
                             <InfoItem label="צוות" value={<span className="whitespace-normal break-words">{project.team?.map(t => t.name).join(', ') || 'לא משויך'}</span>} />
-                            <InfoItem 
-                                label={project.teamLeads && project.teamLeads.length > 1 ? "ראשי צוות" : "ראש צוות"} 
+                            <InfoItem
+                                label={project.teamLeads && project.teamLeads.length > 1 ? "ראשי צוות" : "ראש צוות"}
                                 value={<span className="whitespace-normal break-words">{project.teamLeads && project.teamLeads.length > 0 ? project.teamLeads.map(u => u.fullName).join(', ') : 'לא צוין'}</span>}
                             />
-                             <InfoItem 
+                            <InfoItem
                                 label="תקופה"
                                 value={`${project.startDate ? new Date(project.startDate).toLocaleDateString('he-IL') : ''} - ${project.endDate ? new Date(project.endDate).toLocaleDateString('he-IL') : ''}`}
                             />
@@ -150,8 +163,8 @@ const ProjectTasksModal = ({ isOpen, project, onClose, users, refreshProject }: 
                 </div>
             </Modal>
 
-            <Modal 
-                isOpen={isAddTaskModalOpen} 
+            <Modal
+                isOpen={isAddTaskModalOpen}
                 onClose={() => setIsAddTaskModalOpen(false)}
                 zIndex={60}
                 size="sm"

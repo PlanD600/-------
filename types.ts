@@ -35,11 +35,11 @@ export interface Membership extends BaseModel {
 }
 
 export interface Comment extends BaseModel {
-    author: User; // Populated User object (id, fullName, avatar)
-    content: string;
+  author: User; // Populated User object (id, fullName, avatar)
+  content: string;
 }
 
-export type TaskStatus = 'מתוכנן' | 'בתהליך' | 'תקוע' | 'הושלם';
+export type TaskStatus = 'מתוכנן' | 'בסיכון' | 'בתהליך' | 'תקוע' | 'הושלם';
 
 // ---  שינוי: עדכון הממשק Task ---
 export interface Task extends BaseModel {
@@ -52,7 +52,7 @@ export interface Task extends BaseModel {
   status: TaskStatus;
   color: string;
   comments: Comment[]; // Populated array of Comment objects
-  
+
   // --- שדות חדשים שנוספו ---
   displayOrder: number; // שדה לשמירת הסדר האנכי של המשימות
   type?: 'task' | 'milestone'; // סוג המשימה: רגילה או אבן דרך
@@ -61,19 +61,19 @@ export interface Task extends BaseModel {
 
 // ---  שינוי: עדכון הממשק TaskPayload ---
 export interface TaskPayload {
-    title?: string;
-    description?: string;
-    assigneesIds?: string[];
-    startDate?: string;
-    endDate?: string;
-    expense?: number;
-    color?: string;
-    status?: TaskStatus;
+  title?: string;
+  description?: string;
+  assigneesIds?: string[];
+  startDate?: string;
+  endDate?: string;
+  expense?: number;
+  color?: string;
+  status?: TaskStatus;
 
-    // --- שדות חדשים שנוספו ---
-    displayOrder?: number;
-    type?: 'task' | 'milestone';
-    dependencies?: string[];
+  // --- שדות חדשים שנוספו ---
+  displayOrder?: number;
+  type?: 'task' | 'milestone';
+  dependencies?: string[];
 }
 
 export type ProjectStatus = 'מתוכנן' | 'בתהליך' | 'לקראת סיום' | 'בסיכון' | 'מוקפא' | 'הושלם';
@@ -84,40 +84,63 @@ export interface Project extends BaseModel {
   startDate?: string; // YYYY-MM-DD
   endDate?: string; // YYYY-MM-DD
   completionPercentage?: number; // <<-- הוסף שורה זו
-  budget?: number;
   status: ProjectStatus;
   isArchived: boolean;
   team: Team[]; // Populated array of Team objects
   teamLeads: User[]; // Populated array of User objects
   tasks?: Task[]; // Now optional, to be fetched on demand
+  monthlyBudgets?: MonthlyBudget[]; // 💡 חדש: מערך של תקציבים חודשיים
+
+}
+
+export interface MonthlyBudget extends BaseModel {
+  projectId: string;
+  year: number;
+  month: number;
+  incomeBudget: number;
+  expenseBudget: number;
 }
 
 export interface ProjectPayload {
-    title?: string;
-    description?: string;
-    teamLeads?: string[]; // Renamed from teamLeadIds for clarity and API spec alignment
-    startDate?: string;
-    endDate?: string;
-    budget?: number;
+  title?: string;
+  description?: string;
+  teamLeads?: string[]; // Renamed from teamLeadIds for clarity and API spec alignment
+  startDate?: string;
+  endDate?: string;
+  monthlyBudgets?: MonthlyBudgetPayload[]; // 💡 חדש: מערך של תקציבים חודשיים
 }
 
+export interface MonthlyBudgetPayload {
+    year: number;
+    month: number;
+    incomeBudget: number;
+    expenseBudget: number;
+}
 
 export type FinanceEntryType = 'INCOME' | 'EXPENSE';
 
+export type FinanceEntryPayload = Omit<FinanceEntry, 'id' | 'netAmount' | 'projectTitle' | 'createdAt' | 'updatedAt'>;
+
 export interface FinanceEntry extends BaseModel {
-  type: FinanceEntryType;
-  amount: number;
-  description: string;
-  date: string; // ISO String
-  projectId?: string;
-  taskId?: string;
-  projectTitle?: string; 
+    type: FinanceEntryType;
+    amount: number; // סכום ברוטו
+    vatPercentage?: number; // 💡 חדש
+    deductions?: number; // 💡 חדש
+    netAmount?: number; // 💡 חדש
+    status?: string; // 💡 חדש
+    description: string;
+    notes?: string; // 💡 חדש
+    date: string; // ISO String
+    projectId?: string;
+    taskId?: string;
+    projectTitle?: string;
 }
 
 export interface FinanceSummary {
     totalIncome: number;
     totalExpenses: number;
     balance: number;
+    totalProjectBudget: number; // 💡 חדש
 }
 
 export interface Team extends BaseModel {
@@ -129,9 +152,9 @@ export interface Team extends BaseModel {
 }
 
 export interface TeamPayload {
-    name: string;
-    leadIds: string[];
-    memberIds: string[];
+  name: string;
+  leadIds: string[];
+  memberIds: string[];
 }
 
 export interface Message extends BaseModel {

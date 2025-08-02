@@ -32,6 +32,31 @@ export const ProfileIcon = (props: React.SVGProps<SVGSVGElement>) => (
     </svg>
 );
 
+export const DeleteIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.141-2.004-2.183a62.906 62.906 0 00-2.042 0c-1.094.042-2.004 1.003-2.004 2.183v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+    </svg>
+);
+
+export const DownloadIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+    </svg>
+);
+
+export const ResetIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001m-4.992 0a2.25 2.25 0 01-2.244 2.244h-2.244m0 0V2.25M10.115 11.244v1.259M13.23 11.244v1.259m2.848-1.259v1.259m0 0v-2.109A2.25 2.25 0 0118.995 7.5h.582m0 0a2.25 2.25 0 002.245-2.244v-.914a2.25 2.25 0 00-2.245-2.244h-2.109a2.25 2.25 0 00-2.244 2.244v.914m0 0a2.25 2.25 0 01-2.244 2.244H8.911m0 0V2.25M13.23 2.25h-3.119a2.25 2.25 0 00-2.244 2.244v2.109a2.25 2.25 0 01-2.244 2.244H2.45a2.25 2.25 0 00-2.244 2.244v1.259a2.25 2.25 0 002.244 2.244h.914a2.25 2.25 0 012.244 2.244v2.109a2.25 2.25 0 002.244 2.244h3.119a2.25 2.25 0 002.244-2.244v-2.109a2.25 2.25 0 012.244-2.244h.914a2.25 2.25 0 002.244-2.244v-1.259a2.25 2.25 0 00-2.244-2.244h-.582a2.25 2.25 0 00-2.245 2.244v.914" />
+    </svg>
+);
+
+export const RestoreIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12a7.5 7.5 0 11-15 0 7.5 7.5 0 0115 0z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5V1.5m-6 6l-1.5-1.5m9 9l1.5 1.5M1.5 12h3m6 6l-1.5 1.5M4.5 6l-1.5-1.5m15 15l1.5-1.5M21 12h-3m-9 6l-1.5 1.5" />
+    </svg>
+);
+
 export const PlusIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" {...props}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />

@@ -1,6 +1,6 @@
-
-import React, { useState } from 'react';
-import { User, ProjectPayload } from '../types';
+// src/components/AddProjectForm.tsx
+import React, { useState, useMemo } from 'react';
+import { User, ProjectPayload, MonthlyBudgetPayload } from '../types';
 
 interface AddProjectFormProps {
     onSubmit: (projectData: ProjectPayload) => void;
@@ -17,7 +17,7 @@ const FormInput = ({ id, label, children }: { id: string, label: string, childre
 );
 
 const TextInput = (props: React.InputHTMLAttributes<HTMLInputElement>) => (
-     <input
+    <input
         {...props}
         className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#4A2B2C] focus:border-[#4A2B2C]"
     />
@@ -29,7 +29,9 @@ const AddProjectForm = ({ onSubmit, onCancel, teamLeads: availableLeads, titleId
     const [selectedTeamLeadIds, setSelectedTeamLeadIds] = useState<string[]>([]);
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
-    const [budget, setBudget] = useState('');
+    const [incomeBudget, setIncomeBudget] = useState<number | ''>('');
+    const [expenseBudget, setExpenseBudget] = useState<number | ''>('');
+    const [formError, setFormError] = useState('');
 
     const handleLeadToggle = (leadId: string) => {
         setSelectedTeamLeadIds(prev =>
@@ -41,17 +43,45 @@ const AddProjectForm = ({ onSubmit, onCancel, teamLeads: availableLeads, titleId
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!title.trim() || selectedTeamLeadIds.length === 0) {
-            alert('אנא מלא את שם הפרויקט ובחר לפחות ראש צוות אחד.');
+        setFormError('');
+
+        // 💡 בדיקות ואימותים חדשים
+        if (!title.trim()) {
+            setFormError('שם הפרויקט הוא שדה חובה.');
             return;
         }
-        onSubmit({ 
-            title, 
+        if (selectedTeamLeadIds.length === 0) {
+            setFormError('חובה לבחור לפחות ראש צוות אחד.');
+            return;
+        }
+        if (startDate && endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            if (start > end) {
+                setFormError('תאריך ההתחלה לא יכול להיות אחרי תאריך הסיום.');
+                return;
+            }
+        }
+        
+        // 💡 תיקון: הגדרת ה-type במפורש ובניית ה-payload בצורה נכונה
+        const monthlyBudgetsPayload: MonthlyBudgetPayload[] = [];
+        if (incomeBudget !== '' || expenseBudget !== '') {
+            const now = new Date();
+            monthlyBudgetsPayload.push({
+                year: now.getFullYear(),
+                month: now.getMonth() + 1,
+                incomeBudget: Number(incomeBudget) || 0,
+                expenseBudget: Number(expenseBudget) || 0,
+            });
+        }
+
+        onSubmit({
+            title,
             description,
             teamLeads: selectedTeamLeadIds,
             startDate,
             endDate,
-            budget: Number(budget) || 0,
+            monthlyBudgets: monthlyBudgetsPayload.length > 0 ? monthlyBudgetsPayload : undefined,
         });
     };
 
@@ -60,6 +90,12 @@ const AddProjectForm = ({ onSubmit, onCancel, teamLeads: availableLeads, titleId
             <h3 id={titleId} className="text-xl font-bold text-[#3D2324] mb-4 flex-shrink-0">יצירת פרויקט חדש</h3>
             <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0" key="add-project-form">
                 <div className="flex-1 overflow-y-auto pr-2 -mr-2 space-y-2 pb-2">
+                    {formError && (
+                        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+                            <span className="block sm:inline">{formError}</span>
+                        </div>
+                    )}
+                    
                     <FormInput id="proj-title" label="שם הפרויקט">
                         <TextInput
                             id="proj-title"
@@ -67,10 +103,9 @@ const AddProjectForm = ({ onSubmit, onCancel, teamLeads: availableLeads, titleId
                             value={title}
                             onChange={e => setTitle(e.target.value)}
                             placeholder="לדוגמא: השקת מוצר חדש"
-                            required
                         />
                     </FormInput>
-                    
+
                     <FormInput id="proj-desc" label="תיאור הפרויקט">
                         <textarea
                             id="proj-desc"
@@ -84,7 +119,7 @@ const AddProjectForm = ({ onSubmit, onCancel, teamLeads: availableLeads, titleId
 
                     <FormInput id="proj-lead" label="שיוך ראשי צוות">
                         <fieldset>
-                           <legend className="sr-only">בחר ראשי צוות</legend>
+                            <legend className="sr-only">בחר ראשי צוות</legend>
                             <div className="max-h-32 overflow-y-auto space-y-2 rounded-md border border-gray-300 p-3 bg-white">
                                 {availableLeads.map(lead => (
                                     <label key={lead.id} className="flex items-center space-x-3 space-x-reverse cursor-pointer hover:bg-gray-50 p-1 rounded-md">
@@ -101,7 +136,6 @@ const AddProjectForm = ({ onSubmit, onCancel, teamLeads: availableLeads, titleId
                         </fieldset>
                     </FormInput>
 
-
                     <div className="grid grid-cols-2 gap-4">
                         <FormInput id="proj-start-date" label="תאריך התחלה">
                             <TextInput
@@ -111,7 +145,7 @@ const AddProjectForm = ({ onSubmit, onCancel, teamLeads: availableLeads, titleId
                                 onChange={e => setStartDate(e.target.value)}
                             />
                         </FormInput>
-                         <FormInput id="proj-end-date" label="תאריך סיום">
+                        <FormInput id="proj-end-date" label="תאריך סיום">
                             <TextInput
                                 id="proj-end-date"
                                 type="date"
@@ -120,19 +154,31 @@ const AddProjectForm = ({ onSubmit, onCancel, teamLeads: availableLeads, titleId
                             />
                         </FormInput>
                     </div>
-                    
-                    <FormInput id="proj-budget" label="תקציב כללי (₪)">
-                        <TextInput
-                            id="proj-budget"
-                            type="number"
-                            value={budget}
-                            onChange={e => setBudget(e.target.value)}
-                            placeholder="0"
-                            min="0"
-                        />
-                    </FormInput>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormInput id="proj-income-budget" label="תקציב משוער הכנסה (₪)">
+                            <TextInput
+                                id="proj-income-budget"
+                                type="number"
+                                value={incomeBudget}
+                                onChange={e => setIncomeBudget(e.target.value === '' ? '' : Number(e.target.value))}
+                                placeholder="0"
+                                min="0"
+                            />
+                        </FormInput>
+                        <FormInput id="proj-expense-budget" label=" תקציב משוער הוצאה (₪)">
+                            <TextInput
+                                id="proj-expense-budget"
+                                type="number"
+                                value={expenseBudget}
+                                onChange={e => setExpenseBudget(e.target.value === '' ? '' : Number(e.target.value))}
+                                placeholder="0"
+                                min="0"
+                            />
+                        </FormInput>
+                    </div>
                 </div>
-                
+
                 <div className="flex justify-end space-x-2 space-x-reverse pt-3 mt-auto border-t border-gray-200 flex-shrink-0">
                     <button type="button" onClick={onCancel} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
                         ביטול

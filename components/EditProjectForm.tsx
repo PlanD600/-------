@@ -1,6 +1,6 @@
-
-import React, { useState, useEffect } from 'react';
-import { Project, User, ProjectPayload } from '../types';
+// src/components/EditProjectForm.tsx
+import React, { useState, useEffect, useMemo } from 'react';
+import { Project, User, ProjectPayload, MonthlyBudgetPayload } from '../types';
 
 interface EditProjectFormProps {
     project: Project;
@@ -18,7 +18,7 @@ const FormInput = ({ id, label, children }: { id: string, label: string, childre
 );
 
 const TextInput = (props: React.InputHTMLAttributes<HTMLInputElement>) => (
-     <input
+    <input
         {...props}
         className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#4A2B2C] focus:border-[#4A2B2C]"
     />
@@ -27,10 +27,12 @@ const TextInput = (props: React.InputHTMLAttributes<HTMLInputElement>) => (
 const EditProjectForm = ({ project, onSubmit, onCancel, teamLeads, titleId }: EditProjectFormProps) => {
     const [title, setTitle] = useState(project.title);
     const [description, setDescription] = useState(project.description || '');
-    const [selectedTeamLeadIds, setSelectedTeamLeadIds] = useState<string[]>([]);
-    const [startDate, setStartDate] = useState(project.startDate || '');
-    const [endDate, setEndDate] = useState(project.endDate || '');
-    const [budget, setBudget] = useState(project.budget?.toString() || '');
+    const [selectedTeamLeadIds, setSelectedTeamLeadIds] = useState<string[]>(project.teamLeads?.map(u => u.id) || []);
+    const [startDate, setStartDate] = useState(project.startDate?.split('T')[0] || '');
+    const [endDate, setEndDate] = useState(project.endDate?.split('T')[0] || '');
+    const [incomeBudget, setIncomeBudget] = useState<number | string>(0);
+    const [expenseBudget, setExpenseBudget] = useState<number | string>(0);
+    const [formError, setFormError] = useState('');
 
     useEffect(() => {
         setTitle(project.title);
@@ -38,9 +40,12 @@ const EditProjectForm = ({ project, onSubmit, onCancel, teamLeads, titleId }: Ed
         setSelectedTeamLeadIds(project.teamLeads?.map(u => u.id) || []);
         setStartDate(project.startDate?.split('T')[0] || '');
         setEndDate(project.endDate?.split('T')[0] || '');
-        setBudget(project.budget?.toString() || '');
-    }, [project]);
 
+        const totalIncome = (project.monthlyBudgets || []).reduce((sum, b) => sum + b.incomeBudget, 0);
+        const totalExpense = (project.monthlyBudgets || []).reduce((sum, b) => sum + b.expenseBudget, 0);
+        setIncomeBudget(totalIncome);
+        setExpenseBudget(totalExpense);
+    }, [project]);
 
     const handleLeadToggle = (leadId: string) => {
         setSelectedTeamLeadIds(prev =>
@@ -52,9 +57,36 @@ const EditProjectForm = ({ project, onSubmit, onCancel, teamLeads, titleId }: Ed
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!title.trim() || selectedTeamLeadIds.length === 0) {
-            alert('אנא מלא את שם הפרויקט ובחר לפחות ראש צוות אחד.');
+        setFormError('');
+
+        if (!title.trim()) {
+            setFormError('שם הפרויקט הוא שדה חובה.');
             return;
+        }
+
+        if (selectedTeamLeadIds.length === 0) {
+            setFormError('חובה לבחור לפחות ראש צוות אחד.');
+            return;
+        }
+
+        if (startDate && endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            if (start > end) {
+                setFormError('תאריך ההתחלה לא יכול להיות אחרי תאריך הסיום.');
+                return;
+            }
+        }
+
+        // 💡 תיקון: הגדרת ה-type במפורש
+        const monthlyBudgetsPayload: MonthlyBudgetPayload[] = [];
+        if (incomeBudget !== 0 || expenseBudget !== 0) {
+            monthlyBudgetsPayload.push({
+                year: new Date().getFullYear(),
+                month: new Date().getMonth() + 1,
+                incomeBudget: Number(incomeBudget) || 0,
+                expenseBudget: Number(expenseBudget) || 0,
+            });
         }
         
         const payload: Partial<ProjectPayload> = {
@@ -63,9 +95,9 @@ const EditProjectForm = ({ project, onSubmit, onCancel, teamLeads, titleId }: Ed
             teamLeads: selectedTeamLeadIds,
             startDate,
             endDate,
-            budget: Number(budget) || undefined,
+            monthlyBudgets: monthlyBudgetsPayload
         };
-        
+
         onSubmit(payload);
     };
 
@@ -74,6 +106,12 @@ const EditProjectForm = ({ project, onSubmit, onCancel, teamLeads, titleId }: Ed
             <h3 id={titleId} className="text-xl font-bold text-[#3D2324] mb-4 flex-shrink-0">עריכת פרויקט</h3>
             <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0" key={project.id}>
                 <div className="flex-1 overflow-y-auto pr-2 -mr-2 space-y-2 pb-2">
+                    {formError && (
+                        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+                            <span className="block sm:inline">{formError}</span>
+                        </div>
+                    )}
+                    
                     <FormInput id="proj-edit-title" label="שם הפרויקט">
                         <TextInput
                             id="proj-edit-title"
@@ -83,7 +121,7 @@ const EditProjectForm = ({ project, onSubmit, onCancel, teamLeads, titleId }: Ed
                             required
                         />
                     </FormInput>
-                    
+
                     <FormInput id="proj-edit-desc" label="תיאור הפרויקט">
                         <textarea
                             id="proj-edit-desc"
@@ -96,7 +134,7 @@ const EditProjectForm = ({ project, onSubmit, onCancel, teamLeads, titleId }: Ed
 
                     <FormInput id="proj-edit-lead" label="שיוך ראשי צוות">
                         <fieldset>
-                           <legend className="sr-only">ערוך שיוך ראשי צוות</legend>
+                            <legend className="sr-only">ערוך שיוך ראשי צוות</legend>
                             <div className="max-h-32 overflow-y-auto space-y-2 rounded-md border border-gray-300 p-3 bg-white">
                                 {teamLeads.map(lead => (
                                     <label key={lead.id} className="flex items-center space-x-3 space-x-reverse cursor-pointer hover:bg-gray-50 p-1 rounded-md">
@@ -122,7 +160,7 @@ const EditProjectForm = ({ project, onSubmit, onCancel, teamLeads, titleId }: Ed
                                 onChange={e => setStartDate(e.target.value)}
                             />
                         </FormInput>
-                         <FormInput id="proj-edit-end-date" label="תאריך סיום">
+                        <FormInput id="proj-edit-end-date" label="תאריך סיום">
                             <TextInput
                                 id="proj-edit-end-date"
                                 type="date"
@@ -131,18 +169,31 @@ const EditProjectForm = ({ project, onSubmit, onCancel, teamLeads, titleId }: Ed
                             />
                         </FormInput>
                     </div>
-                    
-                    <FormInput id="proj-edit-budget" label="תקציב כללי (₪)">
-                        <TextInput
-                            id="proj-edit-budget"
-                            type="number"
-                            value={budget}
-                            onChange={e => setBudget(e.target.value)}
-                            min="0"
-                        />
-                    </FormInput>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormInput id="proj-edit-income-budget" label="תקציב הכנסה">
+                            <TextInput
+                                id="proj-edit-income-budget"
+                                type="number"
+                                value={incomeBudget}
+                                onChange={e => setIncomeBudget(e.target.value)}
+                                min="0"
+                                placeholder="0"
+                            />
+                        </FormInput>
+                        <FormInput id="proj-edit-expense-budget" label="תקציב הוצאה">
+                            <TextInput
+                                id="proj-edit-expense-budget"
+                                type="number"
+                                value={expenseBudget}
+                                onChange={e => setExpenseBudget(e.target.value)}
+                                min="0"
+                                placeholder="0"
+                            />
+                        </FormInput>
+                    </div>
                 </div>
-                
+
                 <div className="flex justify-end space-x-2 space-x-reverse pt-3 mt-auto border-t border-gray-200 flex-shrink-0">
                     <button type="button" onClick={onCancel} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
                         ביטול
