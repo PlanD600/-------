@@ -79,7 +79,7 @@ const AddTaskForm = ({ onSubmit, onCancel, allUsers, titleId }: AddTaskFormProps
         color,
         expense: Number(expense) || 0,
         status: 'מתוכנן',
-        assigneesIds: assignedUsers.map(u => u.id),
+        assigneesIds: assigneesIds,
     };
     
     onSubmit(taskData);

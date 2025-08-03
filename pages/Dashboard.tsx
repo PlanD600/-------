@@ -1,3 +1,4 @@
+// src/pages/Dashboard.tsx
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Project, User, Team, Conversation, Notification, Membership } from '../types';
 import * as api from '../services/api';
@@ -5,8 +6,10 @@ import Header from '../components/Header';
 import TabView from '../components/TabView';
 import SettingsPage from './SettingsPage';
 import { useAuth } from '../hooks/useAuth';
-import { io, Socket } from 'socket.io-client'; // חשוב: ייבוא 'io' ו-'Socket'
+import { io, Socket } from 'socket.io-client';
 
+// קבוע לשמירה ב-LocalStorage
+const LAST_ACTIVE_TAB_KEY = 'lastActiveTab';
 
 const Dashboard = () => {
     const { user, currentOrgId } = useAuth();
@@ -22,14 +25,18 @@ const Dashboard = () => {
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('סקירה כללית');
-    const [projectsView, setProjectsView] = useState<'active' | 'archived'>('active'); // <-- הוסף שורה זו
 
+    // --- שינוי 1: אתחול ה-State של activeTab מה-localStorage ---
+    const [activeTab, setActiveTab] = useState(() => {
+        const storedTab = localStorage.getItem(LAST_ACTIVE_TAB_KEY);
+        return storedTab || 'סקירה כללית';
+    });
 
-    // עוטפים את fetchData ב-useCallback כדי למנוע יצירה מחדש של הפונקציה בכל רינדור
+    const [projectsView, setProjectsView] = useState<'active' | 'archived'>('active');
+
     const fetchData = useCallback(async (signal?: AbortSignal) => {
         if (!currentOrgId) {
-            setProjects([]); // נקה פרויקטים אם אין ארגון נבחר
+            setProjects([]);
             setTeams([]);
             setOrgMembers([]);
             setConversations([]);
@@ -41,7 +48,7 @@ const Dashboard = () => {
         try {
             const isArchivedFilter = projectsView === 'archived';
             const [projectsResponse, teamsResponse, orgMembersResponse, conversationsData] = await Promise.all([
-                api.getProjects(1, 25, undefined, undefined, signal,isArchivedFilter),
+                api.getProjects(1, 25, undefined, undefined, signal, isArchivedFilter),
                 api.getTeams(1, 25, undefined, undefined, signal),
                 api.getUsersInOrg(1, 25, undefined, undefined, signal),
                 api.getConversations(signal),
@@ -55,43 +62,44 @@ const Dashboard = () => {
         } catch (error: any) {
             if (error.name === 'AbortError') {
                 console.log('Fetch aborted by user/component unmount:', error.message);
-                return; // התעלם משגיאות שנובעות מביטול מכוון של קריאה
+                return;
             }
             console.error("Failed to fetch dashboard data:", error);
-            // Optionally, show an error message to the user
         } finally {
             setLoading(false);
         }
-    }, [currentOrgId, activeTab, projectsView]); // <-- הוסף את projectsView כאן
+    }, [currentOrgId, projectsView]);
 
-    // שינוי: useEffect זה יכיל את ה-AbortController, והתלות `fetchData` הוסרה
     useEffect(() => {
         console.log('Dashboard useEffect triggered');
         console.log('currentOrgId:', currentOrgId);
         console.log('activeTab:', activeTab);
-        console.log('projectsView:', projectsView); // יומן חדש כדי לוודא שזה עובד
+        console.log('projectsView:', projectsView);
 
+        const abortController = new AbortController();
+        fetchData(abortController.signal);
 
-        const abortController = new AbortController(); // יצירת AbortController חדש
-        fetchData(abortController.signal); // קריאה ל-fetchData והעברת ה-signal
-
-        return () => { // פונקציית ניקוי עבור useEffect
+        return () => {
             console.log("Dashboard useEffect cleanup: Aborting fetch requests.");
-            abortController.abort(); // ביטול כל קריאות ה-fetch שעדיין רצות
+            abortController.abort();
         };
-        // השינוי המרכזי כאן: הסרת `fetchData` ממערך התלויות
-    }, [currentOrgId, activeTab, projectsView]); // <-- זה התיקון המרכזי!
+    }, [currentOrgId, activeTab, projectsView]);
 
-    // WebSocket connection - ללא שינוי, כי ה-AbortController לא משפיע על סוקטים
+    // --- שינוי 2: useEffect חדש לשמירת הטאב ב-localStorage ---
+    useEffect(() => {
+        localStorage.setItem(LAST_ACTIVE_TAB_KEY, activeTab);
+        console.log(`Tab changed to ${activeTab}. Saving to localStorage.`);
+    }, [activeTab]);
+
+
     useEffect(() => {
         if (!currentOrgId || !user) return;
 
-        const newSocket = io('http://localhost:3000'); // Socket.IO משתמש ב-http/https, לא ws/wss באופן ישיר
+        const newSocket = io('http://localhost:3000');
         setSocket(newSocket);
 
         newSocket.on('connect', () => {
             console.log('Socket.IO connected');
-            // Register user for notifications
             if (user?.id) {
                 newSocket.emit('register_for_notifications', user.id);
             }
@@ -119,16 +127,13 @@ const Dashboard = () => {
 
         newSocket.on('connect_error', (error) => {
             console.error('Socket.IO connection error:', error);
-            // Socket.IO מטפל בדרך כלל בניסיונות חיבור מחדש אוטומטיים
         });
 
         newSocket.on('error_message', (data) => {
             console.error('Server error message:', data.message);
-            // הצג הודעת שגיאה למשתמש אם יש צורך
         });
 
         return () => {
-            // סגור את חיבור ה-Socket.IO כאשר הקומפוננטה נפרקת
             newSocket.disconnect();
         };
     }, [currentOrgId, user]);
@@ -167,7 +172,7 @@ const Dashboard = () => {
             users={usersInOrg}
             teams={teams}
             allMemberships={orgMembers}
-            refreshData={() => fetchData(new AbortController().signal)} // עדכון כאן
+            refreshData={() => fetchData(new AbortController().signal)}
             activeCategory={activeSettingsCategory}
             setActiveCategory={setActiveSettingsCategory}
         />;
