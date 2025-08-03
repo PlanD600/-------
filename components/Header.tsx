@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { MenuIcon, BellIcon } from './icons';
 import { Notification } from '../types';
 import NotificationsPopover from './NotificationsPopover';
+import Avatar from './Avatar'; // --- ייבוא הקומפוננטה החדשה ---
 
 interface HeaderProps {
     onNavigate: (view: 'settings' | 'dashboard') => void;
@@ -62,11 +63,20 @@ const Header = ({ onNavigate, notifications, setNotifications }: HeaderProps) =>
         <header className="grid grid-cols-3 items-center p-4 bg-white shadow-md shrink-0">
             {/* Right Side: Profile (in RTL) */}
             <div className="flex items-center space-x-reverse space-x-3 justify-self-start">
-                 <img 
-                    src={user?.profilePictureUrl || `https://i.pravatar.cc/150?u=${user?.id || 'default'}`} 
-                    alt={`תמונת פרופיל של ${user?.fullName || 'משתמש'}`} 
-                    className="w-10 h-10 rounded-full object-cover border-2 border-gray-200"
-                />
+                {/* --- שינוי כאן: בדיקה אם יש תמונת פרופיל או שימוש ברכיב Avatar --- */}
+                {user?.profilePictureUrl ? (
+                    <img 
+                        src={user.profilePictureUrl} 
+                        alt={`תמונת פרופיל של ${user.fullName || 'משתמש'}`} 
+                        className="w-10 h-10 rounded-full object-cover border-2 border-gray-200"
+                    />
+                ) : (
+                    <Avatar 
+                        fullName={user?.fullName || ''} 
+                        size={10} // גודל 10 = w-10 h-10
+                        className="border-2 border-gray-200"
+                    />
+                )}
                 <div className="text-right">
                     <p className="font-semibold text-gray-800 truncate">{user?.fullName || 'טוען...'}</p>
                     <p className="text-sm text-gray-500 truncate">{user?.jobTitle || '...'}</p>
