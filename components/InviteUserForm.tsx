@@ -1,6 +1,7 @@
 // src/components/InviteUserForm.tsx
 import React, { useState } from 'react';
 import { Membership } from '../types';
+import { roleDisplayNames } from '../SRC/roleDisplayNames'; 
 
 interface InviteUserFormProps {
     onSubmit: (data: { fullName: string; phone: string; jobTitle: string; role: Membership['role'] }) => Promise<void>;
@@ -73,7 +74,7 @@ const InviteUserForm = ({ onSubmit, onCancel, loading, error, availableRoles }: 
                     onChange={e => setRole(e.target.value as Membership['role'])}
                     className="mt-1 w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#4A2B2C] focus:border-[#4A2B2C]"
                 >
-                    {availableRoles.map(r => <option key={r} value={r}>{r}</option>)}
+                     {availableRoles.map(r => <option key={r} value={r}>{roleDisplayNames[r] || r}</option>)}
                 </select>
             </div>
             <div className="flex justify-end space-x-2 space-x-reverse pt-2">

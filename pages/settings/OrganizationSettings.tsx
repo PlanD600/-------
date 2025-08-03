@@ -4,14 +4,14 @@ import React, { useState, useMemo, useId } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { Organization } from '../../types';
 // **שינוי כאן:** ייבוא EditIcon במקום PencilIcon
-import { BuildingOfficeIcon, PlusIcon, EditIcon, TrashIcon } from '../../components/icons'; 
+import { BuildingOfficeIcon, PlusIcon, EditIcon, TrashIcon } from '../../components/icons';
 import Modal from '../../components/Modal';
 import ConfirmationModal from '../../components/ConfirmationModal';
 import * as api from '../../services/api';
 
 
 const OrganizationSettings = () => {
-    const { memberships, currentOrgId, switchOrganization, currentUserRole, refreshMemberships } = useAuth(); 
+    const { memberships, currentOrgId, switchOrganization, currentUserRole, refreshMemberships } = useAuth();
 
     const [isCreateOrgModalOpen, setIsCreateOrgModalOpen] = useState(false);
     const [newOrgName, setNewOrgName] = useState('');
@@ -46,11 +46,11 @@ const OrganizationSettings = () => {
         }
 
         try {
-            await api.createOrganization({ name: newOrgName }); 
+            await api.createOrganization({ name: newOrgName });
             alert('הארגון נוצר בהצלחה!');
             setIsCreateOrgModalOpen(false);
             setNewOrgName('');
-            await refreshMemberships(); 
+            await refreshMemberships();
         } catch (error) {
             console.error('Failed to create organization:', error);
             alert(`שגיאה ביצירת ארגון: ${(error as Error).message || 'נסה שוב מאוחר יותר.'}`);
@@ -109,7 +109,7 @@ const OrganizationSettings = () => {
                     </button>
                 )}
             </div>
-            
+
             <p className="text-gray-600 mb-6">
                 זוהי רשימת כל הארגונים שאתה חבר בהם. ניתן להחליף בין ארגונים דרך התפריט הראשי בראש העמוד.
             </p>
@@ -118,7 +118,7 @@ const OrganizationSettings = () => {
                 {uniqueOrganizations.map(org => (
                     <div key={org.id} className={`flex items-center justify-between p-4 rounded-lg border ${org.id === currentOrgId ? 'bg-blue-50 border-blue-300' : 'bg-gray-50'}`}>
                         <div className="flex items-center space-x-3 space-x-reverse">
-                            <BuildingOfficeIcon className="w-6 h-6 text-gray-500"/>
+                            <BuildingOfficeIcon className="w-6 h-6 text-gray-500" />
                             <span className="font-semibold text-gray-800">{org.name}</span>
                         </div>
                         <div className="flex items-center space-x-2 space-x-reverse">
@@ -149,7 +149,7 @@ const OrganizationSettings = () => {
                             {org.id === currentOrgId ? (
                                 <span className="px-3 py-1 text-sm font-bold text-blue-600 bg-blue-100 rounded-md">פעיל כעת</span>
                             ) : (
-                                <button 
+                                <button
                                     onClick={() => switchOrganization(org.id)}
                                     className="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-100 transition-colors"
                                 >
@@ -166,12 +166,12 @@ const OrganizationSettings = () => {
             )}
 
             {/* Modal ליצירת ארגון חדש */}
-            <Modal 
-                isOpen={isCreateOrgModalOpen} 
-                onClose={() => setIsCreateOrgModalOpen(false)} 
-                titleId={createOrgModalTitleId} 
+            <Modal
+                isOpen={isCreateOrgModalOpen}
+                onClose={() => setIsCreateOrgModalOpen(false)}
+                titleId={createOrgModalTitleId}
                 title="צור ארגון חדש"
-                size="sm"
+                size="md"
             >
                 <form onSubmit={handleCreateOrganization} className="space-y-4 p-4">
                     <div>
@@ -183,7 +183,7 @@ const OrganizationSettings = () => {
                             id="orgName"
                             value={newOrgName}
                             onChange={(e) => setNewOrgName(e.target.value)}
-                            className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-[#4A2B2C] focus:border-[#4A2B2C] sm:text-sm"
+                            className="block w-full py-2 px-3 border-gray-300 rounded-md shadow-sm focus:ring-[#4A2B2C] focus:border-[#4A2B2C] sm:text-sm"
                             required
                         />
                     </div>
@@ -211,7 +211,7 @@ const OrganizationSettings = () => {
                 onClose={() => setOrganizationToEdit(null)}
                 titleId={editOrgModalTitleId}
                 title={`ערוך ארגון: ${organizationToEdit?.name || ''}`}
-                size="sm"
+                size="md"
             >
                 {organizationToEdit && (
                     <form onSubmit={handleEditOrganization} className="space-y-4 p-4">
@@ -224,7 +224,7 @@ const OrganizationSettings = () => {
                                 id="editedOrgName"
                                 value={editedOrgName}
                                 onChange={(e) => setEditedOrgName(e.target.value)}
-                                className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-[#4A2B2C] focus:border-[#4A2B2C] sm:text-sm"
+                                className="block w-full py-2 px-3 border-gray-300 rounded-md shadow-sm focus:ring-[#4A2B2C] focus:border-[#4A2B2C] sm:text-sm"
                                 required
                             />
                         </div>

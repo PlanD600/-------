@@ -182,7 +182,7 @@ export const deleteProject = (projectId: string): Promise<void> =>
 
 // TASKS
 export const getTasksForProject = (projectId: string, page = 1, limit = 25, sortBy?: string, sortOrder?: 'asc' | 'desc', signal?: AbortSignal): Promise<PaginatedResponse<Task>> => {
-    const query = buildQueryString({ page, limit, sortBy, sortOrder });
+    const query = buildQueryString({ page, limit, sortBy, sortOrder, include: 'assignees' }); // הוסף את הפרמטר `include`
     return fetch(`${BASE_URL}/projects/${projectId}/tasks${query}`, {
         headers: getAuthHeaders(),
         signal,
@@ -216,6 +216,12 @@ export const addTaskComment = (projectId: string, taskId: string, content: strin
     body: JSON.stringify({ content }),
   }).then(handleResponse);
 
+
+export const getTaskById = (projectId: string, taskId: string): Promise<Task> => {
+    return fetch(`${BASE_URL}/projects/${projectId}/tasks/${taskId}`, {
+        headers: getAuthHeaders(),
+    }).then(handleResponse);
+};
 
 // FINANCE API
 export const getFinanceSummary = (projectId?: string): Promise<FinanceSummary> => {
@@ -335,3 +341,25 @@ export const createConversation = (data: { type: 'private' | 'group', participan
 
 export const getMessagesForConversation = (conversationId: string, page = 1, limit = 50): Promise<{ messages: Message[], totalPages: number, currentPage: number }> =>
   fetch(`${BASE_URL}/conversations/${conversationId}/messages?page=${page}&limit=${limit}`, { headers: getAuthHeaders() }).then(handleResponse);
+
+export const uploadProfilePicture = async (file: File) => {
+    const formData = new FormData();
+    formData.append('profilePicture', file);
+
+    const headers = getAuthHeaders();
+    // ה-Content-Type כבר מטופל אוטומטית על ידי הדפדפן עבור FormData
+    delete headers['Content-Type'];
+
+    const response = await fetch(`${BASE_URL}/auth/me/profile-picture`, {
+        method: 'POST',
+        body: formData,
+        headers, // שימוש בפונקציה הגנרית
+    });
+
+    if (!response.ok) {
+        const errorData = await handleResponse(response);
+        throw new Error(errorData.message || 'Failed to upload profile picture');
+    }
+
+    return response.json();
+};

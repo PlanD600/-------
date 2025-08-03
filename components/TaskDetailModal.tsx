@@ -23,6 +23,7 @@ const ALL_STATUSES: TaskStatus[] = ['מתוכנן', 'בתהליך', 'תקוע', 
 const statusStyles: { [key in TaskStatus]: { bg: string; text: string; } } = {
     'הושלם': { bg: 'bg-green-100', text: 'text-green-800' },
     'בתהליך': { bg: 'bg-yellow-100', text: 'text-yellow-800' },
+    'בסיכון': { bg: 'bg-orange-100', text: 'text-orange-800' }, // הוסף את השורה הזו
     'תקוע': { bg: 'bg-red-100', text: 'text-red-800' },
     'מתוכנן': { bg: 'bg-gray-100', text: 'text-gray-800' },
 };

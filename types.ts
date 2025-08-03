@@ -20,6 +20,7 @@ export interface User extends BaseModel {
   email?: string;
   profilePictureUrl?: string;
   jobTitle?: string;
+  organizationId: string;
 }
 
 export interface Organization extends BaseModel {

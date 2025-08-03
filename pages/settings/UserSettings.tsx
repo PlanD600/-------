@@ -8,7 +8,9 @@ import Modal from '../../components/Modal';
 import ConfirmationModal from '../../components/ConfirmationModal';
 import { PlusIcon, EditIcon, TrashIcon } from '../../components/icons';
 import InviteUserForm from '../../components/InviteUserForm'; // ייבוא הקומפוננטה החדשה
+import { roleDisplayNames } from '../../SRC/roleDisplayNames';
 
+const availableRoles: Membership['role'][] = ['SUPER_ADMIN', 'ADMIN', 'TEAM_LEADER', 'EMPLOYEE'];
 
 const roleHierarchy: { [key in Membership['role']]: number } = {
     'SUPER_ADMIN': 4,
@@ -26,11 +28,11 @@ interface UserSettingsProps {
 
 const UserSettings = ({ allMemberships, refreshData }: UserSettingsProps) => {
     const { user: currentUser, currentUserRole, currentOrgId } = useAuth();
-    
+
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
     const [userToEdit, setUserToEdit] = useState<DisplayUser | null>(null);
     const [userToRemove, setUserToRemove] = useState<DisplayUser | null>(null);
-    
+
     // **הסרה:** אין צורך יותר ב-stateים של הטופס כאן
     // const [inviteFullName, setInviteFullName] = useState('');
     // const [invitePhone, setInvitePhone] = useState('');
@@ -38,7 +40,7 @@ const UserSettings = ({ allMemberships, refreshData }: UserSettingsProps) => {
     // const [inviteRole, setInviteRole] = useState<Membership['role']>('EMPLOYEE');
 
     const [editingRole, setEditingRole] = useState<Membership['role']>('EMPLOYEE');
-    
+
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -76,7 +78,7 @@ const UserSettings = ({ allMemberships, refreshData }: UserSettingsProps) => {
             setLoading(false);
         }
     };
-    
+
     const handleCloseEditModal = () => {
         setUserToEdit(null);
         setError('');
@@ -121,7 +123,7 @@ const UserSettings = ({ allMemberships, refreshData }: UserSettingsProps) => {
     const availableRolesForInvite = useMemo(() => Object.entries(roleHierarchy)
         .filter(([, value]) => value < currentUserRoleValue)
         .map(([key]) => key as Membership['role']), [currentUserRoleValue]);
-    
+
     const renderUserTable = () => (
         <div className="overflow-x-auto">
             <table className="min-w-full bg-white">
@@ -152,12 +154,13 @@ const UserSettings = ({ allMemberships, refreshData }: UserSettingsProps) => {
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
-                                        {user.role}
+                                        {roleDisplayNames[user.role] || user.role}
+
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                     <div className="flex items-center space-x-2 space-x-reverse">
-                                        <button onClick={() => openEditModal(user)} disabled={!canTakeAction || loading} className="text-blue-600 hover:text-blue-900 disabled:text-gray-300 disabled:cursor-not-allowed"><EditIcon className="w-5 h-5"/></button>
+                                        <button onClick={() => openEditModal(user)} disabled={!canTakeAction || loading} className="text-blue-600 hover:text-blue-900 disabled:text-gray-300 disabled:cursor-not-allowed"><EditIcon className="w-5 h-5" /></button>
                                         <button onClick={() => setUserToRemove(user)} disabled={!canTakeAction || loading} className="text-red-600 hover:text-red-900 disabled:text-gray-300 disabled:cursor-not-allowed"><TrashIcon className="w-5 h-5" /></button>
                                     </div>
                                 </td>
@@ -168,7 +171,7 @@ const UserSettings = ({ allMemberships, refreshData }: UserSettingsProps) => {
             </table>
         </div>
     );
-    
+
     return (
         <div>
             <div className="flex justify-between items-center mb-6">
@@ -178,7 +181,7 @@ const UserSettings = ({ allMemberships, refreshData }: UserSettingsProps) => {
                     <span>הזמן משתמש</span>
                 </button>
             </div>
-            
+
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                 {displayUsers.length > 0 ? renderUserTable() : <p className="text-gray-500 text-center py-8">לא נמצאו משתמשים בארגון.</p>}
             </div>
@@ -201,7 +204,8 @@ const UserSettings = ({ allMemberships, refreshData }: UserSettingsProps) => {
                 {userToEdit && (
                     <form onSubmit={handleEditUserRole} className="space-y-4" key={userToEdit.id}>
                         <h3 id={editModalTitleId} className="text-lg font-bold text-gray-800">עריכת הרשאה עבור: {userToEdit.fullName}</h3>
-                        <p className="text-sm text-gray-600">משתמש זה כרגע בתפקיד: {userToEdit.role}.</p>
+                        {/* כאן השינוי: השתמש במיפוי כדי להציג את התפקיד הנוכחי */}
+                        <p className="text-sm text-gray-600">משתמש זה כרגע בתפקיד: {roleDisplayNames[userToEdit.role] || userToEdit.role}.</p>
                         {error && <p className="text-red-500 text-sm">{error}</p>}
                         <div>
                             <label htmlFor="edit-role" className="block text-sm font-medium text-gray-700">הרשאה חדשה</label>
@@ -211,8 +215,9 @@ const UserSettings = ({ allMemberships, refreshData }: UserSettingsProps) => {
                                 onChange={e => setEditingRole(e.target.value as Membership['role'])}
                                 className="mt-1 w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#4A2B2C] focus:border-[#4A2B2C]"
                             >
-                                {availableRolesForInvite.map(r => <option key={r} value={r}>{r}</option>)}
+                                {availableRoles.map(role => (<option key={role} value={role}>{roleDisplayNames[role] || role}</option>))}
                             </select>
+
                         </div>
                         <div className="flex justify-end space-x-2 space-x-reverse pt-2">
                             <button type="button" onClick={handleCloseEditModal} className="px-4 py-2 bg-gray-200 rounded-md">ביטול</button>
