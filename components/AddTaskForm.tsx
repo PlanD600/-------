@@ -9,19 +9,25 @@ interface AddTaskFormProps {
     titleId: string;
 }
 
-const FormInput = ({ id, label, children }: { id: string, label: string, children: React.ReactNode }) => (
+const FormInput = ({ id, label, children, error }: { id: string, label: string, children: React.ReactNode, error?: string }) => (
     <div>
         <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+        {error && <span className="text-red-500 ml-1">*</span>}
         {children}
+        {error && <p className="mt-1 text-sm text-red-500">{error}</p>}
     </div>
 );
 
-const TextInput = (props: React.InputHTMLAttributes<HTMLInputElement>) => (
-     <input
-        {...props}
-        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#4A2B2C] focus:border-[#4A2B2C]"
-    />
-);
+const TextInput = ({ className = '', ...props }: React.InputHTMLAttributes<HTMLInputElement> & { error?: string }) => {
+    const errorClass = props.error ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-[#4A2B2C] focus:border-[#4A2B2C]';
+    const combinedClassName = `w-full px-3 py-2 bg-white border rounded-md shadow-sm focus:outline-none ${errorClass} ${className}`;
+    return (
+        <input
+            {...props}
+            className={combinedClassName}
+        />
+    );
+};
 
 const AddTaskForm = ({ onSubmit, onCancel, allUsers, titleId }: AddTaskFormProps) => {
     const [title, setTitle] = useState('');
@@ -31,6 +37,9 @@ const AddTaskForm = ({ onSubmit, onCancel, allUsers, titleId }: AddTaskFormProps
     const [endDate, setEndDate] = useState('');
     const [expense, setExpense] = useState('');
     const [color, setColor] = useState('#8A94A6');
+    const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+    const [assignedUsers, setAssignedUsers] = useState<User[]>([]);
+
 
     const handleAssigneeToggle = (userId: string) => {
         setAssigneesIds(prev =>
@@ -41,19 +50,40 @@ const AddTaskForm = ({ onSubmit, onCancel, allUsers, titleId }: AddTaskFormProps
     };
 
     const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!title.trim()) return;
-        onSubmit({ 
-            title, 
-            description,
-            assigneesIds,
-            startDate,
-            endDate,
-            expense: Number(expense) || 0,
-            color,
-            status: 'מתוכנן'
-        });
+    e.preventDefault();
+    const errors: Record<string, string> = {};
+
+    if (!title.trim()) {
+        errors.title = 'שם המשימה הוא שדה חובה.';
+    }
+    if (!startDate) {
+        errors.startDate = 'יש לבחור תאריך התחלה.';
+    }
+    if (!endDate) {
+        errors.endDate = 'יש לבחור תאריך יעד.';
+    }
+
+    if (Object.keys(errors).length > 0) {
+        setFormErrors(errors);
+        return;
+    }
+
+    setFormErrors({});
+    
+    const taskData: TaskPayload = {
+        title,
+        description: description || '',
+        // נוודא שהתאריכים קיימים לפני המרה
+        startDate: startDate ? new Date(startDate).toISOString() : '',
+        endDate: endDate ? new Date(endDate).toISOString() : '',
+        color,
+        expense: Number(expense) || 0,
+        status: 'מתוכנן',
+        assigneesIds: assignedUsers.map(u => u.id),
     };
+    
+    onSubmit(taskData);
+};
 
     return (
         <div className="flex flex-col h-full max-h-[80vh] md:max-h-[70vh]">
@@ -68,6 +98,7 @@ const AddTaskForm = ({ onSubmit, onCancel, allUsers, titleId }: AddTaskFormProps
                             onChange={e => setTitle(e.target.value)}
                             placeholder="לדוגמא: עיצוב דף נחיתה"
                             required
+                            error={formErrors.title}
                         />
                     </FormInput>
 
@@ -109,18 +140,21 @@ const AddTaskForm = ({ onSubmit, onCancel, allUsers, titleId }: AddTaskFormProps
                                 type="date"
                                 value={startDate}
                                 onChange={e => setStartDate(e.target.value)}
+                                error={formErrors.startDate}
+
                             />
                         </FormInput>
-                         <FormInput id="task-end-date" label="תאריך סיום">
+                        <FormInput id="task-end-date" label="תאריך סיום">
                             <TextInput
                                 id="task-end-date"
                                 type="date"
                                 value={endDate}
                                 onChange={e => setEndDate(e.target.value)}
+                                error={formErrors.endDate}
                             />
                         </FormInput>
                     </div>
-                    
+
                     <div className="grid grid-cols-2 gap-4">
                         <FormInput id="task-expense" label="הוצאה תקציבית (₪)">
                             <TextInput
@@ -133,7 +167,7 @@ const AddTaskForm = ({ onSubmit, onCancel, allUsers, titleId }: AddTaskFormProps
                             />
                         </FormInput>
                         <FormInput id="task-color" label="צבע">
-                           <TextInput
+                            <TextInput
                                 id="task-color"
                                 type="color"
                                 value={color}

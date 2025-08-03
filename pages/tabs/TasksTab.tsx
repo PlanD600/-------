@@ -107,7 +107,7 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
         };
 
         fetchTasks();
-    }, [selectedProjectId]);
+    }, [selectedProjectId, projects]);
 
     const filteredTasks = useMemo(() => {
         if (userFilter === 'all') {
