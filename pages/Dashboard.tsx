@@ -41,7 +41,7 @@ const Dashboard = () => {
         try {
             const isArchivedFilter = projectsView === 'archived';
             const [projectsResponse, teamsResponse, orgMembersResponse, conversationsData] = await Promise.all([
-                api.getProjects(1, 25, undefined, undefined, signal),
+                api.getProjects(1, 25, undefined, undefined, signal,isArchivedFilter),
                 api.getTeams(1, 25, undefined, undefined, signal),
                 api.getUsersInOrg(1, 25, undefined, undefined, signal),
                 api.getConversations(signal),

@@ -76,14 +76,14 @@ const OverviewTab = ({ projects, teamLeads, users, teams, refreshData, projectsV
     const canManageOrg = currentUserRole === 'ADMIN' || currentUserRole === 'SUPER_ADMIN';
 
     const projectStatuses: ProjectStatus[] = ['מתוכנן', 'בתהליך', 'לקראת סיום', 'בסיכון', 'מוקפא', 'הושלם'];
-    const projectTeams = useMemo(() => Array.from(new Set(projects.flatMap(p => p.team?.map(t => t.name) || []))), [projects]);
+    const projectTeams = useMemo(() => Array.from(new Set(projects.flatMap(p => p.teams?.map(t => t.name) || []))), [projects]);
 
     const filteredProjects = useMemo(() => {
         const lowercasedSearch = searchTerm.toLowerCase();
         return projects
             .filter(p => (projectsView === 'active' ? !p.isArchived : p.isArchived))
             .filter(p => statusFilter === 'all' || p.status === statusFilter)
-            .filter(p => teamFilter === 'all' || p.team.some(t => t.name === teamFilter))
+            .filter(p => teamFilter === 'all' || p.teams.some(t => t.name === teamFilter))
             .filter(project => project.title.toLowerCase().includes(lowercasedSearch));
     }, [projects, projectsView, statusFilter, teamFilter, searchTerm]);
 
@@ -333,7 +333,7 @@ const OverviewTab = ({ projects, teamLeads, users, teams, refreshData, projectsV
                         onSubmit={handleUpdateProjectDetails}
                         onCancel={() => setProjectToEdit(null)}
                         teamLeads={teamLeads}
-                    />
+                        teams={teams} />
                 )}
             </Modal>
 

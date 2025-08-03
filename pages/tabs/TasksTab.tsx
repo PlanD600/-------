@@ -90,7 +90,7 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
 
     useEffect(() => {
         const fetchTasks = async () => {
-            if (!selectedProjectId) {
+            if (!selectedProjectId || !projects.find(p => p.id === selectedProjectId)) {
                 setTasks([]);
                 return;
             }

@@ -87,7 +87,7 @@ export interface Project extends BaseModel {
   completionPercentage?: number; // <<-- הוסף שורה זו
   status: ProjectStatus;
   isArchived: boolean;
-  team: Team[]; // Populated array of Team objects
+  teams: Team[]; // Populated array of Team objects
   teamLeads: User[]; // Populated array of User objects
   tasks?: Task[]; // Now optional, to be fetched on demand
   monthlyBudgets?: MonthlyBudget[]; // 💡 חדש: מערך של תקציבים חודשיים
@@ -108,7 +108,7 @@ export interface ProjectPayload {
     teamLeads: string[];
     startDate: string;
     endDate: string;
-    teamId?: string; // הוסף את השדה הזה
+    teamIds?: string[];
     monthlyBudgets?: MonthlyBudgetPayload[];
 }
 
@@ -147,10 +147,12 @@ export interface FinanceSummary {
 
 export interface Team extends BaseModel {
   name: string;
+  organizationId: string;
   leadIds: string[];
   memberIds: string[];
   leads?: User[];
   members?: User[];
+  teamLeads?: { userId: string, user: User }[];
 }
 
 export interface TeamPayload {

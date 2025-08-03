@@ -2,7 +2,6 @@
 import React, { useState, useMemo } from 'react';
 import { User, ProjectPayload, MonthlyBudgetPayload, Team } from '../types';
 
-
 interface AddProjectFormProps {
     onSubmit: (projectData: ProjectPayload) => void;
     onCancel: () => void;
@@ -46,50 +45,66 @@ const AddProjectForm = ({ onSubmit, onCancel, teamLeads: availableLeads, teams, 
     };
 
     const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        setFormError('');
+    e.preventDefault();
+    setFormError('');
 
-        // 💡 בדיקות ואימותים חדשים
-        if (!title.trim()) {
-            setFormError('שם הפרויקט הוא שדה חובה.');
+    // בדיקות אימות
+    if (!title.trim()) {
+        setFormError('שם הפרויקט הוא שדה חובה.');
+        return;
+    }
+
+    // 💡 יצירת מערך teamLeads בצורה דינמית
+    let teamLeadsToSend: string[] = [];
+    let teamIdsToSend: string[] = []; // 💡 שינוי: מערך חדש למזהי צוותים
+
+    if (assignMethod === 'team' && selectedTeamId) {
+        const selectedTeam = teams.find(t => t.id === selectedTeamId);
+        if (selectedTeam?.leads) {
+            teamLeadsToSend = selectedTeam.leads.map(lead => lead.id);
+            teamIdsToSend = [selectedTeamId]; // 💡 שינוי: הוספת ה-ID של הצוות למערך
+        }
+    } else if (assignMethod === 'teamLeads') {
+        teamLeadsToSend = selectedTeamLeadIds;
+        // במקרה זה אין צוותים, לכן נשאיר את teamIdsToSend ריק
+        teamIdsToSend = [];
+    }
+
+    if (teamLeadsToSend.length === 0) {
+        setFormError('חובה לבחור צוות או לפחות ראש צוות אחד.');
+        return;
+    }
+
+    if (startDate && endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        if (start > end) {
+            setFormError('תאריך ההתחלה לא יכול להיות אחרי תאריך הסיום.');
             return;
         }
-        if (!selectedTeamId && selectedTeamLeadIds.length === 0) { // תנאי חדש
-            setFormError('חובה לבחור צוות או לפחות ראש צוות אחד.');
-            return;
-        }
-        if (startDate && endDate) {
-            const start = new Date(startDate);
-            const end = new Date(endDate);
-            if (start > end) {
-                setFormError('תאריך ההתחלה לא יכול להיות אחרי תאריך הסיום.');
-                return;
-            }
-        }
+    }
 
-        // 💡 תיקון: הגדרת ה-type במפורש ובניית ה-payload בצורה נכונה
-        const monthlyBudgetsPayload: MonthlyBudgetPayload[] = [];
-        if (incomeBudget !== '' || expenseBudget !== '') {
-            const now = new Date();
-            monthlyBudgetsPayload.push({
-                year: now.getFullYear(),
-                month: now.getMonth() + 1,
-                incomeBudget: Number(incomeBudget) || 0,
-                expenseBudget: Number(expenseBudget) || 0,
-            });
-        }
-
-        onSubmit({
-            title,
-            description,
-            teamId: assignMethod === 'team' && selectedTeamId ? selectedTeamId : undefined,
-            teamLeads: assignMethod === 'teamLeads' ? selectedTeamLeadIds : [],
-            startDate,
-            endDate,
-            monthlyBudgets: monthlyBudgetsPayload.length > 0 ? monthlyBudgetsPayload : undefined,
+    const monthlyBudgetsPayload: MonthlyBudgetPayload[] = [];
+    if (incomeBudget !== '' || expenseBudget !== '') {
+        const now = new Date();
+        monthlyBudgetsPayload.push({
+            year: now.getFullYear(),
+            month: now.getMonth() + 1,
+            incomeBudget: Number(incomeBudget) || 0,
+            expenseBudget: Number(expenseBudget) || 0,
         });
-    };
+    }
 
+    onSubmit({
+        title,
+        description,
+        teamLeads: teamLeadsToSend,
+        teamIds: teamIdsToSend, // 💡 שינוי: העברת מערך מזהי הצוותים לשרת
+        startDate,
+        endDate,
+        monthlyBudgets: monthlyBudgetsPayload.length > 0 ? monthlyBudgetsPayload : undefined,
+    });
+};
     return (
         <div className="flex flex-col h-full max-h-[80vh] md:max-h-[70vh]">
             <h3 id={titleId} className="text-xl font-bold text-[#3D2324] mb-4 flex-shrink-0">יצירת פרויקט חדש</h3>

@@ -38,7 +38,7 @@ const DetailRow = ({ label, value }: { label: string, value: React.ReactNode }) 
 
 const ProjectCard = ({ project, onClick, onEdit, onArchive, onDelete }: ProjectCardProps) => {
     const statusStyle = statusStyles[project.status] || statusStyles['מתוכנן'];
-    const teamNames = project.team?.map(t => t.name).join(', ') || 'ללא שיוך';
+    const teamNames = project.teams?.map(t => t.name).join(', ') || 'ללא שיוך';
     const teamLeadNames = project.teamLeads?.map(u => u.fullName).join(', ') || 'לא צוין';
 
     return (

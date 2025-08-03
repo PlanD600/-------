@@ -18,6 +18,7 @@ const statusStyles: { [key in TaskStatus]: { bg: string; text: string; } } = {
     'בתהליך': { bg: 'bg-yellow-100', text: 'text-yellow-800' },
     'תקוע': { bg: 'bg-red-100', text: 'text-red-800' },
     'מתוכנן': { bg: 'bg-gray-100', text: 'text-gray-800' },
+    'בסיכון': { bg: 'bg-red-200', text: 'text-red-900' },
 };
 
 const InfoItem = ({ label, value }: { label: string, value: React.ReactNode }) => (
@@ -104,7 +105,7 @@ const ProjectTasksModal = ({ isOpen, project, onClose, users, refreshProject }: 
                         </p>
                         <div className="grid grid-cols-1 gap-y-2 mt-4">
                             <InfoItem label="סטטוס" value={project.status} />
-                            <InfoItem label="צוות" value={<span className="whitespace-normal break-words">{project.team?.map(t => t.name).join(', ') || 'לא משויך'}</span>} />
+                            <InfoItem label="צוות" value={<span className="whitespace-normal break-words">{project.teams?.map(t => t.name).join(', ') || 'לא משויך'}</span>} />
                             <InfoItem
                                 label={project.teamLeads && project.teamLeads.length > 1 ? "ראשי צוות" : "ראש צוות"}
                                 value={<span className="whitespace-normal break-words">{project.teamLeads && project.teamLeads.length > 0 ? project.teamLeads.map(u => u.fullName).join(', ') : 'לא צוין'}</span>}

@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useId, useRef } from 'react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import * as api from '../../services/api';
-import { Project, Task, User, TaskPayload } from '../../types';
+import { Project, Task, User, TaskPayload, Team } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
 import Modal from '../../components/Modal';
 import TaskDetailModal from '../../components/TaskDetailModal';
@@ -14,6 +14,8 @@ import "./GanttResponsive.css";
 import ProjectTasksModal from '../../components/ProjectTasksModal';
 
 // --- רכיבים מותאמים אישית לרשימת המשימות ---
+
+
 
 const CustomTaskListHeader = ({ headerHeight, fontFamily, fontSize, rowWidth }) => {
     return (
@@ -69,6 +71,7 @@ const GanttTab = ({ projects, users, refreshData }: { projects: Project[], users
     // --- State & Refs ---
     const [localProjects, setLocalProjects] = useState<(Project & { isCollapsed?: boolean })[]>([]);
     const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
+    const selectedProject = useMemo(() => projects.find(p => p.id === selectedProjectId), [projects, selectedProjectId]);
     const [view, setView] = useState<ViewMode>(ViewMode.Week);
     const [ganttColumnWidth, setGanttColumnWidth] = useState(150);
     const ganttContainerRef = useRef<HTMLDivElement>(null);
@@ -80,8 +83,24 @@ const GanttTab = ({ projects, users, refreshData }: { projects: Project[], users
     const { user, currentUserRole } = useAuth();
     const viewTaskTitleId = useId();
     const editTaskTitleId = useId();
+    const [teams, setTeams] = useState<Team[]>([]);
+    const [loadingTeams, setLoadingTeams] = useState(false);
 
-    // --- Data Sync and Processing ---
+    useEffect(() => {
+        const fetchTeams = async () => {
+            setLoadingTeams(true);
+            try {
+                const response = await api.getTeams();
+                setTeams(response.data);
+            } catch (error) {
+                console.error("Failed to fetch teams:", error);
+            } finally {
+                setLoadingTeams(false);
+            }
+        };
+        fetchTeams();
+    }, []);
+
     useEffect(() => {
         const sortedProjects = projects.map(p => ({
             ...p,
@@ -112,7 +131,6 @@ const GanttTab = ({ projects, users, refreshData }: { projects: Project[], users
 
         visibleProjects.forEach(project => {
             if (project.startDate && project.endDate) {
-                // 💡 תיקון: ודא שתאריך ההתחלה לא גדול מתאריך הסיום
                 const projectStart = new Date(project.startDate);
                 const projectEnd = new Date(project.endDate);
                 if (projectStart <= projectEnd) {
@@ -126,7 +144,6 @@ const GanttTab = ({ projects, users, refreshData }: { projects: Project[], users
             }
             (project.tasks || []).forEach(task => {
                 if (task.startDate && task.endDate) {
-                    // 💡 תיקון: ודא שתאריך ההתחלה לא גדול מתאריך הסיום
                     const taskStart = new Date(task.startDate);
                     const taskEnd = new Date(task.endDate);
                     if (taskStart <= taskEnd) {
@@ -150,16 +167,13 @@ const GanttTab = ({ projects, users, refreshData }: { projects: Project[], users
     // --- Handlers ---
     const handleGoToToday = () => {
         if (!ganttContainerRef.current) return;
-
         let attempts = 0;
         const maxAttempts = 20;
 
         const findAndScroll = () => {
             const scrollableElement = ganttContainerRef.current?.querySelector<HTMLElement>('._CZjuD');
-
             if (scrollableElement) {
                 console.log("Success! Found the correct scrollable element (._CZjuD). Scrolling...");
-
                 let pixelsPerDay: number;
                 switch (view) {
                     case ViewMode.Day: pixelsPerDay = ganttColumnWidth; break;
@@ -167,29 +181,23 @@ const GanttTab = ({ projects, users, refreshData }: { projects: Project[], users
                     case ViewMode.Month: pixelsPerDay = ganttColumnWidth / 30.44; break;
                     default: return;
                 }
-
                 const today = new Date();
                 const cutoffDate = new Date(today.getFullYear(), 0, 1);
                 const relevantTasks = ganttTasks.filter(t => t.end >= cutoffDate);
                 if (relevantTasks.length === 0) return;
-
                 const projectStartDate = relevantTasks.reduce((minDate, task) =>
                     task.start < minDate ? task.start : minDate,
                     relevantTasks[0].start
                 );
-
                 const timeDiff = today.getTime() - projectStartDate.getTime();
                 const daysSinceStart = Math.max(0, timeDiff / (1000 * 3600 * 24));
                 const scrollTarget = daysSinceStart * pixelsPerDay;
-
                 const scrollableAreaWidth = scrollableElement.getBoundingClientRect().width;
                 const finalScrollLeft = scrollTarget - (scrollableAreaWidth / 2);
-
                 scrollableElement.scrollTo({
                     left: finalScrollLeft,
                     behavior: 'smooth'
                 });
-
             } else {
                 attempts++;
                 if (attempts < maxAttempts) {
@@ -199,7 +207,6 @@ const GanttTab = ({ projects, users, refreshData }: { projects: Project[], users
                 }
             }
         };
-
         findAndScroll();
     };
 
@@ -235,7 +242,7 @@ const GanttTab = ({ projects, users, refreshData }: { projects: Project[], users
         else if (newView === ViewMode.Week) setGanttColumnWidth(150);
         else if (newView === ViewMode.Month) setGanttColumnWidth(250);
     };
-    
+
     useEffect(() => {
         setTimeout(() => handleGoToToday(), 100);
     }, [ganttTasks, view]);
@@ -260,25 +267,50 @@ const GanttTab = ({ projects, users, refreshData }: { projects: Project[], users
 
         const project = localProjects.find(p => p.id === (task.project || task.id));
         if (!project) return;
+
+        // פונקציה מסייעת שמחלצת ID מתוך אובייקט או מחרוזת
+        const getId = (item: string | { id: string }): string | undefined => {
+            // בדיקה כדי לוודא שאיבר קיים לפני שניגש למאפיין id
+            if (typeof item === 'object' && item !== null && 'id' in item) {
+                return item.id;
+            }
+            return typeof item === 'string' ? item : undefined;
+        };
+
         if (task.type === 'task') {
             const originalTask = (project.tasks || []).find(t => t.id === task.id);
             if (originalTask) setViewingTask({ task: originalTask, project });
         } else {
-            setViewingProject(project);
+            // מציאת ה-ID של הצוות, אם קיים, מתוך מערך הצוותים של הפרויקט
+            const teamIdFromProject = project.teams?.[0]?.id;
+
+            // מציאת אובייקט הצוות המלא מתוך רשימת הצוותים הכללית
+            const associatedTeam = teams.find(t => t.id === teamIdFromProject);
+
+            // יצירת אובייקט פרויקט חדש עם נתוני צוות ומשתמשים מלאים
+            const populatedProject = {
+                ...project,
+                // הצבת אובייקט הצוות המלא במערך
+                team: associatedTeam ? [associatedTeam] : [],
+
+                // הצבת אובייקט ראשי הצוות המלאים
+                teamLeads: associatedTeam?.leads || [],
+            };
+            setViewingProject(populatedProject);
         }
-    };
+    };;
 
     const handleTaskChange = async (task: GanttTask) => {
         const project = localProjects.find(p => p.id === (task.project || task.id));
         if (!project || task.type !== 'task') return;
-        
+
         justDragged.current = true;
 
         const updatedTaskData = {
             startDate: task.start.toISOString().split('T')[0],
             endDate: task.end.toISOString().split('T')[0],
         };
-        
+
         setLocalProjects(prev => prev.map(p => p.id === project.id ? { ...p, tasks: (p.tasks || []).map(t => t.id === task.id ? { ...t, ...updatedTaskData } : t) } : p));
         try {
             await api.updateTask(project.id, task.id, updatedTaskData);
@@ -351,7 +383,16 @@ const GanttTab = ({ projects, users, refreshData }: { projects: Project[], users
     return (
         <div className="space-y-4 bg-gray-50 p-4 rounded-xl">
             <div className="flex flex-wrap items-center justify-between gap-4">
-                <h2 className="text-3xl font-bold text-gray-800">תרשים גאנט</h2>
+                <div className="flex flex-col">
+                    <h2 className="text-3xl font-bold text-gray-800">תרשים גאנט</h2>
+                    {selectedProjectId !== 'all' && selectedProjectId !== '' && selectedProject?.teams && (
+                        <p className="mt-2 text-sm text-gray-500">
+                            <span className="font-semibold">שייך לצוות: </span>
+                            {/* בדיקה האם הנתונים קיימים באובייקט, אחרת מנסים למצוא אותם */}
+                            {selectedProject.teams?.[0]?.name || teams.find(t => t.id === selectedProject.teams?.[0]?.id)?.name || 'לא ידוע'}
+                        </p>
+                    )}
+                </div>
                 <div className="flex items-center gap-2 flex-wrap">
                     <div className="flex items-center bg-gray-200 rounded-lg p-1" dir="ltr">
                         <button onClick={() => handleViewChange(ViewMode.Day)} className={`px-3 py-1 text-sm font-semibold rounded-md ${view === ViewMode.Day ? 'bg-white text-blue-600 shadow' : 'text-gray-600'}`}>יום</button>
@@ -375,7 +416,7 @@ const GanttTab = ({ projects, users, refreshData }: { projects: Project[], users
                         onClick={handleTaskClick}
                         onDateChange={handleTaskChange}
                         onExpanderClick={(task) => {
-                            setLocalProjects(prev => prev.map(p => p.id === task.id ? {...p, isCollapsed: !p.isCollapsed} : p));
+                            setLocalProjects(prev => prev.map(p => p.id === task.id ? { ...p, isCollapsed: !p.isCollapsed } : p));
                         }}
                         locale="he"
                         viewMode={view}
