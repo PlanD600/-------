@@ -312,6 +312,7 @@ const OverviewTab = ({ projects, teamLeads, users, teams, refreshData, projectsV
                     onSubmit={handleCreateProject}
                     onCancel={() => setIsCreateProjectModalOpen(false)}
                     teamLeads={teamLeads}
+                    teams={teams}
                 />
             </Modal>
 

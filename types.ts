@@ -103,12 +103,13 @@ export interface MonthlyBudget extends BaseModel {
 }
 
 export interface ProjectPayload {
-  title?: string;
-  description?: string;
-  teamLeads?: string[]; // Renamed from teamLeadIds for clarity and API spec alignment
-  startDate?: string;
-  endDate?: string;
-  monthlyBudgets?: MonthlyBudgetPayload[]; // 💡 חדש: מערך של תקציבים חודשיים
+    title: string;
+    description: string;
+    teamLeads: string[];
+    startDate: string;
+    endDate: string;
+    teamId?: string; // הוסף את השדה הזה
+    monthlyBudgets?: MonthlyBudgetPayload[];
 }
 
 export interface MonthlyBudgetPayload {
