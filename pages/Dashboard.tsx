@@ -95,8 +95,8 @@ const Dashboard = () => {
     useEffect(() => {
         if (!currentOrgId || !user) return;
 
-        //const newSocket = io('https://api.mypland.com/api');
-        const newSocket = io(import.meta.env.VITE_SOCKET_URL);
+        const newSocket = io('https://api.mypland.com/api');
+        //const newSocket = io(import.meta.env.VITE_SOCKET_URL);
         setSocket(newSocket);
 
         newSocket.on('connect', () => {

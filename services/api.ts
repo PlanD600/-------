@@ -2,8 +2,8 @@
 
 import { Organization, Project, Task, FinanceEntry, FinanceSummary, PaginatedResponse, User, Membership, Team, Conversation, Message, Comment, ProjectPayload, TaskPayload, TeamPayload } from '../types';
 
-//const BASE_URL = 'https://api.mypland.com/api';
-const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const BASE_URL = 'https://api.mypland.com/api';
+//const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('jwtToken');
