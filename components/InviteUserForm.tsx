@@ -1,7 +1,7 @@
 // src/components/InviteUserForm.tsx
 import React, { useState } from 'react';
 import { Membership } from '../types';
-import { roleDisplayNames } from '../SRC/roleDisplayNames'; 
+import { roleDisplayNames } from '../src/roleDisplayNames'; 
 
 interface InviteUserFormProps {
     onSubmit: (data: { fullName: string; phone: string; jobTitle: string; role: Membership['role'] }) => Promise<void>;

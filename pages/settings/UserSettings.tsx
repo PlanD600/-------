@@ -8,7 +8,7 @@ import Modal from '../../components/Modal';
 import ConfirmationModal from '../../components/ConfirmationModal';
 import { PlusIcon, EditIcon, TrashIcon } from '../../components/icons';
 import InviteUserForm from '../../components/InviteUserForm'; // ייבוא הקומפוננטה החדשה
-import { roleDisplayNames } from '../../SRC/roleDisplayNames';
+import { roleDisplayNames } from '../../src/roleDisplayNames';
 
 const availableRoles: Membership['role'][] = ['SUPER_ADMIN', 'ADMIN', 'TEAM_LEADER', 'EMPLOYEE'];
 
