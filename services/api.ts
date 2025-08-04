@@ -2,7 +2,7 @@
 
 import { Organization, Project, Task, FinanceEntry, FinanceSummary, PaginatedResponse, User, Membership, Team, Conversation, Message, Comment, ProjectPayload, TaskPayload, TeamPayload } from '../types';
 
-const BASE_URL = 'http://localhost:3000/api';
+const BASE_URL = 'https://api.mypland.com/api';
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('jwtToken');

@@ -9,11 +9,11 @@ export default defineConfig(({ mode }) => {
         server: {
             proxy: {
                 '/api': {
-                    target: 'http://localhost:3000',
+                    target: 'https://api.mypland.com',
                     changeOrigin: true,
                 },
                 '/socket.io': {
-                    target: 'ws://localhost:3000',
+                    target: 'wss://api.mypland.com',
                     ws: true,
                 },
             },

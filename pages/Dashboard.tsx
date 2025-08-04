@@ -95,7 +95,7 @@ const Dashboard = () => {
     useEffect(() => {
         if (!currentOrgId || !user) return;
 
-        const newSocket = io('http://localhost:3000');
+        const newSocket = io('https://api.mypland.com/api');
         setSocket(newSocket);
 
         newSocket.on('connect', () => {

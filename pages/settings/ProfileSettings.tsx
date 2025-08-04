@@ -50,7 +50,7 @@ const ProfileSettings = () => {
             let newProfilePictureUrl = user?.profilePictureUrl;
             if (profilePictureFile) {
                 const uploadResponse = await api.uploadProfilePicture(profilePictureFile);[]
-                const serverBaseUrl = 'http://localhost:3000';
+                const serverBaseUrl = 'https://api.mypland.com';
                 newProfilePictureUrl = `${serverBaseUrl}${uploadResponse.profilePictureUrl}`;
             }
 
