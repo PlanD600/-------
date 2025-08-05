@@ -2,6 +2,14 @@
 
 import { Organization, Project, Task, FinanceEntry, FinanceSummary, PaginatedResponse, User, Membership, Team, Conversation, Message, Comment, ProjectPayload, TaskPayload, TeamPayload } from '../types';
 
+interface ImportMetaEnv {
+  readonly VITE_API_URL: string;
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}
+
 const BASE_URL = 'https://api.mypland.com/api';
 //const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
