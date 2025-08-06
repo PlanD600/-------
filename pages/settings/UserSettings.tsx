@@ -7,6 +7,8 @@ import ConfirmationModal from '../../components/ConfirmationModal';
 import { PlusIcon, EditIcon, TrashIcon } from '../../components/icons';
 import InviteUserForm from '../../components/InviteUserForm';
 import { roleDisplayNames } from '../../src/roleDisplayNames';
+import UpdateUserEmailForm from '../../components/users/UpdateUserEmailForm';
+import UpdateUserPasswordForm from '../../components/users/UpdateUserPasswordForm';
 
 const availableRoles: Membership['role'][] = ['SUPER_ADMIN', 'ADMIN', 'TEAM_LEADER', 'EMPLOYEE'];
 
@@ -24,7 +26,6 @@ interface UserSettingsProps {
     refreshData: () => Promise<void>;
 }
 
-// הודעות שגיאה בעברית להזמנה
 const errorMessagesHe: Record<string, string> = {
     'Email already in use': "האימייל כבר בשימוש",
     'Invalid email format': "פורמט אימייל לא תקין",
@@ -40,6 +41,7 @@ const UserSettings = ({ allMemberships, refreshData }: UserSettingsProps) => {
     const [userToRemove, setUserToRemove] = useState<DisplayUser | null>(null);
 
     const [editingRole, setEditingRole] = useState<Membership['role']>('EMPLOYEE');
+    const [editTab, setEditTab] = useState<'role' | 'email' | 'password'>('role');
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -61,16 +63,14 @@ const UserSettings = ({ allMemberships, refreshData }: UserSettingsProps) => {
         setError('');
     };
 
-    // עדכון: קבלת email מהטופס
     const handleInviteUser = async (data: { fullName: string; phone: string; jobTitle: string; email: string; role: Membership['role'] }) => {
         setLoading(true);
         setError('');
         try {
-            await api.inviteUser(data); // העברת גם אימייל
+            await api.inviteUser(data);
             await refreshData();
             handleCloseInviteModal();
         } catch (err: any) {
-            // תרגום שגיאה לעברית
             const msg = err.message;
             setError(errorMessagesHe[msg] || 'שליחת ההזמנה נכשלה');
         } finally {
@@ -81,6 +81,7 @@ const UserSettings = ({ allMemberships, refreshData }: UserSettingsProps) => {
     const handleCloseEditModal = () => {
         setUserToEdit(null);
         setError('');
+        setEditTab('role');
     };
 
     const handleEditUserRole = async (e: React.FormEvent) => {
@@ -116,6 +117,7 @@ const UserSettings = ({ allMemberships, refreshData }: UserSettingsProps) => {
     const openEditModal = (user: DisplayUser) => {
         setUserToEdit(user);
         setEditingRole(user.role);
+        setEditTab('role');
     };
 
     const currentUserRoleValue = roleHierarchy[currentUserRole || 'EMPLOYEE'];
@@ -203,28 +205,64 @@ const UserSettings = ({ allMemberships, refreshData }: UserSettingsProps) => {
             {/* Edit User Modal */}
             <Modal isOpen={!!userToEdit} onClose={handleCloseEditModal} titleId={editModalTitleId}>
                 {userToEdit && (
-                    <form onSubmit={handleEditUserRole} className="space-y-4" key={userToEdit.id}>
-                        <h3 id={editModalTitleId} className="text-lg font-bold text-gray-800">עריכת הרשאה עבור: {userToEdit.fullName}</h3>
-                        <p className="text-sm text-gray-600">משתמש זה כרגע בתפקיד: {roleDisplayNames[userToEdit.role] || userToEdit.role}.</p>
-                        {error && <p className="text-red-500 text-sm">{error}</p>}
-                        <div>
-                            <label htmlFor="edit-role" className="block text-sm font-medium text-gray-700">הרשאה חדשה</label>
-                            <select
-                                id="edit-role"
-                                value={editingRole}
-                                onChange={e => setEditingRole(e.target.value as Membership['role'])}
-                                className="mt-1 w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#4A2B2C] focus:border-[#4A2B2C]"
-                            >
-                                {availableRoles.map(role => (<option key={role} value={role}>{roleDisplayNames[role] || role}</option>))}
-                            </select>
+                    <div>
+                        {/* טאבים עיצוביים */}
+                        <div className="flex mb-4 gap-2">
+                            <button
+                                className={`px-3 py-1 rounded transition-colors font-semibold text-sm border ${editTab === 'role' ? 'bg-[#4A2B2C] text-white border-[#4A2B2C]' : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200'}`}
+                                onClick={() => setEditTab('role')}
+                            >הרשאה</button>
+                            <button
+                                className={`px-3 py-1 rounded transition-colors font-semibold text-sm border ${editTab === 'email' ? 'bg-[#4A2B2C] text-white border-[#4A2B2C]' : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200'}`}
+                                onClick={() => setEditTab('email')}
+                            >אימייל</button>
+                            <button
+                                className={`px-3 py-1 rounded transition-colors font-semibold text-sm border ${editTab === 'password' ? 'bg-[#4A2B2C] text-white border-[#4A2B2C]' : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200'}`}
+                                onClick={() => setEditTab('password')}
+                            >סיסמה</button>
                         </div>
-                        <div className="flex justify-end space-x-2 space-x-reverse pt-2">
-                            <button type="button" onClick={handleCloseEditModal} className="px-4 py-2 bg-gray-200 rounded-md">ביטול</button>
-                            <button type="submit" disabled={loading} className="px-4 py-2 bg-[#4A2B2C] text-white rounded-md disabled:opacity-50">
-                                {loading ? 'שומר...' : 'שמור שינויים'}
-                            </button>
-                        </div>
-                    </form>
+
+                        {/* תוכן הטאב */}
+                        {editTab === 'role' && (
+                            <form onSubmit={handleEditUserRole} className="space-y-4" key={userToEdit.id}>
+                                <h3 id={editModalTitleId} className="text-lg font-bold text-gray-800">עריכת הרשאה עבור: {userToEdit.fullName}</h3>
+                                <p className="text-sm text-gray-600">משתמש זה כרגע בתפקיד: {roleDisplayNames[userToEdit.role] || userToEdit.role}.</p>
+                                {error && <p className="text-red-500 text-sm">{error}</p>}
+                                <div>
+                                    <label htmlFor="edit-role" className="block text-sm font-medium text-gray-700">הרשאה חדשה</label>
+                                    <select
+                                        id="edit-role"
+                                        value={editingRole}
+                                        onChange={e => setEditingRole(e.target.value as Membership['role'])}
+                                        className="mt-1 w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#4A2B2C] focus:border-[#4A2B2C]"
+                                    >
+                                        {availableRoles.map(role => (<option key={role} value={role}>{roleDisplayNames[role] || role}</option>))}
+                                    </select>
+                                </div>
+                                <div className="flex justify-end space-x-2 space-x-reverse pt-2">
+                                    <button type="button" onClick={handleCloseEditModal} className="px-4 py-2 bg-gray-200 rounded-md">ביטול</button>
+                                    <button type="submit" disabled={loading} className="px-4 py-2 bg-[#4A2B2C] text-white rounded-md disabled:opacity-50">
+                                        {loading ? 'שומר...' : 'שמור שינויים'}
+                                    </button>
+                                </div>
+                            </form>
+                        )}
+                        {editTab === 'email' && (
+                            <UpdateUserEmailForm
+                                userId={userToEdit.id}
+                                currentEmail={userToEdit.email || ''}
+                                onSuccess={refreshData}
+                                onClose={handleCloseEditModal}
+                            />
+                        )}
+                        {editTab === 'password' && (
+                            <UpdateUserPasswordForm
+                                userId={userToEdit.id}
+                                onSuccess={refreshData}
+                                onClose={handleCloseEditModal}
+                            />
+                        )}
+                    </div>
                 )}
             </Modal>
 

@@ -50,18 +50,14 @@ const LoginPage = () => {
   const marketingModalTitleId = useId();
 
   const errorMessagesHe = {
-  'Invalid email or password': "אימייל או סיסמה לא נכונים",
-  'User not found.': "המשתמש לא נמצא",
-  'Invalid password.': "הסיסמה שגויה",
-  'User with this email already exists.': "משתמש עם אימייל זה כבר קיים",
-  'Registration failed': "ההרשמה נכשלה",
-  'User with this phone number already exists.': "משתמש עם מספר טלפון זה כבר קיים",
-  'OTP expired or not sent. Please request a new one.': "הקוד פג תוקף או לא נשלח. אנא בקש קוד חדש.",
-  'Invalid OTP code.': "קוד אימות שגוי",
-  'User has no active memberships. Please contact support.': "למשתמש אין חברות פעילה בארגון. אנא צור קשר עם התמיכה.",
-  'User profile not found.': "פרופיל המשתמש לא נמצא",
-  'Failed to send OTP': "שליחת קוד אימות נכשלה",
-};
+    'Invalid email or password': "אימייל או סיסמה לא נכונים",
+    'User not found.': "המשתמש לא נמצא",
+    'Invalid password.': "הסיסמה שגויה",
+    'User with this email already exists.': "משתמש עם אימייל זה כבר קיים",
+    'Registration failed': "ההרשמה נכשלה",
+    'User has no active memberships. Please contact support.': "למשתמש אין חברות פעילה בארגון. אנא צור קשר עם התמיכה.",
+    'User profile not found.': "פרופיל המשתמש לא נמצא",
+  };
 
   // התחברות אימייל וסיסמה
   const handleLogin = async (e: React.FormEvent) => {
@@ -71,8 +67,9 @@ const LoginPage = () => {
     try {
       const res = await loginWithEmail(email, password);
       login(email, password); // שמור טוקן ומשתמש
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Invalid email or password');
+    } catch (err: any) {
+      const msg = err.message;
+      setError(errorMessagesHe[msg] || 'אימייל או סיסמה לא נכונים');
     } finally {
       setLoading(false);
     }
@@ -88,8 +85,9 @@ const LoginPage = () => {
       await registerUserWithEmail(fullName, registerEmail, registerPassword, organizationName);
       setSuccessMessage('ההרשמה הצליחה! עכשיו ניתן להתחבר.');
       setIsRegistering(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Registration failed');
+    } catch (err: any) {
+      const msg = err.message;
+      setError(errorMessagesHe[msg] || 'ההרשמה נכשלה');
     } finally {
       setLoading(false);
     }
