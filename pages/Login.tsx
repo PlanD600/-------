@@ -1,7 +1,6 @@
-
 import React, { useState, useId } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { sendOtp, register } from '../services/api';
+import { loginWithEmail, registerUserWithEmail } from '../services/api';
 import { LogoIcon } from '../components/icons';
 import Modal from '../components/Modal';
 import TermsOfService from '../components/TermsOfService';
@@ -27,11 +26,15 @@ const NeumorphicButton = ({ children, ...props }: { children: React.ReactNode, [
 );
 
 const LoginPage = () => {
-  const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState('');
+  // login state
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  // register state
   const [fullName, setFullName] = useState('');
   const [organizationName, setOrganizationName] = useState('');
-  const [step, setStep] = useState(1);
+  const [registerEmail, setRegisterEmail] = useState('');
+  const [registerPassword, setRegisterPassword] = useState('');
+  // other ui states
   const [isRegistering, setIsRegistering] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -46,44 +49,45 @@ const LoginPage = () => {
   const termsModalTitleId = useId();
   const marketingModalTitleId = useId();
 
+  const errorMessagesHe = {
+  'Invalid email or password': "אימייל או סיסמה לא נכונים",
+  'User not found.': "המשתמש לא נמצא",
+  'Invalid password.': "הסיסמה שגויה",
+  'User with this email already exists.': "משתמש עם אימייל זה כבר קיים",
+  'Registration failed': "ההרשמה נכשלה",
+  'User with this phone number already exists.': "משתמש עם מספר טלפון זה כבר קיים",
+  'OTP expired or not sent. Please request a new one.': "הקוד פג תוקף או לא נשלח. אנא בקש קוד חדש.",
+  'Invalid OTP code.': "קוד אימות שגוי",
+  'User has no active memberships. Please contact support.': "למשתמש אין חברות פעילה בארגון. אנא צור קשר עם התמיכה.",
+  'User profile not found.': "פרופיל המשתמש לא נמצא",
+  'Failed to send OTP': "שליחת קוד אימות נכשלה",
+};
 
-  const handleSendOtp = async (e: React.FormEvent) => {
+  // התחברות אימייל וסיסמה
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      await sendOtp(phone);
-      setStep(2);
+      const res = await loginWithEmail(email, password);
+      login(email, password); // שמור טוקן ומשתמש
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to send OTP');
+      setError(err instanceof Error ? err.message : 'Invalid email or password');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-    try {
-      await login(phone, otp);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Invalid OTP');
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // הרשמה אימייל וסיסמה
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccessMessage('');
     setLoading(true);
     try {
-      await register({ fullName, phone, organizationName });
-      setSuccessMessage('ההרשמה הצליחה! אנא התחבר באמצעות הקוד שנשלח לטלפון שלך.');
+      await registerUserWithEmail(fullName, registerEmail, registerPassword, organizationName);
+      setSuccessMessage('ההרשמה הצליחה! עכשיו ניתן להתחבר.');
       setIsRegistering(false);
-      setStep(1);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
     } finally {
@@ -114,8 +118,12 @@ const LoginPage = () => {
                     <NeumorphicInput type="text" id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="ישראל ישראלי" error={!!error} />
                 </div>
                  <div>
-                    <label htmlFor="phone" className="block text-sm font-medium text-gray-600 mb-2">מספר טלפון</label>
-                    <NeumorphicInput type="tel" id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="050-123-4567" error={!!error} />
+                    <label htmlFor="registerEmail" className="block text-sm font-medium text-gray-600 mb-2">אימייל</label>
+                    <NeumorphicInput type="email" id="registerEmail" value={registerEmail} onChange={(e) => setRegisterEmail(e.target.value)} placeholder="your@email.com" error={!!error} />
+                </div>
+                <div>
+                    <label htmlFor="registerPassword" className="block text-sm font-medium text-gray-600 mb-2">סיסמה</label>
+                    <NeumorphicInput type="password" id="registerPassword" value={registerPassword} onChange={(e) => setRegisterPassword(e.target.value)} placeholder="******" error={!!error} />
                 </div>
                  <div>
                     <label htmlFor="orgName" className="block text-sm font-medium text-gray-600 mb-2">שם הארגון</label>
@@ -157,29 +165,22 @@ const LoginPage = () => {
                   </div>
               </div>
 
-
                 <NeumorphicButton type="submit" disabled={loading || !agreedToTerms}>
                     {loading ? 'רושם...' : 'הירשם'}
                 </NeumorphicButton>
             </form>
-        ) : step === 1 ? (
-          <form onSubmit={handleSendOtp} key="send-otp-form">
-            <div className="mb-4">
-              <label htmlFor="phone-login" className="block text-sm font-medium text-gray-600 mb-2">מספר טלפון</label>
-              <NeumorphicInput type="tel" id="phone-login" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="050-123-4567" error={!!error} />
-            </div>
-            <NeumorphicButton type="submit" disabled={loading}>
-              {loading ? 'שולח...' : 'שלח קוד'}
-            </NeumorphicButton>
-          </form>
         ) : (
-          <form onSubmit={handleVerifyOtp} key="verify-otp-form">
+          <form onSubmit={handleLogin} key="login-form">
             <div className="mb-4">
-              <label htmlFor="otp" className="block text-sm font-medium text-gray-600 mb-2">קוד אימות</label>
-              <NeumorphicInput type="text" id="otp" value={otp} onChange={(e) => setOtp(e.target.value)} placeholder="123456" error={!!error} />
+              <label htmlFor="email-login" className="block text-sm font-medium text-gray-600 mb-2">אימייל</label>
+              <NeumorphicInput type="email" id="email-login" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="your@email.com" error={!!error} />
+            </div>
+            <div className="mb-4">
+              <label htmlFor="password-login" className="block text-sm font-medium text-gray-600 mb-2">סיסמה</label>
+              <NeumorphicInput type="password" id="password-login" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="******" error={!!error} />
             </div>
             <NeumorphicButton type="submit" disabled={loading}>
-              {loading ? 'מאמת...' : 'התחבר'}
+              {loading ? 'מתחבר...' : 'התחבר'}
             </NeumorphicButton>
           </form>
         )}
@@ -201,7 +202,6 @@ const LoginPage = () => {
        <Modal isOpen={isMarketingModalOpen} onClose={() => setIsMarketingModalOpen(false)} titleId={marketingModalTitleId} size="lg">
           <MarketingConsent onClose={() => setIsMarketingModalOpen(false)} />
        </Modal>
-
     </div>
   );
 };

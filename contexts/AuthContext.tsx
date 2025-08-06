@@ -8,16 +8,16 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   memberships: Membership[];
-  // setMemberships: React.Dispatch<React.SetStateAction<Membership[]>>; // הוסר מ-ContextType
   currentOrgId: string | null;
   currentUserRole: Membership['role'] | undefined;
   loading: boolean;
-  isInitializing: boolean; // השם השתנה ל-loading בתגובה הקודמת, נחזיר אותו ל-isInitializing אם זה מה שאתה משתמש בו
-  login: (phone: string, otpCode: string) => Promise<void>; // שונה ל-otpCode
+  isInitializing: boolean;
+  login: (email: string, password: string) => Promise<void>; // ← עדכון!
+  // loginWithOtp?: (phone: string, otpCode: string) => Promise<void>; // ← עתידי (בהערה)
   logout: () => void;
   switchOrganization: (orgId: string) => void;
-  updateUser: (updates: Partial<User>) => Promise<void>; // שינוי: מקבל Partial<User> ומחזיר Promise
-  refreshMemberships: () => Promise<void>; // הפונקציה החדשה
+  updateUser: (updates: Partial<User>) => Promise<void>;
+  refreshMemberships: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -98,27 +98,48 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [fetchAndSetMemberships]); // תלות ב-fetchAndSetMemberships
 
 
-  const login = useCallback(async (phone: string, otpCode: string) => {
-    setLoading(true);
-    try {
-        const data = await api.verifyOtp(phone, otpCode);
-        localStorage.setItem('jwtToken', data.token);
-        setToken(data.token);
-        setUser(data.user);
-        // memberships מטופלים על ידי fetchAndSetMemberships, לא ישירות מ-verifyOtp
-        // אבל verifyOtp מחזיר את memberships, אז אפשר להשתמש בזה לטעינה ראשונית
-        setMemberships(data.memberships); // שינוי כאן: עדיין קולטים ישירות מטעינה ראשונית
-        
-        if (data.memberships.length > 0) {
-          switchOrganization(data.memberships[0].organizationId);
-        } else {
-          localStorage.removeItem('currentOrgId');
-          setCurrentOrgId(null);
-        }
-    } finally {
-        setLoading(false);
+ const login = useCallback(async (email: string, password: string) => {
+  setLoading(true);
+  try {
+    const data = await api.loginWithEmail(email, password);
+    localStorage.setItem('jwtToken', data.token);
+    setToken(data.token);
+    setUser(data.user);
+    setMemberships(data.memberships);
+
+    if (data.memberships.length > 0) {
+      switchOrganization(data.memberships[0].organizationId);
+    } else {
+      localStorage.removeItem('currentOrgId');
+      setCurrentOrgId(null);
     }
+  } finally {
+    setLoading(false);
+  }
   }, []);
+
+  // מצב עתידי — פונקציה להתחברות עם טלפון ו־OTP (בהערה)
+/*
+const loginWithOtp = useCallback(async (phone: string, otpCode: string) => {
+  setLoading(true);
+  try {
+    const data = await api.verifyOtp(phone, otpCode);
+    localStorage.setItem('jwtToken', data.token);
+    setToken(data.token);
+    setUser(data.user);
+    setMemberships(data.memberships);
+
+    if (data.memberships.length > 0) {
+      switchOrganization(data.memberships[0].organizationId);
+    } else {
+      localStorage.removeItem('currentOrgId');
+      setCurrentOrgId(null);
+    }
+  } finally {
+    setLoading(false);
+  }
+}, [switchOrganization]);
+*/
 
   const logout = useCallback(() => {
     setUser(null);
@@ -170,7 +191,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     switchOrganization,
     updateUser,
     refreshMemberships, // ייצוא הפונקציה החדשה
-  }), [user, token, memberships, currentOrgId, currentUserRole, loading, isInitializing, login, logout, switchOrganization, updateUser, refreshMemberships]);
+      // loginWithOtp, // ← מצב עתידי (בהערה)
+
+  }), [user, token, memberships, currentOrgId, currentUserRole, loading, isInitializing, login, logout, switchOrganization,/*loginWithOtp,*/ updateUser, refreshMemberships]);
 
 
   return (

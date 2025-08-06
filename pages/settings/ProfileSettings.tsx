@@ -1,8 +1,15 @@
-
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import * as api from '../../services/api';
+
+// הודעות שגיאה בעברית
+const errorMessagesHe: Record<string, string> = {
+    'Invalid email format': "פורמט אימייל לא תקין",
+    'Email already in use': "האימייל כבר בשימוש",
+    'Failed to update profile': "עדכון הפרופיל נכשל",
+    'Network Error': "תקלה ברשת. נסה שוב מאוחר יותר.",
+    'Unauthorized': "אין הרשאה לביצוע הפעולה",
+};
 
 const ProfileSettings = () => {
     const { user, currentUserRole, updateUser, token } = useAuth();
@@ -17,7 +24,12 @@ const ProfileSettings = () => {
     const [profilePictureFile, setProfilePictureFile] = useState<File | null>(null);
     const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-
+    // שינוי סיסמה
+    const [showPasswordModal, setShowPasswordModal] = useState(false);
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [passwordError, setPasswordError] = useState('');
+    const [passwordSuccess, setPasswordSuccess] = useState('');
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -28,7 +40,6 @@ const ProfileSettings = () => {
     const handleUploadClick = () => {
         fileInputRef.current?.click();
     };
-
 
     useEffect(() => {
         if (user) {
@@ -41,6 +52,7 @@ const ProfileSettings = () => {
 
     const isAdmin = currentUserRole === 'SUPER_ADMIN' || currentUserRole === 'ADMIN';
 
+    // שמירה על שינויים בפרופיל
     const handleSaveChanges = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
@@ -49,9 +61,16 @@ const ProfileSettings = () => {
         try {
             let newProfilePictureUrl = user?.profilePictureUrl;
             if (profilePictureFile) {
-                const uploadResponse = await api.uploadProfilePicture(profilePictureFile);[]
+                const uploadResponse = await api.uploadProfilePicture(profilePictureFile);
                 const serverBaseUrl = 'https://api.mypland.com';
                 newProfilePictureUrl = `${serverBaseUrl}${uploadResponse.profilePictureUrl}`;
+            }
+
+            // בדיקת תקינות אימייל
+            if (email && !/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(email)) {
+                setError(errorMessagesHe['Invalid email format']);
+                setIsLoading(false);
+                return;
             }
 
             const updatedUser = await api.updateMyProfile({
@@ -63,11 +82,44 @@ const ProfileSettings = () => {
 
             updateUser(updatedUser);
             setSuccess('הפרופיל עודכן בהצלחה!');
-            setProfilePictureFile(null); // Clear the selected file
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to update profile');
+            setProfilePictureFile(null);
+        } catch (err: any) {
+            // תרגום שגיאה לעברית
+            const msg = err.message;
+            const heMsg = errorMessagesHe[msg] || 'עדכון הפרופיל נכשל';
+            setError(heMsg);
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    // שינוי סיסמה
+    const handlePasswordChange = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setPasswordError('');
+        setPasswordSuccess('');
+
+        if (!newPassword || !confirmPassword) {
+            setPasswordError('יש למלא את כל השדות');
+            return;
+        }
+        if (newPassword.length < 6) {
+            setPasswordError('הסיסמה חייבת לכלול לפחות 6 תווים');
+            return;
+        }
+        if (newPassword !== confirmPassword) {
+            setPasswordError('הסיסמה החדשה אינה תואמת לאישור');
+            return;
+        }
+
+        try {
+            await api.changeMyPassword(newPassword); // ← שימוש בפונקציה החדשה
+            setPasswordSuccess('הסיסמה עודכנה בהצלחה!');
+            setNewPassword('');
+            setConfirmPassword('');
+            setShowPasswordModal(false);
+        } catch (err: any) {
+            setPasswordError(err.message || 'עדכון הסיסמה נכשל');
         }
     };
 
@@ -144,7 +196,15 @@ const ProfileSettings = () => {
                         </button>
                     </div>
                 </div>
-
+                <div>
+                    <button
+                        type="button"
+                        className="mt-2 px-4 py-2 bg-gray-200 rounded-md"
+                        onClick={() => setShowPasswordModal(true)}
+                    >
+                        שנה סיסמה
+                    </button>
+                </div>
                 <div className="pt-4 flex justify-end items-center space-x-4 space-x-reverse">
                     {error && <p className="text-sm text-red-600">{error}</p>}
                     {success && <p className="text-sm text-green-600">{success}</p>}
@@ -153,6 +213,50 @@ const ProfileSettings = () => {
                     </button>
                 </div>
             </form>
+
+            {/* מודל שינוי סיסמה */}
+            {showPasswordModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6 relative">
+                        <button
+                            className="absolute top-3 left-3 text-gray-600 hover:text-gray-900"
+                            onClick={() => setShowPasswordModal(false)}
+                        >
+                            סגור
+                        </button>
+                        <h4 className="text-lg font-bold mb-4 text-gray-800">שנה סיסמה</h4>
+                        <form onSubmit={handlePasswordChange} className="space-y-4">
+                            <div>
+                                <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">סיסמה חדשה</label>
+                                <input
+                                    type="password"
+                                    id="newPassword"
+                                    value={newPassword}
+                                    onChange={e => setNewPassword(e.target.value)}
+                                    className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#4A2B2C] focus:border-[#4A2B2C]"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">אשר סיסמה חדשה</label>
+                                <input
+                                    type="password"
+                                    id="confirmPassword"
+                                    value={confirmPassword}
+                                    onChange={e => setConfirmPassword(e.target.value)}
+                                    className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#4A2B2C] focus:border-[#4A2B2C]"
+                                />
+                            </div>
+                            {passwordError && <p className="text-sm text-red-600">{passwordError}</p>}
+                            {passwordSuccess && <p className="text-sm text-green-600">{passwordSuccess}</p>}
+                            <div className="flex justify-end">
+                                <button type="submit" className="px-4 py-2 bg-[#4A2B2C] text-white rounded-md hover:bg-opacity-90">
+                                    שנה סיסמה
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

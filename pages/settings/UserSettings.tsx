@@ -1,5 +1,3 @@
-// src/pages/settings/UserSettings.tsx
-
 import React, { useState, useMemo, useId } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import * as api from '../../services/api';
@@ -7,7 +5,7 @@ import { User, Membership } from '../../types';
 import Modal from '../../components/Modal';
 import ConfirmationModal from '../../components/ConfirmationModal';
 import { PlusIcon, EditIcon, TrashIcon } from '../../components/icons';
-import InviteUserForm from '../../components/InviteUserForm'; // ייבוא הקומפוננטה החדשה
+import InviteUserForm from '../../components/InviteUserForm';
 import { roleDisplayNames } from '../../src/roleDisplayNames';
 
 const availableRoles: Membership['role'][] = ['SUPER_ADMIN', 'ADMIN', 'TEAM_LEADER', 'EMPLOYEE'];
@@ -26,18 +24,20 @@ interface UserSettingsProps {
     refreshData: () => Promise<void>;
 }
 
+// הודעות שגיאה בעברית להזמנה
+const errorMessagesHe: Record<string, string> = {
+    'Email already in use': "האימייל כבר בשימוש",
+    'Invalid email format': "פורמט אימייל לא תקין",
+    'Failed to invite user': "שליחת ההזמנה נכשלה",
+    'Network Error': "תקלה ברשת. נסה שוב מאוחר יותר.",
+};
+
 const UserSettings = ({ allMemberships, refreshData }: UserSettingsProps) => {
     const { user: currentUser, currentUserRole, currentOrgId } = useAuth();
 
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
     const [userToEdit, setUserToEdit] = useState<DisplayUser | null>(null);
     const [userToRemove, setUserToRemove] = useState<DisplayUser | null>(null);
-
-    // **הסרה:** אין צורך יותר ב-stateים של הטופס כאן
-    // const [inviteFullName, setInviteFullName] = useState('');
-    // const [invitePhone, setInvitePhone] = useState('');
-    // const [inviteJobTitle, setInviteJobTitle] = useState('');
-    // const [inviteRole, setInviteRole] = useState<Membership['role']>('EMPLOYEE');
 
     const [editingRole, setEditingRole] = useState<Membership['role']>('EMPLOYEE');
 
@@ -56,24 +56,23 @@ const UserSettings = ({ allMemberships, refreshData }: UserSettingsProps) => {
             })) as DisplayUser[];
     }, [allMemberships, currentOrgId]);
 
-
-    // **שינוי:** handleCloseInviteModal מנקה רק את error
     const handleCloseInviteModal = () => {
         setIsInviteModalOpen(false);
         setError('');
-        // ה-state של הטופס ינוקה בתוך InviteUserForm עצמו
     };
 
-    // **שינוי:** handleInviteUser מקבל את הנתונים ישירות מהטופס**
-    const handleInviteUser = async (data: { fullName: string; phone: string; jobTitle: string; role: Membership['role'] }) => {
+    // עדכון: קבלת email מהטופס
+    const handleInviteUser = async (data: { fullName: string; phone: string; jobTitle: string; email: string; role: Membership['role'] }) => {
         setLoading(true);
         setError('');
         try {
-            await api.inviteUser(data); // העבר את הנתונים ישירות
+            await api.inviteUser(data); // העברת גם אימייל
             await refreshData();
             handleCloseInviteModal();
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to invite user');
+        } catch (err: any) {
+            // תרגום שגיאה לעברית
+            const msg = err.message;
+            setError(errorMessagesHe[msg] || 'שליחת ההזמנה נכשלה');
         } finally {
             setLoading(false);
         }
@@ -93,8 +92,8 @@ const UserSettings = ({ allMemberships, refreshData }: UserSettingsProps) => {
             await api.updateUserRole(userToEdit.id, editingRole);
             await refreshData();
             handleCloseEditModal();
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to update role');
+        } catch (err: any) {
+            setError(err.message || 'עדכון הרשאה נכשל');
         } finally {
             setLoading(false);
         }
@@ -107,8 +106,8 @@ const UserSettings = ({ allMemberships, refreshData }: UserSettingsProps) => {
             await api.removeUserFromOrg(userToRemove.id);
             await refreshData();
             setUserToRemove(null);
-        } catch (err) {
-            alert(err instanceof Error ? err.message : 'Failed to remove user');
+        } catch (err: any) {
+            alert(err.message || 'הסרת המשתמש נכשלה');
         } finally {
             setLoading(false);
         }
@@ -130,6 +129,7 @@ const UserSettings = ({ allMemberships, refreshData }: UserSettingsProps) => {
                 <thead className="bg-gray-50">
                     <tr>
                         <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">שם</th>
+                        <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">אימייל</th>
                         <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">תפקיד</th>
                         <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">פעולות</th>
                     </tr>
@@ -153,9 +153,11 @@ const UserSettings = ({ allMemberships, refreshData }: UserSettingsProps) => {
                                     </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
+                                    <span className="text-xs text-gray-800">{user.email || "—"}</span>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
                                     <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
                                         {roleDisplayNames[user.role] || user.role}
-
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -188,14 +190,13 @@ const UserSettings = ({ allMemberships, refreshData }: UserSettingsProps) => {
 
             {/* Invite User Modal */}
             <Modal isOpen={isInviteModalOpen} onClose={handleCloseInviteModal} titleId={inviteModalTitleId} title="הזמנת משתמש חדש">
-                {/* **שינוי כאן:** שימוש בקומפוננטה החדשה */}
                 <InviteUserForm
                     onSubmit={handleInviteUser}
                     onCancel={handleCloseInviteModal}
                     loading={loading}
                     error={error}
                     availableRoles={availableRolesForInvite}
-                    titleId={inviteModalTitleId} // העבר את titleId לקומפוננטת הטופס אם תרצה שהיא תטפל בכותרת
+                    titleId={inviteModalTitleId}
                 />
             </Modal>
 
@@ -204,7 +205,6 @@ const UserSettings = ({ allMemberships, refreshData }: UserSettingsProps) => {
                 {userToEdit && (
                     <form onSubmit={handleEditUserRole} className="space-y-4" key={userToEdit.id}>
                         <h3 id={editModalTitleId} className="text-lg font-bold text-gray-800">עריכת הרשאה עבור: {userToEdit.fullName}</h3>
-                        {/* כאן השינוי: השתמש במיפוי כדי להציג את התפקיד הנוכחי */}
                         <p className="text-sm text-gray-600">משתמש זה כרגע בתפקיד: {roleDisplayNames[userToEdit.role] || userToEdit.role}.</p>
                         {error && <p className="text-red-500 text-sm">{error}</p>}
                         <div>
@@ -217,7 +217,6 @@ const UserSettings = ({ allMemberships, refreshData }: UserSettingsProps) => {
                             >
                                 {availableRoles.map(role => (<option key={role} value={role}>{roleDisplayNames[role] || role}</option>))}
                             </select>
-
                         </div>
                         <div className="flex justify-end space-x-2 space-x-reverse pt-2">
                             <button type="button" onClick={handleCloseEditModal} className="px-4 py-2 bg-gray-200 rounded-md">ביטול</button>

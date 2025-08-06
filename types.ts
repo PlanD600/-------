@@ -21,6 +21,8 @@ export interface User extends BaseModel {
   profilePictureUrl?: string;
   jobTitle?: string;
   organizationId: string;
+  //password?: string; // ← רק אם באמת יש צורך, לרוב לא מומלץ!
+
 }
 
 export interface Organization extends BaseModel {
