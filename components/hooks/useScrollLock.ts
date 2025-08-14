@@ -36,7 +36,7 @@ export const useScrollLock = (isOpen: boolean) => {
     return () => {
       resizeObserver.disconnect();
     };
-  }, [isOpen]); // ה-Effect יפעל מחדש בכל פעם שהמודל נפתח או נסגר
+  }, [isOpen]);
 
   return contentRef;
 };

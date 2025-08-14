@@ -1,6 +1,5 @@
 import React, { ReactNode, useEffect } from 'react';
-// 1. ייבוא ה-Hook החדש
-import { useScrollLock } from './hooks/useScrollLock'; // הנתיב עשוי להשתנות מעט
+import { useScrollLock } from './hooks/useScrollLock';
 
 interface ModalProps {
     isOpen: boolean;
@@ -13,10 +12,9 @@ interface ModalProps {
 }
 
 const Modal = ({ isOpen, onClose, children, titleId, zIndex = 50, size = 'md' }: ModalProps) => {
-    // 2. החלפת useRef ב-Hook החדש. הוא מקבל את isOpen ומחזיר ref.
+    // השתמש ב-Hook החדש שמסופק לך, הוא מחזיר את ה-ref
     const contentRef = useScrollLock(isOpen);
 
-    // ה-useEffect הזה נשאר ללא שינוי - הוא מטפל בנגישות ( מקשי Escape ו-Tab )
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
             if (event.key === 'Escape') {
@@ -49,10 +47,9 @@ const Modal = ({ isOpen, onClose, children, titleId, zIndex = 50, size = 'md' }:
         if (isOpen) {
             document.addEventListener('keydown', handleKeyDown);
             setTimeout(() => {
-                const firstElement = contentRef.current?.querySelector<HTMLElement>(
+                 const firstElement = contentRef.current?.querySelector<HTMLElement>(
                     'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-                );
-                firstElement?.focus();
+                 );
             }, 100);
         }
 
@@ -61,8 +58,6 @@ const Modal = ({ isOpen, onClose, children, titleId, zIndex = 50, size = 'md' }:
         };
     }, [isOpen, onClose]);
 
-    // 3. מחקנו לחלוטין את ה-useEffect שהכיל את ה-setTimeout לגלילה.
-    // הלוגיקה הזו מטופלת עכשיו בתוך useScrollLock.
 
     if (!isOpen) return null;
 
@@ -81,7 +76,6 @@ const Modal = ({ isOpen, onClose, children, titleId, zIndex = 50, size = 'md' }:
             onClick={onClose}
         >
             <div
-                // ה-ref שמגיע מה-Hook שלנו עדיין משויך כאן, ללא שינוי.
                 ref={contentRef}
                 role="dialog"
                 aria-modal="true"
