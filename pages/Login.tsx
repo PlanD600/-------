@@ -5,6 +5,10 @@ import { LogoIcon } from '../components/icons';
 import Modal from '../components/Modal';
 import TermsOfService from '../components/TermsOfService';
 import MarketingConsent from '../components/MarketingConsent';
+// ייבוא הרכיבים החדשים
+import AboutContent from '../components/AboutContent';
+import WhatIsItContent from '../components/WhatIsItContent';
+import HelpContent from '../components/HelpContent';
 
 const NeumorphicInput = ({ id, error, ...props }: { id: string, error: boolean, [key: string]: any }) => (
     <input
@@ -46,8 +50,18 @@ const LoginPage = () => {
   const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
   const [isMarketingModalOpen, setIsMarketingModalOpen] = useState(false);
 
+  // מצבי סטייט חדשים לפופ-אפים הנוספים
+  const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
+  const [isWhatIsItModalOpen, setIsWhatIsItModalOpen] = useState(false);
+  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
+
+
   const termsModalTitleId = useId();
   const marketingModalTitleId = useId();
+  // ID's חדשים לפופ-אפים הנוספים
+  const aboutModalTitleId = useId();
+  const whatIsItModalTitleId = useId();
+  const helpModalTitleId = useId();
 
   const errorMessagesHe = {
     'Invalid email or password': "אימייל או סיסמה לא נכונים",
@@ -111,11 +125,11 @@ const LoginPage = () => {
 
         {isRegistering ? (
             <form onSubmit={handleRegister} className="space-y-4" key="register-form">
-                 <div>
+                <div>
                     <label htmlFor="fullName" className="block text-sm font-medium text-gray-600 mb-2">שם מלא</label>
                     <NeumorphicInput type="text" id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="ישראל ישראלי" error={!!error} />
                 </div>
-                 <div>
+                <div>
                     <label htmlFor="registerEmail" className="block text-sm font-medium text-gray-600 mb-2">אימייל</label>
                     <NeumorphicInput type="email" id="registerEmail" value={registerEmail} onChange={(e) => setRegisterEmail(e.target.value)} placeholder="your@email.com" error={!!error} />
                 </div>
@@ -123,7 +137,7 @@ const LoginPage = () => {
                     <label htmlFor="registerPassword" className="block text-sm font-medium text-gray-600 mb-2">סיסמה</label>
                     <NeumorphicInput type="password" id="registerPassword" value={registerPassword} onChange={(e) => setRegisterPassword(e.target.value)} placeholder="******" error={!!error} />
                 </div>
-                 <div>
+                <div>
                     <label htmlFor="orgName" className="block text-sm font-medium text-gray-600 mb-2">שם הארגון</label>
                     <NeumorphicInput type="text" id="orgName" value={organizationName} onChange={(e) => setOrganizationName(e.target.value)} placeholder="החברה שלי בעמ" error={!!error} />
                 </div>
@@ -145,23 +159,23 @@ const LoginPage = () => {
                           </button>
                       </label>
                   </div>
-                  <div className="flex items-center">
-                      <input
-                          id="marketing"
-                          name="marketing"
-                          type="checkbox"
-                          checked={agreedToMarketing}
-                          onChange={(e) => setAgreedToMarketing(e.target.checked)}
-                          className="h-4 w-4 text-[#4A2B2C] focus:ring-[#4A2B2C] border-gray-400 rounded"
-                      />
-                      <label htmlFor="marketing" className="mr-2 text-sm text-gray-600">
-                          אני מסכים לקבל
-                          <button type="button" onClick={() => setIsMarketingModalOpen(true)} className="text-[#4A2B2C] hover:underline font-semibold mx-1">
-                            תוכן שיווקי
-                          </button>
-                      </label>
-                  </div>
-              </div>
+                    <div className="flex items-center">
+                        <input
+                            id="marketing"
+                            name="marketing"
+                            type="checkbox"
+                            checked={agreedToMarketing}
+                            onChange={(e) => setAgreedToMarketing(e.target.checked)}
+                            className="h-4 w-4 text-[#4A2B2C] focus:ring-[#4A2B2C] border-gray-400 rounded"
+                        />
+                        <label htmlFor="marketing" className="mr-2 text-sm text-gray-600">
+                            אני מסכים לקבל
+                            <button type="button" onClick={() => setIsMarketingModalOpen(true)} className="text-[#4A2B2C] hover:underline font-semibold mx-1">
+                                תוכן שיווקי
+                            </button>
+                        </label>
+                    </div>
+                </div>
 
                 <NeumorphicButton type="submit" disabled={loading || !agreedToTerms}>
                     {loading ? 'רושם...' : 'הירשם'}
@@ -189,16 +203,41 @@ const LoginPage = () => {
             </button>
         </div>
 
+        {/* כפתורים חדשים לפתיחת הפופ-אפים */}
+        <div className="mt-6 flex justify-center gap-4">
+            {/* שימוש ב-NeumorphicButton עם התאמות לעיצוב כפתורים קטנים יותר */}
+            <NeumorphicButton type="button" onClick={() => setIsAboutModalOpen(true)} className="px-4 py-2 text-sm max-w-[120px]">
+                אודות
+            </NeumorphicButton>
+            <NeumorphicButton type="button" onClick={() => setIsWhatIsItModalOpen(true)} className="px-4 py-2 text-sm max-w-[120px]">
+                מה זה?
+            </NeumorphicButton>
+            <NeumorphicButton type="button" onClick={() => setIsHelpModalOpen(true)} className="px-4 py-2 text-sm max-w-[120px]">
+                עזרה
+            </NeumorphicButton>
+        </div>
+
         <p className="text-center text-xs text-gray-400 mt-8">
             Open TN Creation
         </p>
       </div>
 
        <Modal isOpen={isTermsModalOpen} onClose={() => setIsTermsModalOpen(false)} titleId={termsModalTitleId} size="lg">
-          <TermsOfService onClose={() => setIsTermsModalOpen(false)} />
+         <TermsOfService onClose={() => setIsTermsModalOpen(false)} />
        </Modal>
        <Modal isOpen={isMarketingModalOpen} onClose={() => setIsMarketingModalOpen(false)} titleId={marketingModalTitleId} size="lg">
-          <MarketingConsent onClose={() => setIsMarketingModalOpen(false)} />
+         <MarketingConsent onClose={() => setIsMarketingModalOpen(false)} />
+       </Modal>
+
+        {/* רכיבי המודאל החדשים */}
+       <Modal isOpen={isAboutModalOpen} onClose={() => setIsAboutModalOpen(false)} titleId={aboutModalTitleId} size="md">
+         <AboutContent onClose={() => setIsAboutModalOpen(false)} />
+       </Modal>
+       <Modal isOpen={isWhatIsItModalOpen} onClose={() => setIsWhatIsItModalOpen(false)} titleId={whatIsItModalTitleId} size="md">
+         <WhatIsItContent onClose={() => setIsWhatIsItModalOpen(false)} />
+       </Modal>
+       <Modal isOpen={isHelpModalOpen} onClose={() => setIsHelpModalOpen(false)} titleId={helpModalTitleId} size="md">
+         <HelpContent onClose={() => setIsHelpModalOpen(false)} />
        </Modal>
     </div>
   );
