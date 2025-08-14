@@ -9,6 +9,7 @@ import MarketingConsent from '../components/MarketingConsent';
 import AboutContent from '../components/AboutContent';
 import WhatIsItContent from '../components/WhatIsItContent';
 import HelpContent from '../components/HelpContent';
+import { useNavigate } from 'react-router-dom';
 
 const NeumorphicInput = ({ id, error, ...props }: { id: string, error: boolean, [key: string]: any }) => (
     <input
@@ -33,6 +34,8 @@ const LoginPage = () => {
   // login state
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const navigate = useNavigate();
+
   // register state
   const [fullName, setFullName] = useState('');
   const [organizationName, setOrganizationName] = useState('');
@@ -74,20 +77,23 @@ const LoginPage = () => {
   };
 
   // התחברות אימייל וסיסמה
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-    try {
-      const res = await loginWithEmail(email, password);
-      login(email, password); // שמור טוקן ומשתמש
-    } catch (err: any) {
-      const msg = err.message;
-      setError(errorMessagesHe[msg] || 'אימייל או סיסמה לא נכונים');
-    } finally {
-      setLoading(false);
-    }
-  };
+ const handleLogin = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+        setLoading(true);
+        try {
+            await login(email, password); // קוראים ללוגיקת ההתחברות מה-Context
+            
+            // שלב 3: לאחר שההתחברות הצליחה (לא נזרקה שגיאה), נווט לדאשבורד
+            navigate('/dashboard'); 
+
+        } catch (err: any) {
+            const msg = err.message;
+            setError(errorMessagesHe[msg] || 'אימייל או סיסמה לא נכונים');
+        } finally {
+            setLoading(false);
+        }
+    };
 
   // הרשמה אימייל וסיסמה
   const handleRegister = async (e: React.FormEvent) => {
