@@ -206,13 +206,13 @@ const LoginPage = () => {
         {/* כפתורים חדשים לפתיחת הפופ-אפים */}
         <div className="mt-6 flex justify-center gap-4">
             {/* שימוש ב-NeumorphicButton עם התאמות לעיצוב כפתורים קטנים יותר */}
-            <NeumorphicButton type="button" onClick={() => setIsAboutModalOpen(true)} className="px-4 py-2 text-sm max-w-[120px]">
+            <NeumorphicButton type="button" onClick={() => setIsAboutModalOpen(true)} className="px-4 py-2 text-sm max-w-[120px] bg-[#E0D8CF] text-[#4A2B2C] hover:bg-opacity-90">
                 אודות
             </NeumorphicButton>
-            <NeumorphicButton type="button" onClick={() => setIsWhatIsItModalOpen(true)} className="px-4 py-2 text-sm max-w-[120px]">
+            <NeumorphicButton type="button" onClick={() => setIsWhatIsItModalOpen(true)} className="px-4 py-2 text-sm max-w-[120px] bg-[#E0D8CF] text-[#4A2B2C] hover:bg-opacity-90">
                 מה זה?
             </NeumorphicButton>
-            <NeumorphicButton type="button" onClick={() => setIsHelpModalOpen(true)} className="px-4 py-2 text-sm max-w-[120px]">
+            <NeumorphicButton type="button" onClick={() => setIsHelpModalOpen(true)} className="px-4 py-2 text-sm max-w-[120px] bg-[#E0D8CF] text-[#4A2B2C] hover:bg-opacity-90">
                 עזרה
             </NeumorphicButton>
         </div>
