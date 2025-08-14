@@ -257,12 +257,12 @@ const FinanceTab = ({ projects, refreshData }: FinanceTabProps) => {
         <div className="space-y-6">
             <div className="flex flex-wrap gap-4 items-center justify-between">
                 <div className="flex-1 min-w-[200px]">
-                    <label htmlFor="project-filter-finance" className="text-sm font-medium text-gray-600 mr-2">הצג נתונים עבור:</label>
+                    <label htmlFor="project-filter-finance" className="text-base font-medium text-gray-600 mr-2">הצג נתונים עבור:</label>
                     <select
                         id="project-filter-finance"
                         value={filteredProjectId}
                         onChange={(e) => setFilteredProjectId(e.target.value)}
-                        className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-[#4A2B2C] focus:border-[#4A2B2C] p-2"
+                        className="bg-white border border-gray-300 text-gray-900 text-base rounded-lg focus:ring-[#4A2B2C] focus:border-[#4A2B2C] p-4"
                     >
                         <option value="all">כל הפרויקטים</option>
                         {projects.filter(p => !p.isArchived).map(p => <option key={p.id} value={p.id}>{p.title}</option>)}

@@ -47,10 +47,10 @@ const Modal = ({ isOpen, onClose, children, titleId, zIndex = 50, size = 'md' }:
             document.addEventListener('keydown', handleKeyDown);
             // Focus the first focusable element on open
             setTimeout(() => {
-                 const firstElement = modalRef.current?.querySelector<HTMLElement>(
+                const firstElement = modalRef.current?.querySelector<HTMLElement>(
                     'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-                 );
-                 firstElement?.focus();
+                );
+                firstElement?.focus();
             }, 100);
         }
 
@@ -71,7 +71,7 @@ const Modal = ({ isOpen, onClose, children, titleId, zIndex = 50, size = 'md' }:
     const widthClass = sizeClasses[size];
 
     return (
-        <div 
+        <div
             className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center p-4"
             style={{ zIndex }}
             onClick={onClose}
@@ -81,9 +81,10 @@ const Modal = ({ isOpen, onClose, children, titleId, zIndex = 50, size = 'md' }:
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby={titleId}
-                className={`bg-[#F0EBE3] rounded-3xl shadow-[10px_10px_20px_#cdc8c2,-10px_-10px_20px_#ffffff] p-6 w-full ${widthClass}`}
+                className={`bg-[#F0EBE3] rounded-3xl shadow-[10px_10px_20px_#cdc8c2,-10px_-10px_20px_#ffffff] p-6 w-full ${widthClass} max-h-[90vh] overflow-y-auto`}
                 onClick={e => e.stopPropagation()}
             >
+
                 {children}
             </div>
         </div>
