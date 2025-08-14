@@ -262,7 +262,7 @@ const FinanceTab = ({ projects, refreshData }: FinanceTabProps) => {
                         id="project-filter-finance"
                         value={filteredProjectId}
                         onChange={(e) => setFilteredProjectId(e.target.value)}
-                        className="bg-white border border-gray-300 text-gray-900 text-base rounded-lg focus:ring-[#4A2B2C] focus:border-[#4A2B2C] p-4"
+                        className="bg-white border border-gray-300 text-gray-900 text-base rounded-lg focus:ring-[#4A2B2C] focus:border-[#4A2B2C] p-3"
                     >
                         <option value="all">כל הפרויקטים</option>
                         {projects.filter(p => !p.isArchived).map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
