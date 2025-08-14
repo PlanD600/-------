@@ -72,7 +72,7 @@ const HelpContent = ({ onClose }: HelpContentProps) => {
   return (
     <div className="p-4 text-gray-800">
       <h2 className="text-2xl font-bold mb-4 text-[#4A2B2C]">עזרה ותמיכה</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         {/* עמודת שאלות ותשובות */}
         <div className="max-h-[60vh] overflow-y-auto">
           <h3 className="text-xl font-bold mb-4 text-[#4A2B2C]">שאלות נפוצות</h3>
@@ -90,6 +90,46 @@ const HelpContent = ({ onClose }: HelpContentProps) => {
                 className="absolute inset-0 w-full h-full rounded-lg shadow-md"
                 src="https://www.youtube.com/embed/dQw4w9WgXcQ"
                 title="מדריך למתחילים"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              ></iframe>
+            </div>
+            <div className="relative pt-[56.25%]">
+              <iframe
+                className="absolute inset-0 w-full h-full rounded-lg shadow-md"
+                src="https://www.youtube.com/embed/your_second_video_id"
+                title="ניהול הכנסות והוצאות"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              ></iframe>
+            </div>
+            <div className="relative pt-[56.25%]">
+              <iframe
+                className="absolute inset-0 w-full h-full rounded-lg shadow-md"
+                src="https://www.youtube.com/embed/your_second_video_id"
+                title="ניהול הכנסות והוצאות"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              ></iframe>
+            </div>
+            <div className="relative pt-[56.25%]">
+              <iframe
+                className="absolute inset-0 w-full h-full rounded-lg shadow-md"
+                src="https://www.youtube.com/embed/your_second_video_id"
+                title="ניהול הכנסות והוצאות"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              ></iframe>
+            </div>
+            <div className="relative pt-[56.25%]">
+              <iframe
+                className="absolute inset-0 w-full h-full rounded-lg shadow-md"
+                src="https://www.youtube.com/embed/your_second_video_id"
+                title="ניהול הכנסות והוצאות"
                 frameBorder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen

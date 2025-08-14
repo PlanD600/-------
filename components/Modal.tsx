@@ -1,4 +1,3 @@
-
 import React, { ReactNode, useEffect, useRef } from 'react';
 
 interface ModalProps {
@@ -6,13 +5,13 @@ interface ModalProps {
     onClose: () => void;
     children: ReactNode;
     titleId: string;
-    title?: string; // הופך את ה-title לאופציונלי
+    title?: string;
     zIndex?: number;
     size?: 'sm' | 'md' | 'lg';
 }
 
 const Modal = ({ isOpen, onClose, children, titleId, zIndex = 50, size = 'md' }: ModalProps) => {
-    const modalRef = useRef<HTMLDivElement>(null);
+    const contentRef = useRef<HTMLDivElement>(null); // רפרנס אחד מאוחד
 
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
@@ -20,8 +19,8 @@ const Modal = ({ isOpen, onClose, children, titleId, zIndex = 50, size = 'md' }:
                 onClose();
             }
 
-            if (event.key === 'Tab') {
-                const focusableElements = modalRef.current?.querySelectorAll<HTMLElement>(
+            if (event.key === 'Tab' && contentRef.current) {
+                const focusableElements = contentRef.current.querySelectorAll<HTMLElement>(
                     'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
                 );
                 if (!focusableElements || focusableElements.length === 0) return;
@@ -47,10 +46,10 @@ const Modal = ({ isOpen, onClose, children, titleId, zIndex = 50, size = 'md' }:
             document.addEventListener('keydown', handleKeyDown);
             // Focus the first focusable element on open
             setTimeout(() => {
-                const firstElement = modalRef.current?.querySelector<HTMLElement>(
+                 const firstElement = contentRef.current?.querySelector<HTMLElement>(
                     'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-                );
-                firstElement?.focus();
+                 );
+                 firstElement?.focus();
             }, 100);
         }
 
@@ -59,6 +58,12 @@ const Modal = ({ isOpen, onClose, children, titleId, zIndex = 50, size = 'md' }:
         };
     }, [isOpen, onClose]);
 
+    // useEffect חדש שמאפס את הגלילה
+    useEffect(() => {
+        if (isOpen && contentRef.current) {
+            contentRef.current.scrollTop = 0;
+        }
+    }, [isOpen]);
 
     if (!isOpen) return null;
 
@@ -71,20 +76,19 @@ const Modal = ({ isOpen, onClose, children, titleId, zIndex = 50, size = 'md' }:
     const widthClass = sizeClasses[size];
 
     return (
-        <div
+        <div 
             className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center p-4"
             style={{ zIndex }}
             onClick={onClose}
         >
             <div
-                ref={modalRef}
+                ref={contentRef} // כעת שני ה-refs מוחלפים ברפרנס אחד
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby={titleId}
                 className={`bg-[#F0EBE3] rounded-3xl shadow-[10px_10px_20px_#cdc8c2,-10px_-10px_20px_#ffffff] p-6 w-full ${widthClass} max-h-[90vh] overflow-y-auto`}
                 onClick={e => e.stopPropagation()}
             >
-
                 {children}
             </div>
         </div>
