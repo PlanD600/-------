@@ -11,7 +11,7 @@ interface ModalProps {
 }
 
 const Modal = ({ isOpen, onClose, children, titleId, zIndex = 50, size = 'md' }: ModalProps) => {
-    const contentRef = useRef<HTMLDivElement>(null); // רפרנס אחד מאוחד
+    const contentRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
@@ -44,7 +44,6 @@ const Modal = ({ isOpen, onClose, children, titleId, zIndex = 50, size = 'md' }:
 
         if (isOpen) {
             document.addEventListener('keydown', handleKeyDown);
-            // Focus the first focusable element on open
             setTimeout(() => {
                  const firstElement = contentRef.current?.querySelector<HTMLElement>(
                     'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
@@ -58,7 +57,6 @@ const Modal = ({ isOpen, onClose, children, titleId, zIndex = 50, size = 'md' }:
         };
     }, [isOpen, onClose]);
 
-    // useEffect חדש שמאפס את הגלילה
     useEffect(() => {
         if (isOpen && contentRef.current) {
             contentRef.current.scrollTop = 0;
@@ -76,13 +74,13 @@ const Modal = ({ isOpen, onClose, children, titleId, zIndex = 50, size = 'md' }:
     const widthClass = sizeClasses[size];
 
     return (
-        <div 
+        <div
             className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center p-4"
             style={{ zIndex }}
             onClick={onClose}
         >
             <div
-                ref={contentRef} // כעת שני ה-refs מוחלפים ברפרנס אחד
+                ref={contentRef}
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby={titleId}
