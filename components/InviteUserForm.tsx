@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Membership } from '../types';
-import { roleDisplayNames } from '../src/roleDisplayNames'; 
+import { roleDisplayNames } from '../src/roleDisplayNames';
 
 interface InviteUserFormProps {
-    onSubmit: (data: { fullName: string; phone: string; jobTitle: string; email: string; role: Membership['role'] }) => Promise<void>; // שינוי: הוספת email
+    onSubmit: (data: { fullName: string; phone: string; jobTitle: string; email: string; role: Membership['role']; password: string; }) => Promise<void>;
     onCancel: () => void;
     loading: boolean;
     error: string;
@@ -18,25 +18,40 @@ const InviteUserForm = ({ onSubmit, onCancel, loading, error, availableRoles }: 
     const [email, setEmail] = useState('');
     const [role, setRole] = useState<Membership['role']>('EMPLOYEE');
     const [localError, setLocalError] = useState('');
+    const [password, setPassword] = useState('');
 
     const validateEmail = (email: string) => /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(email);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLocalError('');
+
         if (email && !validateEmail(email)) {
             setLocalError("האימייל שהוזן אינו תקין.");
             return;
         }
-        if (!fullName || !phone || !jobTitle || !email) {
-            setLocalError("נא למלא את כל השדות.");
+
+        // עדכון בדיקת השדות הריקים
+        if (!fullName || !phone || !jobTitle || !email || !password) {
+            setLocalError("נא למלא את כל השדות, כולל סיסמה.");
             return;
         }
-        await onSubmit({ fullName, phone, jobTitle, email, role });
+
+        // בדיקה חדשה לאורך סיסמה
+        if (password.length < 6) {
+            setLocalError("הסיסמה חייבת לכלול לפחות 6 תווים.");
+            return;
+        }
+
+        // עדכון ה-onSubmit כדי שיכלול את הסיסמה
+        await onSubmit({ fullName, phone, jobTitle, email, role, password });
+
+        // איפוס כל השדות, כולל הסיסמה
         setFullName('');
         setPhone('');
         setJobTitle('');
         setEmail('');
+        setPassword(''); // איפוס הסיסמה
         setRole('EMPLOYEE');
     };
 
@@ -64,6 +79,19 @@ const InviteUserForm = ({ onSubmit, onCancel, loading, error, availableRoles }: 
                     value={email}
                     onChange={e => setEmail(e.target.value)}
                     required
+                    className="mt-1 w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#4A2B2C] focus:border-[#4A2B2C]"
+                />
+            </div>
+            {/* שדה סיסמה חדש */}
+            <div>
+                <label htmlFor="invite-password" className="block text-sm font-medium text-gray-700">סיסמה ראשונית</label>
+                <input
+                    type="password"
+                    id="invite-password"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    required
+                    minLength={6}
                     className="mt-1 w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#4A2B2C] focus:border-[#4A2B2C]"
                 />
             </div>
