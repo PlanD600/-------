@@ -1,15 +1,15 @@
 // src/components/HelpContent.tsx
-import React from 'react';
+import React, { ReactNode } from 'react';
 
 interface HelpContentProps {
   onClose: () => void;
 }
 
-const FAQItem = ({ question, answer }: { question: string; answer: string }) => {
+const FAQItem = ({ question, answer }: { question: string; answer: ReactNode }) => {
   return (
     <div className="mb-4 p-4 rounded-lg bg-[#E0D8CF] shadow-[inset_3px_3px_6px_#cdc8c2,inset_-3px_-3px_6px_#ffffff]">
       <h3 className="text-lg font-semibold text-[#4A2B2C] mb-2">{question}</h3>
-      <p className="text-sm text-gray-700">{answer}</p>
+      <div className="text-sm text-gray-700">{answer}</div>
     </div>
   );
 };
@@ -17,20 +17,47 @@ const FAQItem = ({ question, answer }: { question: string; answer: string }) => 
 const HelpContent = ({ onClose }: HelpContentProps) => {
   const faqData = [
     {
-      question: "איך אני מוסיף פרויקט חדש?",
-      answer: "במסך הפרויקטים, לחץ על כפתור 'הוסף פרויקט חדש', מלא את הפרטים הנדרשים ולחץ 'שמור'."
+      question: "מהי ProjectFlow?",
+      answer: "ProjectFlow היא מערכת לניהול פרויקטים המיועדת לארגונים. היא מאגדת ניהול משימות, מעקב פיננסי, תרשימי גאנט ותקשורת פנימית בפלטפורמה אחת, כדי לפשט את הניהול ולשפר את שיתוף הפעולה בין הצוותים."
     },
     {
-      question: "האם ניתן לערוך הוצאה או הכנסה קיימת?",
-      answer: "כן, עבור למסך הכספים, מצא את הרשומה שברצונך לערוך, ולחץ על כפתור העריכה (בצורת עיפרון) שלידה."
+      question: "אילו תכונות עיקריות מציעה האפליקציה?",
+      answer: (
+        <ul className="list-disc list-inside space-y-1">
+          <li><strong>מבט על (Overview)</strong>: מספק סקירה כללית של פרויקטים פעילים וארכיוניים ומאפשר סינון לפי סטטוסים או צוותים.</li>
+          <li><strong>משימות (Tasks)</strong>: ניהול משימות ברמת הפרויקט עם תצוגות מגוונות (רשימה/כרטיסיות), סינון לפי עובדים, והוספת תגובות.</li>
+          <li><strong>גאנט (Gantt)</strong>: תרשים גאנט ויזואלי המאפשר מעקב אחר התקדמות פרויקטים ומשימות, שינוי תאריכים וצפייה בפרטים.</li>
+          <li><strong>כספים (Finance)</strong>: ניהול פיננסי הכולל סיכום הכנסות, הוצאות ומאזן, עם אפשרות לשייך כל תנועה לפרויקט ספציפי.</li>
+          <li><strong>הודעות (Chat)</strong>: רכיב צ'אט מובנה לתקשורת בזמן אמת בין משתמשים, בשיחות פרטיות או קבוצתיות.</li>
+        </ul>
+      )
+    },
+    {
+      question: "אילו רמות הרשאה קיימות במערכת?",
+      answer: (
+        <ul className="list-disc list-inside space-y-1">
+          <li><strong>SUPER_ADMIN (סופר אדמין)</strong>: בעל ההרשאות הגבוהות ביותר.</li>
+          <li><strong>ADMIN (אדמין)</strong>: בעל הרשאות ניהול מלאות בתוך ארגון ספציפי.</li>
+          <li><strong>TEAM_LEADER (ראש צוות)</strong>: יכול לנהל פרויקטים ומשימות המשויכים לצוות שלו.</li>
+          <li><strong>EMPLOYEE (עובד)</strong>: יכול לצפות במשימות ששויכו אליו, לעדכן סטטוס ולהוסיף תגובות.</li>
+        </ul>
+      )
+    },
+    {
+      question: "כיצד מתבצעת ההתחברות לאפליקציה?",
+      answer: "האפליקציה מאפשרת התחברות באמצעות מספר טלפון וקוד חד-פעמי (OTP) שנשלח למכשירך. במידה ואין לך חשבון, תוכל ליצור אחד בקלות עם שם מלא, מספר טלפון ושם הארגון."
+    },
+    {
+      question: "האם ניתן לנהל מספר ארגונים במקביל?",
+      answer: "כן. לאחר ההתחברות, באפשרותך לעבור בין הארגונים אליהם אתה משויך דרך תפריט ההגדרות הראשי."
+    },
+    {
+      question: "מהם תנאי השימוש ומדיניות הפרטיות?",
+      answer: "תנאי השימוש קובעים כי כל התוכן והקוד הם קניינה הבלעדי של החברה, המשתמש אחראי על התכנים שהוא מעלה, והשירות ניתן 'כפי שהוא'. ניתן גם להסכים לקבל תוכן שיווקי ופרסומות, עם אפשרות הסרה בכל עת."
     },
     {
       question: "כיצד מחשבים את המע\"מ והניכויים?",
       answer: "המערכת מחשבת אותם אוטומטית על סמך הסכום ברוטו שהזנת ואחוזי המע\"מ והניכויים שציינת."
-    },
-    {
-      question: "האם ניתן להוסיף משתמשים נוספים לארגון?",
-      answer: "כן, במסך ההגדרות של הארגון, ישנה אפשרות להזמין משתמשים חדשים באמצעות כתובת האימייל שלהם."
     },
     {
       question: "מה קורה כאשר פרויקט מסתיים?",
