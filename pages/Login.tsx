@@ -9,7 +9,6 @@ import MarketingConsent from '../components/MarketingConsent';
 import AboutContent from '../components/AboutContent';
 import WhatIsItContent from '../components/WhatIsItContent';
 import HelpContent from '../components/HelpContent';
-import { useNavigate } from 'react-router-dom';
 
 const NeumorphicInput = ({ id, error, ...props }: { id: string, error: boolean, [key: string]: any }) => (
     <input
@@ -34,7 +33,6 @@ const LoginPage = () => {
   // login state
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const navigate = useNavigate();
 
   // register state
   const [fullName, setFullName] = useState('');
@@ -84,9 +82,6 @@ const LoginPage = () => {
         try {
             await login(email, password); // קוראים ללוגיקת ההתחברות מה-Context
             
-            // שלב 3: לאחר שההתחברות הצליחה (לא נזרקה שגיאה), נווט לדאשבורד
-            navigate('/dashboard'); 
-
         } catch (err: any) {
             const msg = err.message;
             setError(errorMessagesHe[msg] || 'אימייל או סיסמה לא נכונים');
