@@ -107,7 +107,15 @@ export const loginWithEmail = (
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
-  }).then(handleResponse);
+  }).then(handleResponse)
+  .then(res => {
+    // ודא שה-ID של הארגון נשמר ב-localStorage
+    if (res.memberships && res.memberships.length > 0) {
+      const defaultOrgId = res.memberships[0].organizationId;
+      localStorage.setItem('currentOrgId', defaultOrgId);
+    }
+    return res;
+  });
 
 export const changeMyPassword = (newPassword: string): Promise<void> =>
   fetch(`${BASE_URL}/auth/me/password`, {
