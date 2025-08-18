@@ -1,5 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { User, Team } from '../types';
+import { User, Team, Membership } from '../types'; // ייבוא ה-Membership כדי לקבל גישה ל-role
+
+// הגדרת רשימת התפקידים המורשים להיות ראשי צוות
+const LEAD_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TEAM_LEADER'];
 
 interface TeamFormProps {
     team?: Team | null;
@@ -22,13 +25,17 @@ const TeamForm = ({ team, users, onSubmit, onCancel, titleId, isLoading, apiErro
         setMemberIds(team?.memberIds || []);
     }, [team]);
     
-    const availableMembers = useMemo(() => {
-        return users.filter(u => !leadIds.includes(u.id));
-    }, [users, leadIds]);
-
+    // 💡 תיקון: סינון המשתמשים על בסיס התפקיד שלהם
     const availableLeads = useMemo(() => {
-        return users.filter(u => !memberIds.includes(u.id));
+        // בחר רק משתמשים שהתפקיד שלהם הוא בתוך LEAD_ROLES
+        const potentialLeads = users.filter(user => LEAD_ROLES.includes(user.role as Membership['role']));
+        // סנן אותם שוב כדי שלא יהיו גם ראשי צוות וגם חברי צוות באותו טופס
+        return potentialLeads.filter(user => !memberIds.includes(user.id));
     }, [users, memberIds]);
+
+    const availableMembers = useMemo(() => {
+        return users.filter(user => !leadIds.includes(user.id));
+    }, [users, leadIds]);
 
     const handleLeadToggle = (leadId: string) => {
         setLeadIds(prev => prev.includes(leadId) ? prev.filter(id => id !== leadId) : [...prev, leadId]);

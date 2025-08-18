@@ -21,6 +21,7 @@ export interface User extends BaseModel {
   profilePictureUrl?: string;
   jobTitle?: string;
   organizationId: string;
+  role: 'SUPER_ADMIN' | 'ADMIN' | 'TEAM_LEADER' | 'EMPLOYEE';
   //password?: string; // ← רק אם באמת יש צורך, לרוב לא מומלץ!
 
 }
