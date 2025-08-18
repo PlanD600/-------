@@ -99,24 +99,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 
  const login = useCallback(async (email: string, password: string) => {
-  setLoading(true);
-  try {
-    const data = await api.loginWithEmail(email, password);
-    localStorage.setItem('jwtToken', data.token);
-    setToken(data.token);
-    setUser(data.user);
-    setMemberships(data.memberships);
+    setLoading(true);
+    try {
+      const data = await api.loginWithEmail(email, password);
+      // 💡 שינוי: שמירת הטוקן והארגון ב-localStorage כאן
+      localStorage.setItem('jwtToken', data.token);
+      if (data.memberships.length > 0) {
+        const defaultOrgId = data.memberships[0].organizationId;
+        localStorage.setItem('currentOrgId', defaultOrgId);
+        setCurrentOrgId(defaultOrgId);
+      } else {
+        localStorage.removeItem('currentOrgId');
+        setCurrentOrgId(null);
+      }
 
-    if (data.memberships.length > 0) {
-      switchOrganization(data.memberships[0].organizationId);
-    } else {
-      localStorage.removeItem('currentOrgId');
-      setCurrentOrgId(null);
-    }
-  } finally {
-    setLoading(false);
-  }
-  }, []);
+      // 💡 שינוי: עדכון מצבי ה-state של ה-Context לאחר שמירת הנתונים
+      setToken(data.token);
+      setUser(data.user);
+      setMemberships(data.memberships);
+
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   // מצב עתידי — פונקציה להתחברות עם טלפון ו־OTP (בהערה)
 /*

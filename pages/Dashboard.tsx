@@ -12,7 +12,7 @@ import { io, Socket } from 'socket.io-client';
 const LAST_ACTIVE_TAB_KEY = 'lastActiveTab';
 
 const Dashboard = () => {
-    const { user, currentOrgId } = useAuth();
+    const { user, currentOrgId, token, currentUserRole } = useAuth();
     const [currentView, setCurrentView] = useState<'dashboard' | 'projectDetail' | 'settings'>('dashboard');
     const [socket, setSocket] = useState<Socket | null>(null);
 
@@ -26,7 +26,6 @@ const Dashboard = () => {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
 
-    // --- שינוי 1: אתחול ה-State של activeTab מה-localStorage ---
     const [activeTab, setActiveTab] = useState(() => {
         const storedTab = localStorage.getItem(LAST_ACTIVE_TAB_KEY);
         return storedTab || 'סקירה כללית';
@@ -35,7 +34,7 @@ const Dashboard = () => {
     const [projectsView, setProjectsView] = useState<'active' | 'archived'>('active');
 
     const fetchData = useCallback(async (signal?: AbortSignal) => {
-        if (!currentOrgId) {
+        if (!currentOrgId || !user || !currentUserRole) {
             setProjects([]);
             setTeams([]);
             setOrgMembers([]);
@@ -47,12 +46,15 @@ const Dashboard = () => {
         console.log("Fetching latest data from server...");
         try {
             const isArchivedFilter = projectsView === 'archived';
+
+            // 💡 תיקון: העברת הפרמטרים באופן נכון כפי שהוגדר ב-api.ts
             const [projectsResponse, teamsResponse, orgMembersResponse, conversationsData] = await Promise.all([
-                api.getProjects(1, 25, undefined, undefined, signal, isArchivedFilter),
-                api.getTeams(1, 25, undefined, undefined, signal),
-                api.getUsersInOrg(1, 25, undefined, undefined, signal),
-                api.getConversations(signal),
+                api.getProjects(user.id, currentUserRole, { page: 1, limit: 25, signal, isArchived: isArchivedFilter }),
+                api.getTeams(user.id, currentUserRole, { page: 1, limit: 25, signal }),
+                api.getUsersInOrg(user.id, currentUserRole, { page: 1, limit: 25, signal }),
+                api.getConversations(user.id, currentUserRole, { signal }),
             ]);
+
             setProjects(projectsResponse.data);
             console.log("Projects after refresh (from server):", projectsResponse.data);
 
@@ -68,7 +70,7 @@ const Dashboard = () => {
         } finally {
             setLoading(false);
         }
-    }, [currentOrgId, projectsView]);
+    }, [currentOrgId, projectsView, user, currentUserRole]);
 
     useEffect(() => {
         console.log('Dashboard useEffect triggered');
@@ -83,7 +85,7 @@ const Dashboard = () => {
             console.log("Dashboard useEffect cleanup: Aborting fetch requests.");
             abortController.abort();
         };
-    }, [currentOrgId, activeTab, projectsView]);
+    }, [currentOrgId, activeTab, projectsView, fetchData]);
 
     // --- שינוי 2: useEffect חדש לשמירת הטאב ב-localStorage ---
     useEffect(() => {
@@ -96,7 +98,6 @@ const Dashboard = () => {
         if (!currentOrgId || !user) return;
 
         const newSocket = io('https://api.mypland.com/api');
-        //const newSocket = io(import.meta.env.VITE_SOCKET_URL);
         setSocket(newSocket);
 
         newSocket.on('connect', () => {

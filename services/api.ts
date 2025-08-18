@@ -1,3 +1,5 @@
+// src/services/api.ts
+
 import {
   Organization,
   Project,
@@ -25,7 +27,6 @@ interface ImportMeta {
 }
 
 const BASE_URL = 'https://api.mypland.com/api';
-//const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('jwtToken');
@@ -43,16 +44,16 @@ const getAuthHeaders = () => {
 };
 
 const handleFileResponse = async (response: Response): Promise<Blob> => {
-    if (!response.ok) {
-        try {
-            const errorText = await response.text();
-            const errorJson = JSON.parse(errorText);
-            throw new Error(errorJson.message || `HTTP error! status: ${response.status}`);
-        } catch {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
+  if (!response.ok) {
+    try {
+      const errorText = await response.text();
+      const errorJson = JSON.parse(errorText);
+      throw new Error(errorJson.message || `HTTP error! status: ${response.status}`);
+    } catch {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
-    return response.blob();
+  }
+  return response.blob();
 };
 
 const handleResponse = async (response: Response) => {
@@ -86,7 +87,17 @@ const buildQueryString = (params: Record<string, any>): string => {
   return queryString ? `?${queryString}` : '';
 }
 
-// AUTH - הרשמה והתחברות אימייל וסיסמה
+// 💡 ממשק חדש לפרמטרים אופציונליים
+interface ApiOptions {
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+  isArchived?: boolean;
+  signal?: AbortSignal;
+}
+
+// ------------------- AUTH -------------------
 export const registerUserWithEmail = (
   fullName: string,
   email: string,
@@ -108,14 +119,14 @@ export const loginWithEmail = (
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
   }).then(handleResponse)
-  .then(res => {
-    // ודא שה-ID של הארגון נשמר ב-localStorage
-    if (res.memberships && res.memberships.length > 0) {
-      const defaultOrgId = res.memberships[0].organizationId;
-      localStorage.setItem('currentOrgId', defaultOrgId);
-    }
-    return res;
-  });
+    .then(res => {
+      localStorage.setItem('jwtToken', res.token);
+      if (res.memberships && res.memberships.length > 0) {
+        const defaultOrgId = res.memberships[0].organizationId;
+        localStorage.setItem('currentOrgId', defaultOrgId);
+      }
+      return res;
+    });
 
 export const changeMyPassword = (newPassword: string): Promise<void> =>
   fetch(`${BASE_URL}/auth/me/password`, {
@@ -163,7 +174,7 @@ export const updateMyProfile = (data: Partial<User>): Promise<User> =>
     body: JSON.stringify(data),
   }).then(handleResponse);
 
-// ORGANIZATIONS 
+// ------------------- ORGANIZATIONS -------------------
 export const createOrganization = (data: { name: string }): Promise<Organization> => {
   return fetch(`${BASE_URL}/organizations`, {
     method: 'POST',
@@ -188,26 +199,23 @@ export const deleteOrganization = (id: string): Promise<{ message: string }> => 
 };
 
 
-// PROJECTS
+// ------------------- PROJECTS -------------------
+// 💡 תיקון: הפונקציה מקבלת את כל הפרמטרים באובייקט אחד.
 export const getProjects = (
-    page = 1,
-    limit = 25,
-    sortBy?: string,
-    sortOrder?: 'asc' | 'desc',
-    signal?: AbortSignal,
-    isArchived?: boolean
+  userId: string,
+  userRole: string,
+  options: ApiOptions = {}
 ): Promise<PaginatedResponse<Project>> => {
-    const query = buildQueryString({
-        page,
-        limit,
-        sortBy,
-        sortOrder,
-        isArchived
-    });
-    return fetch(`${BASE_URL}/projects${query}`, {
-        headers: getAuthHeaders(),
-        signal,
-    }).then(handleResponse);
+  const { signal, ...params } = options;
+  const query = buildQueryString({
+    ...params,
+    userId,
+    userRole,
+  });
+  return fetch(`${BASE_URL}/projects${query}`, {
+    headers: getAuthHeaders(),
+    signal,
+  }).then(handleResponse);
 }
 
 export const createProject = (projectData: ProjectPayload): Promise<Project> => {
@@ -240,13 +248,13 @@ export const deleteProject = (projectId: string): Promise<void> =>
   }).then(handleResponse);
 
 
-// TASKS
+// ------------------- TASKS -------------------
 export const getTasksForProject = (projectId: string, page = 1, limit = 25, sortBy?: string, sortOrder?: 'asc' | 'desc', signal?: AbortSignal): Promise<PaginatedResponse<Task>> => {
-    const query = buildQueryString({ page, limit, sortBy, sortOrder, include: 'assignees' }); // הוסף את הפרמטר `include`
-    return fetch(`${BASE_URL}/projects/${projectId}/tasks${query}`, {
-        headers: getAuthHeaders(),
-        signal,
-    }).then(handleResponse);
+  const query = buildQueryString({ page, limit, sortBy, sortOrder, include: 'assignees' });
+  return fetch(`${BASE_URL}/projects/${projectId}/tasks${query}`, {
+    headers: getAuthHeaders(),
+    signal,
+  }).then(handleResponse);
 }
 
 export const createTask = (projectId: string, taskData: TaskPayload): Promise<Task> =>
@@ -278,19 +286,21 @@ export const addTaskComment = (projectId: string, taskId: string, content: strin
 
 
 export const getTaskById = (projectId: string, taskId: string): Promise<Task> => {
-    return fetch(`${BASE_URL}/projects/${projectId}/tasks/${taskId}`, {
-        headers: getAuthHeaders(),
-    }).then(handleResponse);
+  return fetch(`${BASE_URL}/projects/${projectId}/tasks/${taskId}`, {
+    headers: getAuthHeaders(),
+  }).then(handleResponse);
 };
 
-// FINANCE API
-export const getFinanceSummary = (projectId?: string): Promise<FinanceSummary> => {
-  const query = buildQueryString({ projectId });
+// ------------------- FINANCE API -------------------
+export const getFinanceSummary = (projectId?: string, userId?: string,
+  userRole?: string): Promise<FinanceSummary> => {
+  const query = buildQueryString({ projectId, userId, userRole });
   return fetch(`${BASE_URL}/finances/summary${query}`, { headers: getAuthHeaders() }).then(handleResponse);
 };
 
-export const getFinanceEntries = (projectId?: string, page = 1, limit = 25, sortBy = 'date', sortOrder = 'desc'): Promise<PaginatedResponse<FinanceEntry>> => {
-  const query = buildQueryString({ projectId, page, limit, sortBy, sortOrder });
+export const getFinanceEntries = (projectId?: string, page = 1, limit = 25, sortBy = 'date', sortOrder = 'desc', userId?: string,
+  userRole?: string): Promise<PaginatedResponse<FinanceEntry>> => {
+  const query = buildQueryString({ projectId, page, limit, sortBy, sortOrder, userId, userRole });
   return fetch(`${BASE_URL}/finances/entries${query}`, { headers: getAuthHeaders() }).then(handleResponse);
 };
 
@@ -310,39 +320,48 @@ export const updateFinanceEntry = (entryId: string, data: Partial<FinanceEntry>)
   }).then(handleResponse);
 };
 
-export const deleteFinanceEntry = (entryId: string): Promise<void> => {
-  return fetch(`${BASE_URL}/finances/${entryId}`, {
+export const deleteFinanceEntry = (entryId: string): Promise<void> =>
+  fetch(`${BASE_URL}/finances/${entryId}`, {
     method: 'DELETE',
     headers: getAuthHeaders(),
   }).then(handleResponse);
-};
 
-export const resetProjectFinances = (projectId: string): Promise<void> => {
-  return fetch(`${BASE_URL}/finances/${projectId}/reset`, {
+export const resetProjectFinances = (projectId: string): Promise<void> =>
+  fetch(`${BASE_URL}/finances/${projectId}/reset`, {
     method: 'POST',
     headers: getAuthHeaders(),
   }).then(handleResponse);
-};
 
-export const restoreProjectFinances = (projectId: string, entryId: string): Promise<void> => {
-  return fetch(`${BASE_URL}/projects/${projectId}/finances/restore`, {
+export const restoreProjectFinances = (projectId: string, entryId: string): Promise<void> =>
+  fetch(`${BASE_URL}/projects/${projectId}/finances/restore`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify({ entryId }),
   }).then(handleResponse);
-};
 
-// 💡 פונקציה חדשה להורדת PDF
 export const generateFinancePDF = (projectId?: string): Promise<Blob> => {
-    const query = buildQueryString({ projectId });
-    return fetch(`${BASE_URL}/finances/pdf${query}`, { headers: getAuthHeaders() })
-        .then(handleFileResponse);
+  const query = buildQueryString({ projectId });
+  return fetch(`${BASE_URL}/finances/pdf${query}`, { headers: getAuthHeaders() })
+    .then(handleFileResponse);
 };
 
-// USERS & TEAMS
-export const getUsersInOrg = (page = 1, limit = 25, sortBy?: string, sortOrder?: 'asc' | 'desc', signal?: AbortSignal): Promise<PaginatedResponse<Membership>> => {
-  const query = buildQueryString({ page, limit, sortBy, sortOrder });
-  return fetch(`${BASE_URL}/users${query}`, { headers: getAuthHeaders(), signal }).then(handleResponse);
+// ------------------- USERS & TEAMS -------------------
+// 💡 תיקון: הפונקציה מקבלת את כל הפרמטרים באובייקט אחד.
+export const getUsersInOrg = (
+  userId: string,
+  userRole: string,
+  options: ApiOptions = {}
+): Promise<PaginatedResponse<Membership>> => {
+  const { signal, ...params } = options;
+  const query = buildQueryString({
+    ...params,
+    userId,
+    userRole,
+  });
+  return fetch(`${BASE_URL}/users${query}`, {
+    headers: getAuthHeaders(),
+    signal,
+  }).then(handleResponse);
 }
 
 // שינוי: הוספת שדה email להזמנה
@@ -353,7 +372,6 @@ export const inviteUser = (data: { fullName: string; phone: string; jobTitle: st
     body: JSON.stringify(data),
   }).then(handleResponse);
 
-// שינוי: פונקציה חדשה לעריכת אימייל של משתמש קיים (רק ע"י אדמין)
 export const updateUserEmail = (userId: string, email: string): Promise<User> =>
   fetch(`${BASE_URL}/users/${userId}/email`, {
     method: 'PUT',
@@ -368,7 +386,7 @@ export const updateUserRole = (userId: string, role: Membership['role']): Promis
     body: JSON.stringify({ role }),
   }).then(handleResponse);
 
-  export const updateUserPassword = (userId: string, password: string): Promise<{ message: string }> =>
+export const updateUserPassword = (userId: string, password: string): Promise<{ message: string }> =>
   fetch(`${BASE_URL}/users/${userId}/password`, {
     method: 'PUT',
     headers: getAuthHeaders(),
@@ -381,10 +399,24 @@ export const removeUserFromOrg = (userId: string): Promise<void> =>
     headers: getAuthHeaders(),
   }).then(handleResponse);
 
-export const getTeams = (page = 1, limit = 25, sortBy?: string, sortOrder?: 'asc' | 'desc', signal?: AbortSignal): Promise<PaginatedResponse<Team>> => {
-  const query = buildQueryString({ page, limit, sortBy, sortOrder });
-  return fetch(`${BASE_URL}/teams${query}`, { headers: getAuthHeaders() }).then(handleResponse);
+// 💡 תיקון: הפונקציה מקבלת את כל הפרמטרים באובייקט אחד.
+export const getTeams = (
+  userId: string,
+  userRole: string,
+  options: ApiOptions = {}
+): Promise<PaginatedResponse<Team>> => {
+  const { signal, ...params } = options;
+  const query = buildQueryString({
+    ...params,
+    userId,
+    userRole,
+  });
+  return fetch(`${BASE_URL}/teams${query}`, {
+    headers: getAuthHeaders(),
+    signal,
+  }).then(handleResponse);
 }
+
 export const createTeam = (teamData: TeamPayload): Promise<Team> =>
   fetch(`${BASE_URL}/teams`, {
     method: 'POST',
@@ -405,9 +437,20 @@ export const deleteTeam = (teamId: string): Promise<void> =>
     headers: getAuthHeaders(),
   }).then(handleResponse);
 
-// CONVERSATIONS
-export const getConversations = (signal?: AbortSignal): Promise<Conversation[]> =>
-  fetch(`${BASE_URL}/conversations`, { headers: getAuthHeaders(), signal }).then(handleResponse);
+// ------------------- CONVERSATIONS -------------------
+// 💡 תיקון: הפונקציה מקבלת את כל הפרמטרים באובייקט אחד.
+export const getConversations = (
+  userId: string,
+  userRole: string,
+  options: { signal?: AbortSignal } = {}
+): Promise<Conversation[]> => {
+  const { signal } = options;
+  const query = buildQueryString({ userId, userRole });
+  return fetch(`${BASE_URL}/conversations${query}`, {
+    headers: getAuthHeaders(),
+    signal,
+  }).then(handleResponse);
+}
 
 export const createConversation = (data: { type: 'private' | 'group', participantIds: string[], name?: string, avatarUrl?: string }): Promise<Conversation> =>
   fetch(`${BASE_URL}/conversations`, {
@@ -420,23 +463,22 @@ export const getMessagesForConversation = (conversationId: string, page = 1, lim
   fetch(`${BASE_URL}/conversations/${conversationId}/messages?page=${page}&limit=${limit}`, { headers: getAuthHeaders() }).then(handleResponse);
 
 export const uploadProfilePicture = async (file: File) => {
-    const formData = new FormData();
-    formData.append('profilePicture', file);
+  const formData = new FormData();
+  formData.append('profilePicture', file);
 
-    const headers = getAuthHeaders();
-    // ה-Content-Type כבר מטופל אוטומטית על ידי הדפדפן עבור FormData
-    delete headers['Content-Type'];
+  const headers = getAuthHeaders();
+  delete headers['Content-Type'];
 
-    const response = await fetch(`${BASE_URL}/auth/me/profile-picture`, {
-        method: 'POST',
-        body: formData,
-        headers,
-    });
+  const response = await fetch(`${BASE_URL}/auth/me/profile-picture`, {
+    method: 'POST',
+    body: formData,
+    headers,
+  });
 
-    if (!response.ok) {
-        const errorData = await handleResponse(response);
-        throw new Error(errorData.message || 'Failed to upload profile picture');
-    }
+  if (!response.ok) {
+    const errorData = await handleResponse(response);
+    throw new Error(errorData.message || 'Failed to upload profile picture');
+  }
 
-    return response.json();
+  return response.json();
 };
