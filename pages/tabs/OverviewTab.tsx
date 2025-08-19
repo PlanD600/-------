@@ -156,7 +156,7 @@ const OverviewTab = ({ projects, teamLeads, users, teams, refreshData, projectsV
     };
 
     const getProjectPermissions = (project: Project) => {
-        const isTeamLeadOfProject = currentUserRole === 'TEAM_LEADER' && project.teamLeads.some(lead => lead.id === user?.id);
+        const isTeamLeadOfProject = currentUserRole === 'TEAM_LEADER' && project.teamLeads?.some(lead => lead.id === user?.id);
         const canEditOrArchive = canManageOrg || isTeamLeadOfProject;
         const canDelete = canManageOrg;
 
