@@ -12,7 +12,7 @@ import { io, Socket } from 'socket.io-client';
 const LAST_ACTIVE_TAB_KEY = 'lastActiveTab';
 
 const Dashboard = () => {
-    const { user, currentOrgId, token, currentUserRole } = useAuth();
+    const { user, currentOrgId, currentUserRole } = useAuth();
     const [currentView, setCurrentView] = useState<'dashboard' | 'projectDetail' | 'settings'>('dashboard');
     const [socket, setSocket] = useState<Socket | null>(null);
 
@@ -28,50 +28,68 @@ const Dashboard = () => {
 
     const [activeTab, setActiveTab] = useState(() => {
         const storedTab = localStorage.getItem(LAST_ACTIVE_TAB_KEY);
-        return storedTab || 'סקירה כללית';
+        return storedTab || 'overview';
     });
 
     const [projectsView, setProjectsView] = useState<'active' | 'archived'>('active');
 
     const fetchData = useCallback(async (signal?: AbortSignal) => {
-        if (!currentOrgId || !user || !currentUserRole) {
-            setProjects([]);
-            setTeams([]);
-            setOrgMembers([]);
-            setConversations([]);
-            setLoading(false);
-            return;
-        }
-        setLoading(true);
-        console.log("Fetching latest data from server...");
-        try {
-            const isArchivedFilter = projectsView === 'archived';
+        if (!currentOrgId || !user || !currentUserRole) {
+            setProjects([]);
+            setTeams([]);
+            setOrgMembers([]);
+            setConversations([]);
+            setLoading(false);
+            return;
+        }
 
-            const [projectsResponse, teamsResponse, orgMembersResponse, conversationsData] = await Promise.all([
-                // 💡 תיקון: העברת הפרמטרים באופן נכון כפי שהוגדר ב-api.ts
-                api.getProjects(user.id, currentUserRole, { page: 1, limit: 25, signal, isArchived: isArchivedFilter }),
-                api.getTeams(user.id, currentUserRole, { page: 1, limit: 25, signal }),
-                api.getUsersInOrg(user.id, currentUserRole, { page: 1, limit: 25, signal }),
-                api.getConversations(user.id, currentUserRole, { signal }),
-            ]);
+        setLoading(true);
+        console.log("Fetching latest data from server...");
 
-            setProjects(projectsResponse.data);
-            console.log("Projects after refresh (from server):", projectsResponse.data);
+        let projectsData: Project[] = [];
+        let teamsData: Team[] = [];
+        let orgMembersData: Membership[] = [];
+        let conversationsData: Conversation[] = [];
 
-            setTeams(teamsResponse.data);
-            setOrgMembers(orgMembersResponse.data);
-            setConversations(conversationsData);
-        } catch (error: any) {
-            if (error.name === 'AbortError') {
-                console.log('Fetch aborted by user/component unmount:', error.message);
-                return;
-            }
-            console.error("Failed to fetch dashboard data:", error);
-        } finally {
-            setLoading(false);
-        }
-    }, [currentOrgId, projectsView, user, currentUserRole]);
+        try {
+            // תיקון: העברת פרמטרים תקינים לפונקציות ה-API כפי שהוגדר ב-api.ts
+            const projectsResponse = await api.getProjects(user.id, currentUserRole, { page: 1, limit: 25, signal });
+            projectsData = projectsResponse.data;
+        } catch (error) {
+            console.error("Failed to fetch projects:", error);
+        }
 
+        try {
+            // תיקון: העברת פרמטרים תקינים לפונקציות ה-API
+            const teamsResponse = await api.getTeams(user.id, currentUserRole, { page: 1, limit: 25, signal });
+            teamsData = teamsResponse.data;
+        } catch (error) {
+            console.error("Failed to fetch teams:", error);
+        }
+
+        try {
+            // תיקון: העברת פרמטרים תקינים לפונקציות ה-API
+            const orgMembersResponse = await api.getUsersInOrg(user.id, currentUserRole, { page: 1, limit: 25, signal });
+            orgMembersData = orgMembersResponse.data;
+        } catch (error) {
+            console.error("Failed to fetch organization members:", error);
+        }
+
+        try {
+            // תיקון: העברת פרמטרים תקינים לפונקציות ה-API
+            conversationsData = await api.getConversations(user.id, currentUserRole, { signal });
+        } catch (error) {
+            console.error("Failed to fetch conversations:", error);
+        }
+        
+        // עדכון כל ה-state-ים רק לאחר שכל הקריאות הסתיימו
+        setProjects(projectsData);
+        setTeams(teamsData);
+        setOrgMembers(orgMembersData);
+        setConversations(conversationsData);
+        setLoading(false);
+        
+    }, [currentOrgId, projectsView, user, currentUserRole]);
 
     useEffect(() => {
         console.log('Dashboard useEffect triggered');
