@@ -7,6 +7,7 @@ const LEAD_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TEAM_LEADER'];
 interface TeamFormProps {
     team?: Team | null;
     users: User[];
+    potentialLeads: User[];
     onSubmit: (data: Pick<Team, 'name' | 'leadIds' | 'memberIds'>) => void;
     onCancel: () => void;
     titleId: string;

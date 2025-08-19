@@ -1,7 +1,7 @@
 // src/pages/tabs/OverviewTab.tsx
 
 import React, { useState, useMemo, useId, Dispatch, SetStateAction } from 'react';
-import { Project, ProjectStatus, User, Team, ProjectPayload, TeamPayload } from '../../types';
+import { Project, ProjectStatus, User, Team, ProjectPayload, TeamPayload, Membership } from '../../types';
 import * as api from '../../services/api';
 import ProjectCard from '../../components/ProjectCard';
 import Modal from '../../components/Modal';
@@ -13,11 +13,13 @@ import ConfirmationModal from '../../components/ConfirmationModal';
 import TeamForm from '../../components/TeamForm';
 import { useAuth } from '../../hooks/useAuth';
 
+
 interface OverviewTabProps {
     projects: Project[];
     teamLeads: User[];
     users: User[];
     teams: Team[];
+    allMemberships: Membership[];
     refreshData: () => void;
     projectsView: 'active' | 'archived';
     setProjectsView: Dispatch<SetStateAction<'active' | 'archived'>>;
@@ -59,33 +61,36 @@ const ViewToggle = ({ view, setView, labelledby }: { view: 'active' | 'archived'
     </div>
 );
 
-const OverviewTab = ({ projects, teamLeads, users, teams, refreshData, projectsView, setProjectsView }: OverviewTabProps) => {
+
+const OverviewTab = ({ projects, teamLeads, users, teams, allMemberships, refreshData, projectsView, setProjectsView }: OverviewTabProps) => {
     const { user, currentUserRole } = useAuth();
-    const [searchTerm, setSearchTerm] = useState('');
     const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] = useState(false);
     const [isCreateTeamModalOpen, setIsCreateTeamModalOpen] = useState(false);
     const [selectedProject, setSelectedProject] = useState<Project | null>(null);
     const [projectToEdit, setProjectToEdit] = useState<Project | null>(null);
-    const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+    const [projectToDeleteId, setProjectToDeleteId] = useState<string | null>(null);
 
     const [statusFilter, setStatusFilter] = useState('all');
     const [teamFilter, setTeamFilter] = useState('all');
+    
+    const viewToggleLabelId = useId();
+    const createProjectModalTitleId = useId();
+    const createTeamModalTitleId = useId();
+    const editModalTitleId = useId();
+    const statusFilterId = useId();
+    const teamFilterId = useId();
 
     const canManageOrg = currentUserRole === 'ADMIN' || currentUserRole === 'SUPER_ADMIN';
 
     const projectStatuses: ProjectStatus[] = ['מתוכנן', 'בתהליך', 'לקראת סיום', 'בסיכון', 'מוקפא', 'הושלם'];
-    // 💡 תיקון: בדיקה אם projects.teams קיים לפני קריאה ל-flatMap
     const projectTeams = useMemo(() => Array.from(new Set(projects.flatMap(p => p.teams?.map(t => t.name) || []))), [projects]);
 
     const filteredProjects = useMemo(() => {
-        const lowercasedSearch = searchTerm.toLowerCase();
         return projects
             .filter(p => (projectsView === 'active' ? !p.isArchived : p.isArchived))
             .filter(p => statusFilter === 'all' || p.status === statusFilter)
-            // 💡 תיקון: בדיקה אם p.teams קיים לפני קריאה ל-some
-            .filter(p => teamFilter === 'all' || (p.teams && p.teams.some(t => t.name === teamFilter)))
-            .filter(project => project.title.toLowerCase().includes(lowercasedSearch));
-    }, [projects, projectsView, statusFilter, teamFilter, searchTerm]);
+            .filter(p => teamFilter === 'all' || p.teams.some(t => t.name === teamFilter));
+    }, [projects, projectsView, statusFilter, teamFilter]);
 
     const handleCreateProject = async (projectData: ProjectPayload) => {
         try {
@@ -108,7 +113,7 @@ const OverviewTab = ({ projects, teamLeads, users, teams, refreshData, projectsV
             alert(`Error: ${(error as Error).message}`);
         }
     };
-
+    
     const handleUpdateProjectDetails = async (updatedData: Partial<ProjectPayload>) => {
         if (!projectToEdit) return;
         try {
@@ -121,40 +126,44 @@ const OverviewTab = ({ projects, teamLeads, users, teams, refreshData, projectsV
         }
     };
 
-    const handleEdit = (project: Project) => {
-        setProjectToEdit(project);
+    const handleEdit = (id: string) => {
+        const project = projects.find(p => p.id === id);
+        if (project) {
+            setProjectToEdit(project);
+        }
     };
-
-    const handleArchive = async (project: Project) => {
+    
+    const handleArchive = async (id: string) => {
+        const project = projects.find(p => p.id === id);
         if (!project) return;
         try {
-            const newIsArchivedStatus = !project.isArchived;
-            await api.archiveProject(project.id, newIsArchivedStatus);
+            const newIsArchivedStatus = !project.isArchived; 
+            await api.archiveProject(id, newIsArchivedStatus);
             refreshData();
             setProjectsView(newIsArchivedStatus ? 'archived' : 'active');
         } catch (error) {
-            console.error("Failed to archive project:", error);
+             console.error("Failed to archive project:", error);
             alert(`Error: ${(error as Error).message}`);
         }
     };
 
-    const handleDelete = (project: Project) => {
-        setProjectToDelete(project);
+    const handleDelete = (id: string) => {
+        setProjectToDeleteId(id);
     };
 
     const confirmDelete = async () => {
-        if (projectToDelete) {
+        if (projectToDeleteId) {
             try {
-                await api.deleteProject(projectToDelete.id);
+                await api.deleteProject(projectToDeleteId);
                 refreshData();
-                setProjectToDelete(null);
+                setProjectToDeleteId(null);
             } catch (error) {
                 console.error("Failed to delete project:", error);
                 alert(`Error: ${(error as Error).message}`);
             }
         }
     };
-
+    
     const getProjectPermissions = (project: Project) => {
         const isTeamLeadOfProject = currentUserRole === 'TEAM_LEADER' && project.teamLeads?.some(lead => lead.id === user?.id);
         const canEditOrArchive = canManageOrg || isTeamLeadOfProject;
@@ -166,42 +175,22 @@ const OverviewTab = ({ projects, teamLeads, users, teams, refreshData, projectsV
         };
     };
 
-    const viewToggleLabelId = useId();
-    const createProjectModalTitleId = useId();
-    const createTeamModalTitleId = useId();
-    const editModalTitleId = useId();
-    const statusFilterId = useId();
-    const teamFilterId = useId();
-
     return (
         <div className="space-y-6">
+            {/* ... קוד ה-JSX של הכותרת והפילטרים נשאר זהה ... */}
             <div className="flex flex-wrap gap-x-6 gap-y-4 justify-between items-center">
                 <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
                     <div className="flex items-center gap-x-4">
                         <h2 className="text-2xl font-bold text-gray-800">כל הפרויקטים</h2>
                         <span id={viewToggleLabelId} className="sr-only">בחר תצוגת פרויקטים</span>
-                        <ViewToggle view={projectsView} setView={setProjectsView} labelledby={viewToggleLabelId} />
+                        <ViewToggle view={projectsView} setView={setProjectsView} labelledby={viewToggleLabelId} /> 
                     </div>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                        <FilterSelect
-                            id={statusFilterId}
-                            label="סינון לפי סטטוס"
-                            value={statusFilter}
-                            onChange={(e) => setStatusFilter(e.target.value)}
-                            options={projectStatuses}
-                            defaultOption="כל הסטטוסים"
-                        />
-                        <FilterSelect
-                            id={teamFilterId}
-                            label="סינון לפי צוות"
-                            value={teamFilter}
-                            onChange={(e) => setTeamFilter(e.target.value)}
-                            options={projectTeams}
-                            defaultOption="כל הצוותים"
-                        />
+                        <FilterSelect id={statusFilterId} label="סינון לפי סטטוס" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} options={projectStatuses} defaultOption="כל הסטטוסים" />
+                        <FilterSelect id={teamFilterId} label="סינון לפי צוות" value={teamFilter} onChange={(e) => setTeamFilter(e.target.value)} options={projectTeams} defaultOption="כל הצוותים" />
                     </div>
                 </div>
-                <div className="flex items-center space-x-2 space-x-reverse">
+                 <div className="flex items-center space-x-2 space-x-reverse">
                     {canManageOrg && (
                         <>
                             <button
@@ -223,18 +212,19 @@ const OverviewTab = ({ projects, teamLeads, users, teams, refreshData, projectsV
                 </div>
             </div>
 
+            {/* ... קוד ה-JSX של רשימת הפרויקטים נשאר זהה ... */}
             {filteredProjects.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                     {filteredProjects.map(project => {
                         const permissions = getProjectPermissions(project);
                         return (
-                            <ProjectCard
-                                key={project.id}
+                             <ProjectCard 
+                                key={project.id} 
                                 project={project}
                                 onClick={() => setSelectedProject(project)}
-                                onEdit={permissions.canEditOrArchive ? () => handleEdit(project) : undefined}
-                                onArchive={permissions.canEditOrArchive ? () => handleArchive(project) : undefined}
-                                onDelete={permissions.canDelete ? () => handleDelete(project) : undefined}
+                                onEdit={permissions.canEditOrArchive ? handleEdit : undefined}
+                                onArchive={permissions.canEditOrArchive ? handleArchive : undefined}
+                                onDelete={permissions.canDelete ? handleDelete : undefined}
                             />
                         )
                     })}
@@ -247,7 +237,7 @@ const OverviewTab = ({ projects, teamLeads, users, teams, refreshData, projectsV
             )}
 
             <Modal isOpen={isCreateProjectModalOpen} onClose={() => setIsCreateProjectModalOpen(false)} titleId={createProjectModalTitleId} size="md">
-                <AddProjectForm
+                <AddProjectForm 
                     titleId={createProjectModalTitleId}
                     onSubmit={handleCreateProject}
                     onCancel={() => setIsCreateProjectModalOpen(false)}
@@ -255,16 +245,17 @@ const OverviewTab = ({ projects, teamLeads, users, teams, refreshData, projectsV
                     teams={teams}
                 />
             </Modal>
-
+            
             <Modal isOpen={isCreateTeamModalOpen} onClose={() => setIsCreateTeamModalOpen(false)} titleId={createTeamModalTitleId}>
                 <TeamForm
                     titleId={createTeamModalTitleId}
                     users={users}
+                    potentialLeads={teamLeads}
                     onSubmit={handleCreateTeam}
                     onCancel={() => setIsCreateTeamModalOpen(false)}
                 />
             </Modal>
-
+            
             <Modal isOpen={!!projectToEdit} onClose={() => setProjectToEdit(null)} titleId={editModalTitleId} size="md">
                 {projectToEdit && (
                     <EditProjectForm
@@ -287,11 +278,11 @@ const OverviewTab = ({ projects, teamLeads, users, teams, refreshData, projectsV
             />
 
             <ConfirmationModal
-                isOpen={!!projectToDelete}
-                onClose={() => setProjectToDelete(null)}
+                isOpen={!!projectToDeleteId}
+                onClose={() => setProjectToDeleteId(null)}
                 onConfirm={confirmDelete}
                 title="אישור מחיקה"
-                message={`האם אתה בטוח שברצונך למחוק את הפרויקט "${projectToDelete?.title}"? פעולה זו היא בלתי הפיכה.`}
+                message="האם אתה בטוח שברצונך למחוק פרויקט זה? פעולה זו היא בלתי הפיכה."
             />
         </div>
     );

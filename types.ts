@@ -94,6 +94,8 @@ export interface Project extends BaseModel {
   teamLeads: User[]; // Populated array of User objects
   tasks?: Task[]; // Now optional, to be fetched on demand
   monthlyBudgets?: MonthlyBudget[]; // 💡 חדש: מערך של תקציבים חודשיים
+  projectTeamLeads?: { user: User }[]; 
+
 
 }
 

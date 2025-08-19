@@ -37,7 +37,7 @@ const SettingsPage = ({ onBack, users, teams, allMemberships, refreshData, activ
 
         const adminMenu = [
             { id: 'users', label: 'ניהול משתמשים', icon: <UsersIcon className="w-5 h-5" />, component: <UserSettings allMemberships={allMemberships} refreshData={refreshData} /> },
-            { id: 'teams', label: 'ניהול צוותים', icon: <UserGroupIcon className="w-5 h-5" />, component: <TeamSettings teams={teams} users={users} refreshData={refreshData} /> },
+            { id: 'teams', label: 'ניהול צוותים', icon: <UserGroupIcon className="w-5 h-5" />, component: <TeamSettings teams={teams} users={users} allMemberships={allMemberships} refreshData={refreshData} /> },
             { id: 'billing', label: 'מנוי וחיובים', icon: <CreditCardIcon className="w-5 h-5" />, component: <BillingSettings /> },
         ];
 
@@ -60,11 +60,11 @@ const SettingsPage = ({ onBack, users, teams, allMemberships, refreshData, activ
         };
 
         return menuStructure[currentUserRole || 'EMPLOYEE'] || baseMenu;
-    }, [currentUserRole, users, teams, allMemberships]); 
+    }, [currentUserRole, users, teams, allMemberships]);
 
     // Set default active category if current one is not available for the role
     // השארת useEffect זה ללא שינוי, הוא נחוץ לוודא שהטאב הפעיל חוקי
-     useEffect(() => {
+    useEffect(() => {
         console.log('SettingsPage useEffect for activeCategory triggered. activeCategory:', activeCategory);
         if (!menuItems.some(item => item.id === activeCategory)) {
             const defaultCategory = menuItems[0]?.id || 'profile';
@@ -76,8 +76,8 @@ const SettingsPage = ({ onBack, users, teams, allMemberships, refreshData, activ
     return (
         <div className="p-4 md:p-6 lg:p-8">
             <div className="flex items-center mb-6">
-                <button 
-                    onClick={onBack} 
+                <button
+                    onClick={onBack}
                     className="p-2 rounded-full hover:bg-gray-100 transition-colors ml-4"
                     aria-label="חזור"
                 >
@@ -94,11 +94,10 @@ const SettingsPage = ({ onBack, users, teams, allMemberships, refreshData, activ
                             <button
                                 key={item.id}
                                 onClick={() => setActiveCategory(item.id)}
-                                className={`w-full flex items-center space-x-3 space-x-reverse p-3 rounded-lg text-right font-semibold transition-colors ${
-                                    activeCategory === item.id 
-                                    ? 'bg-[#4A2B2C] text-white' 
-                                    : 'text-gray-700 hover:bg-gray-100'
-                                }`}
+                                className={`w-full flex items-center space-x-3 space-x-reverse p-3 rounded-lg text-right font-semibold transition-colors ${activeCategory === item.id
+                                        ? 'bg-[#4A2B2C] text-white'
+                                        : 'text-gray-700 hover:bg-gray-100'
+                                    }`}
                             >
                                 {item.icon}
                                 <span>{item.label}</span>

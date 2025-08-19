@@ -34,61 +34,71 @@ const Dashboard = () => {
     const [projectsView, setProjectsView] = useState<'active' | 'archived'>('active');
 
     const fetchData = useCallback(async (signal?: AbortSignal) => {
-        if (!currentOrgId || !user || !currentUserRole) {
-            setProjects([]);
-            setTeams([]);
-            setOrgMembers([]);
-            setConversations([]);
-            setLoading(false);
-            return;
-        }
+        if (!currentOrgId || !user || !currentUserRole) {
+            setProjects([]);
+            setTeams([]);
+            setOrgMembers([]);
+            setConversations([]);
+            setLoading(false);
+            return;
+        }
 
-        setLoading(true);
-        console.log("Fetching latest data from server...");
+        setLoading(true);
+        console.log("Fetching latest data from server...");
 
-        let projectsData: Project[] = [];
-        let teamsData: Team[] = [];
-        let orgMembersData: Membership[] = [];
-        let conversationsData: Conversation[] = [];
+        try {
+            // ✨ שימוש ב-Promise.allSettled כדי למנוע קריסה אם אחת הקריאות נכשלת
+            const results = await Promise.allSettled([
+                api.getProjects(user.id, currentUserRole, { page: 1, limit: 100, signal }), // הגדלתי את המגבלה כדי להביא יותר פרויקטים
+                api.getTeams(user.id, currentUserRole, { page: 1, limit: 100, signal }),
+                api.getUsersInOrg(user.id, currentUserRole, { page: 1, limit: 100, signal }),
+                api.getConversations(user.id, currentUserRole, { signal })
+            ]);
+            
+            // עיבוד תקין של תוצאות מ-Promise.allSettled
+            if (results[0].status === 'fulfilled' && results[0].value?.data) {
+                const projectsData = results[0].value.data;
+                // ✨ כאן מתבצע התיקון המרכזי למבנה הנתונים
+                const transformedProjects = projectsData.map((project: any) => ({
+                    ...project,
+                    teamLeads: project.projectTeamLeads?.map((leadRelation: any) => leadRelation.user).filter(Boolean) || []
+                }));
+                setProjects(transformedProjects);
+            } else if (results[0].status === 'rejected') {
+                console.error("Failed to fetch projects:", results[0].reason);
+                setProjects([]);
+            }
 
-        try {
-            const projectsResponse = await api.getProjects(user.id, currentUserRole, { page: 1, limit: 25, signal });
-            // הוספת הגנה: ודא שתמיד נקבל מערך
-            projectsData = projectsResponse?.data || [];
-        } catch (error) {
-            console.error("Failed to fetch projects:", error);
-        }
+            if (results[1].status === 'fulfilled' && results[1].value?.data) {
+                setTeams(results[1].value.data);
+            } else if (results[1].status === 'rejected') {
+                console.error("Failed to fetch teams:", results[1].reason);
+                setTeams([]);
+            }
 
-        try {
-            const teamsResponse = await api.getTeams(user.id, currentUserRole, { page: 1, limit: 25, signal });
-            // הוספת הגנה: ודא שתמיד נקבל מערך
-            teamsData = teamsResponse?.data || [];
-        } catch (error) {
-            console.error("Failed to fetch teams:", error);
-        }
+            if (results[2].status === 'fulfilled' && results[2].value?.data) {
+                setOrgMembers(results[2].value.data);
+            } else if (results[2].status === 'rejected') {
+                console.error("Failed to fetch organization members:", results[2].reason);
+                setOrgMembers([]);
+            }
+            
+            if (results[3].status === 'fulfilled' && results[3].value) {
+                 // getConversations מחזיר מערך ישירות
+                setConversations(results[3].value || []);
+            } else if (results[3].status === 'rejected') {
+                 console.error("Failed to fetch conversations:", results[3].reason);
+                 setConversations([]);
+            }
 
-        try {
-            const orgMembersResponse = await api.getUsersInOrg(user.id, currentUserRole, { page: 1, limit: 25, signal });
-            // הוספת הגנה: ודא שתמיד נקבל מערך
-            orgMembersData = orgMembersResponse?.data || [];
-        } catch (error) {
-            console.error("Failed to fetch organization members:", error);
-        }
-
-        try {
-            // כאן התשובה היא מערך ישירות, לכן מספיק || []
-            conversationsData = (await api.getConversations(user.id, currentUserRole, { signal })) || [];
-        } catch (error) {
-            console.error("Failed to fetch conversations:", error);
-        }
-        
-        setProjects(projectsData);
-        setTeams(teamsData);
-        setOrgMembers(orgMembersData);
-        setConversations(conversationsData);
-        setLoading(false);
-        
-    }, [currentOrgId, projectsView, user, currentUserRole]);
+        } catch (error) {
+             // שגיאה כללית אם Promise.allSettled עצמו נכשל (נדיר)
+            console.error("A general error occurred in fetchData:", error);
+        } finally {
+            setLoading(false);
+        }
+        
+    }, [currentOrgId, projectsView, user, currentUserRole]);
 
     useEffect(() => {
         console.log('Dashboard useEffect triggered');
@@ -159,17 +169,23 @@ const Dashboard = () => {
     }, [currentOrgId, user]);
 
 
-    const usersInOrg = useMemo(() => orgMembers.map(m => m.user), [orgMembers]);
+    const usersInOrg = useMemo(() => orgMembers
+        .map(m => m.user)
+        .filter((user, index, self) => user && self.findIndex(u => u.id === user.id) === index), // סינון כפילויות
+    [orgMembers]);
+
 
     const { teamLeads, teamMembers } = useMemo(() => {
         const leads = new Map<string, User>();
         const members: { id: string, name: string }[] = [];
 
         orgMembers.forEach(m => {
-            members.push({ id: m.user.id, name: m.user.fullName });
-            if (m.role === 'TEAM_LEADER' || m.role === 'ADMIN' || m.role === 'SUPER_ADMIN') {
-                if (!leads.has(m.user.id)) {
-                    leads.set(m.user.id, m.user);
+            if (m.user) { // ודא שהמשתמש קיים
+                members.push({ id: m.user.id, name: m.user.fullName });
+                if (m.role === 'TEAM_LEADER' || m.role === 'ADMIN' || m.role === 'SUPER_ADMIN') {
+                    if (!leads.has(m.user.id)) {
+                        leads.set(m.user.id, m.user);
+                    }
                 }
             }
         });
@@ -191,7 +207,7 @@ const Dashboard = () => {
             onBack={() => setCurrentView('dashboard')}
             users={usersInOrg}
             teams={teams}
-            allMemberships={orgMembers}
+            allMemberships={orgMembers} // העברת כל המידע
             refreshData={() => fetchData(new AbortController().signal)}
             activeCategory={activeSettingsCategory}
             setActiveCategory={setActiveSettingsCategory}
@@ -214,6 +230,7 @@ const Dashboard = () => {
                     teamLeads={teamLeads}
                     users={usersInOrg}
                     teams={teams}
+                    allMemberships={orgMembers} // ✨ העבר את allMemberships לכאן
                     setTeams={setTeams}
                     conversations={conversations}
                     setConversations={setConversations}
