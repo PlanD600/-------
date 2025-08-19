@@ -74,6 +74,7 @@ const OverviewTab = ({ projects, teamLeads, users, teams, refreshData, projectsV
     const canManageOrg = currentUserRole === 'ADMIN' || currentUserRole === 'SUPER_ADMIN';
 
     const projectStatuses: ProjectStatus[] = ['מתוכנן', 'בתהליך', 'לקראת סיום', 'בסיכון', 'מוקפא', 'הושלם'];
+    // 💡 תיקון: בדיקה אם projects.teams קיים לפני קריאה ל-flatMap
     const projectTeams = useMemo(() => Array.from(new Set(projects.flatMap(p => p.teams?.map(t => t.name) || []))), [projects]);
 
     const filteredProjects = useMemo(() => {
@@ -169,7 +170,6 @@ const OverviewTab = ({ projects, teamLeads, users, teams, refreshData, projectsV
     const createProjectModalTitleId = useId();
     const createTeamModalTitleId = useId();
     const editModalTitleId = useId();
-    const deleteModalTitleId = useId();
     const statusFilterId = useId();
     const teamFilterId = useId();
 
