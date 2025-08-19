@@ -1,7 +1,7 @@
 // src/pages/tabs/OverviewTab.tsx
 
 import React, { useState, useMemo, useId, Dispatch, SetStateAction } from 'react';
-import { Project, ProjectStatus, User, Team, ProjectPayload, TeamPayload, FinanceEntryType } from '../../types';
+import { Project, ProjectStatus, User, Team, ProjectPayload, TeamPayload } from '../../types';
 import * as api from '../../services/api';
 import ProjectCard from '../../components/ProjectCard';
 import Modal from '../../components/Modal';
@@ -12,7 +12,6 @@ import EditProjectForm from '../../components/EditProjectForm';
 import ConfirmationModal from '../../components/ConfirmationModal';
 import TeamForm from '../../components/TeamForm';
 import { useAuth } from '../../hooks/useAuth';
-//import SearchInput from '../../components/SearchInput';
 
 interface OverviewTabProps {
     projects: Project[];
@@ -68,10 +67,9 @@ const OverviewTab = ({ projects, teamLeads, users, teams, refreshData, projectsV
     const [selectedProject, setSelectedProject] = useState<Project | null>(null);
     const [projectToEdit, setProjectToEdit] = useState<Project | null>(null);
     const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
-    const [projectToArchive, setProjectToArchive] = useState<Project | null>(null);
 
-    const [statusFilter, setStatusFilter] = useState('all'); // 💡 תיקון: הגדרת ה-state החסר
-    const [teamFilter, setTeamFilter] = useState('all'); // 💡 תיקון: הגדרת ה-state החסר
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [teamFilter, setTeamFilter] = useState('all');
 
     const canManageOrg = currentUserRole === 'ADMIN' || currentUserRole === 'SUPER_ADMIN';
 
@@ -83,38 +81,14 @@ const OverviewTab = ({ projects, teamLeads, users, teams, refreshData, projectsV
         return projects
             .filter(p => (projectsView === 'active' ? !p.isArchived : p.isArchived))
             .filter(p => statusFilter === 'all' || p.status === statusFilter)
-            .filter(p => teamFilter === 'all' || p.teams.some(t => t.name === teamFilter))
+            // 💡 תיקון: בדיקה אם p.teams קיים לפני קריאה ל-some
+            .filter(p => teamFilter === 'all' || (p.teams && p.teams.some(t => t.name === teamFilter)))
             .filter(project => project.title.toLowerCase().includes(lowercasedSearch));
     }, [projects, projectsView, statusFilter, teamFilter, searchTerm]);
 
     const handleCreateProject = async (projectData: ProjectPayload) => {
         try {
-            const newProject = await api.createProject(projectData);
-
-            if (projectData.monthlyBudgets) {
-                // לולאה על כל תקציב חודשי כדי ליצור רשומות כספים
-                projectData.monthlyBudgets.forEach(async budget => {
-                    if (budget.incomeBudget && budget.incomeBudget > 0) {
-                        await api.createFinanceEntry({
-                            type: 'INCOME',
-                            amount: budget.incomeBudget,
-                            description: `תקציב הכנסה לפרויקט: ${newProject.title} עבור חודש ${budget.month}/${budget.year}`,
-                            date: new Date(budget.year, budget.month - 1).toISOString(),
-                            projectId: newProject.id,
-                        });
-                    }
-                    if (budget.expenseBudget && budget.expenseBudget > 0) {
-                        await api.createFinanceEntry({
-                            type: 'EXPENSE',
-                            amount: budget.expenseBudget,
-                            description: `תקציב הוצאות לפרויקט: ${newProject.title} עבור חודש ${budget.month}/${budget.year}`,
-                            date: new Date(budget.year, budget.month - 1).toISOString(),
-                            projectId: newProject.id,
-                        });
-                    }
-                });
-            }
-
+            await api.createProject(projectData);
             refreshData();
             setIsCreateProjectModalOpen(false);
         } catch (error) {
@@ -137,41 +111,7 @@ const OverviewTab = ({ projects, teamLeads, users, teams, refreshData, projectsV
     const handleUpdateProjectDetails = async (updatedData: Partial<ProjectPayload>) => {
         if (!projectToEdit) return;
         try {
-            console.log("Sending update to server:", updatedData);
-            // 💡 עדכון קריטי: שולחים את המבנה החדש של הנתונים
-            const updatedProject = await api.updateProject(projectToEdit.id, updatedData);
-            console.log("Server response after update:", updatedProject);
-
-            if (updatedData.monthlyBudgets) {
-                // 💡 עדכון: הוספת לוגיקה למניעת יצירת רשומות כפולות
-                // נשווה בין התקציב החדש לישן לפני יצירת רשומת כספים חדשה
-                updatedData.monthlyBudgets.forEach(async newBudget => {
-                    const oldBudget = projectToEdit.monthlyBudgets?.find(b => b.year === newBudget.year && b.month === newBudget.month);
-
-                    // בדיקה אם תקציב ההכנסה השתנה
-                    if (newBudget.incomeBudget !== oldBudget?.incomeBudget) {
-                        await api.createFinanceEntry({
-                            type: 'INCOME',
-                            amount: newBudget.incomeBudget,
-                            description: `עדכון תקציב הכנסה: ${updatedProject.title} עבור חודש ${newBudget.month}/${newBudget.year}`,
-                            date: new Date(newBudget.year, newBudget.month - 1, 1).toISOString(),
-                            projectId: updatedProject.id,
-                        });
-                    }
-
-                    // בדיקה אם תקציב ההוצאה השתנה
-                    if (newBudget.expenseBudget !== oldBudget?.expenseBudget) {
-                        await api.createFinanceEntry({
-                            type: 'EXPENSE',
-                            amount: newBudget.expenseBudget,
-                            description: `עדכון תקציב הוצאות: ${updatedProject.title} עבור חודש ${newBudget.month}/${newBudget.year}`,
-                            date: new Date(newBudget.year, newBudget.month - 1, 1).toISOString(),
-                            projectId: updatedProject.id,
-                        });
-                    }
-                });
-            }
-
+            await api.updateProject(projectToEdit.id, updatedData);
             refreshData();
             setProjectToEdit(null);
         } catch (error) {
@@ -179,6 +119,7 @@ const OverviewTab = ({ projects, teamLeads, users, teams, refreshData, projectsV
             alert(`Error: ${(error as Error).message}`);
         }
     };
+
     const handleEdit = (project: Project) => {
         setProjectToEdit(project);
     };
@@ -229,8 +170,8 @@ const OverviewTab = ({ projects, teamLeads, users, teams, refreshData, projectsV
     const createTeamModalTitleId = useId();
     const editModalTitleId = useId();
     const deleteModalTitleId = useId();
-    const statusFilterId = useId(); // 💡 תיקון: הגדרת משתנה ה-ID
-    const teamFilterId = useId(); // 💡 תיקון: הגדרת משתנה ה-ID
+    const statusFilterId = useId();
+    const teamFilterId = useId();
 
     return (
         <div className="space-y-6">
@@ -242,7 +183,6 @@ const OverviewTab = ({ projects, teamLeads, users, teams, refreshData, projectsV
                         <ViewToggle view={projectsView} setView={setProjectsView} labelledby={viewToggleLabelId} />
                     </div>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                        {/* 💡 תיקון: שימוש נכון במשתני ה-state */}
                         <FilterSelect
                             id={statusFilterId}
                             label="סינון לפי סטטוס"
@@ -333,7 +273,8 @@ const OverviewTab = ({ projects, teamLeads, users, teams, refreshData, projectsV
                         onSubmit={handleUpdateProjectDetails}
                         onCancel={() => setProjectToEdit(null)}
                         teamLeads={teamLeads}
-                        teams={teams} />
+                        teams={teams}
+                    />
                 )}
             </Modal>
 
