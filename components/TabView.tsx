@@ -1,7 +1,5 @@
-// src/components/TabView.tsx
-
 import React, { useMemo, Dispatch, SetStateAction } from 'react';
-import { Project, User, Team, Conversation, Membership } from '../types'; // ✨ הוסף Membership
+import { Project, User, Team, Conversation, Membership } from '../types';
 import OverviewTab from '../pages/tabs/OverviewTab';
 import TasksTab from '../pages/tabs/TasksTab';
 import FinanceTab from '../pages/tabs/FinanceTab';
@@ -23,7 +21,7 @@ interface TabViewProps {
     teamLeads: User[];
     users: User[];
     teams: Team[];
-    allMemberships: Membership[]; // ✨ הוסף את השורה הזו
+    allMemberships: Membership[];
     setTeams: React.Dispatch<React.SetStateAction<Team[]>>;
     conversations: Conversation[];
     setConversations: React.Dispatch<React.SetStateAction<Conversation[]>>;
@@ -60,19 +58,19 @@ const TabView = ({ activeTab, onTabChange, projects, teamMembers, teamLeads, use
     const canViewFinance = currentUserRole === 'ADMIN' || currentUserRole === 'SUPER_ADMIN';
 
     const tabs = useMemo(() => [
-        { 
-            id: 'overview', 
-            label: 'מבט על', 
+        {
+            id: 'overview',
+            label: 'מבט על',
             component: (
-                <OverviewTab 
-                    projects={projects} 
-                    teamLeads={teamLeads} 
-                    users={users} 
+                <OverviewTab
+                    projects={projects}
+                    teamLeads={teamLeads}
+                    users={users}
                     teams={teams}
-                    allMemberships={allMemberships} // ✨ העבר את הפרופ הלאה
-                    refreshData={refreshData} 
-                    projectsView={projectsView} 
-                    setProjectsView={setProjectsView} 
+                    allMemberships={allMemberships}
+                    refreshData={refreshData}
+                    projectsView={projectsView}
+                    setProjectsView={setProjectsView}
                 />
             )
         },

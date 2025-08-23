@@ -47,58 +47,30 @@ const Dashboard = () => {
         console.log("Fetching latest data from server...");
 
         try {
-            // ✨ שימוש ב-Promise.allSettled כדי למנוע קריסה אם אחת הקריאות נכשלת
-            const results = await Promise.allSettled([
-                api.getProjects(user.id, currentUserRole, { page: 1, limit: 100, signal }), // הגדלתי את המגבלה כדי להביא יותר פרויקטים
+            const [projectsResponse, teamsResponse, orgMembersResponse, conversationsData] = await Promise.all([
+                // ✨ תיקון: קריאות API עם פרמטרים userId ו-userRole, התואמים לקובץ api.ts החדש
+                api.getProjects(user.id, currentUserRole, { page: 1, limit: 100, signal }),
                 api.getTeams(user.id, currentUserRole, { page: 1, limit: 100, signal }),
                 api.getUsersInOrg(user.id, currentUserRole, { page: 1, limit: 100, signal }),
-                api.getConversations(user.id, currentUserRole, { signal })
+                api.getConversations(user.id, currentUserRole, { signal }),
             ]);
-            
-            // עיבוד תקין של תוצאות מ-Promise.allSettled
-            if (results[0].status === 'fulfilled' && results[0].value?.data) {
-                const projectsData = results[0].value.data;
-                // ✨ כאן מתבצע התיקון המרכזי למבנה הנתונים
-                const transformedProjects = projectsData.map((project: any) => ({
-                    ...project,
-                    teamLeads: project.projectTeamLeads?.map((leadRelation: any) => leadRelation.user).filter(Boolean) || []
-                }));
-                setProjects(transformedProjects);
-            } else if (results[0].status === 'rejected') {
-                console.error("Failed to fetch projects:", results[0].reason);
-                setProjects([]);
-            }
 
-            if (results[1].status === 'fulfilled' && results[1].value?.data) {
-                setTeams(results[1].value.data);
-            } else if (results[1].status === 'rejected') {
-                console.error("Failed to fetch teams:", results[1].reason);
-                setTeams([]);
-            }
+            setProjects(projectsResponse.data);
+            setTeams(teamsResponse.data);
+            setOrgMembers(orgMembersResponse.data);
+            setConversations(conversationsData);
 
-            if (results[2].status === 'fulfilled' && results[2].value?.data) {
-                setOrgMembers(results[2].value.data);
-            } else if (results[2].status === 'rejected') {
-                console.error("Failed to fetch organization members:", results[2].reason);
-                setOrgMembers([]);
+        } catch (error: any) {
+            if (error.name === 'AbortError') {
+                console.log('Fetch aborted by user/component unmount:', error.message);
+                return;
             }
-            
-            if (results[3].status === 'fulfilled' && results[3].value) {
-                 // getConversations מחזיר מערך ישירות
-                setConversations(results[3].value || []);
-            } else if (results[3].status === 'rejected') {
-                 console.error("Failed to fetch conversations:", results[3].reason);
-                 setConversations([]);
-            }
-
-        } catch (error) {
-             // שגיאה כללית אם Promise.allSettled עצמו נכשל (נדיר)
-            console.error("A general error occurred in fetchData:", error);
+            console.error("Failed to fetch dashboard data:", error);
         } finally {
             setLoading(false);
         }
-        
-    }, [currentOrgId, projectsView, user, currentUserRole]);
+
+    }, [currentOrgId, user, currentUserRole]);
 
     useEffect(() => {
         console.log('Dashboard useEffect triggered');
@@ -115,7 +87,6 @@ const Dashboard = () => {
         };
     }, [currentOrgId, activeTab, projectsView, fetchData]);
 
-    // --- useEffect חדש לשמירת הטאב ב-localStorage ---
     useEffect(() => {
         localStorage.setItem(LAST_ACTIVE_TAB_KEY, activeTab);
         console.log(`Tab changed to ${activeTab}. Saving to localStorage.`);
@@ -171,7 +142,7 @@ const Dashboard = () => {
 
     const usersInOrg = useMemo(() => orgMembers
         .map(m => m.user)
-        .filter((user, index, self) => user && self.findIndex(u => u.id === user.id) === index), // סינון כפילויות
+        .filter((user, index, self) => user && self.findIndex(u => u.id === user.id) === index),
     [orgMembers]);
 
 
@@ -180,7 +151,7 @@ const Dashboard = () => {
         const members: { id: string, name: string }[] = [];
 
         orgMembers.forEach(m => {
-            if (m.user) { // ודא שהמשתמש קיים
+            if (m.user) {
                 members.push({ id: m.user.id, name: m.user.fullName });
                 if (m.role === 'TEAM_LEADER' || m.role === 'ADMIN' || m.role === 'SUPER_ADMIN') {
                     if (!leads.has(m.user.id)) {
@@ -207,7 +178,7 @@ const Dashboard = () => {
             onBack={() => setCurrentView('dashboard')}
             users={usersInOrg}
             teams={teams}
-            allMemberships={orgMembers} // העברת כל המידע
+            allMemberships={orgMembers}
             refreshData={() => fetchData(new AbortController().signal)}
             activeCategory={activeSettingsCategory}
             setActiveCategory={setActiveSettingsCategory}
@@ -230,7 +201,6 @@ const Dashboard = () => {
                     teamLeads={teamLeads}
                     users={usersInOrg}
                     teams={teams}
-                    allMemberships={orgMembers} // ✨ העבר את allMemberships לכאן
                     setTeams={setTeams}
                     conversations={conversations}
                     setConversations={setConversations}
@@ -238,6 +208,7 @@ const Dashboard = () => {
                     refreshData={() => fetchData(new AbortController().signal)}
                     projectsView={projectsView}
                     setProjectsView={setProjectsView}
+                    allMemberships={orgMembers}
                 />
             </main>
         </div>
