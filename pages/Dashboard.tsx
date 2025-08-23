@@ -48,14 +48,19 @@ const Dashboard = () => {
 
         try {
             const [projectsResponse, teamsResponse, orgMembersResponse, conversationsData] = await Promise.all([
-                // ✨ תיקון: קריאות API עם פרמטרים userId ו-userRole, התואמים לקובץ api.ts החדש
                 api.getProjects(user.id, currentUserRole, { page: 1, limit: 100, signal }),
                 api.getTeams(user.id, currentUserRole, { page: 1, limit: 100, signal }),
                 api.getUsersInOrg(user.id, currentUserRole, { page: 1, limit: 100, signal }),
                 api.getConversations(user.id, currentUserRole, { signal }),
             ]);
+            
+            // ✨ תיקון: המרת מבנה הנתונים של הפרויקטים מהשרת לפני שמירתם ב-State
+            const projectsWithCorrectLeads = projectsResponse.data.map(project => {
+                const teamLeads = project.projectTeamLeads?.map(leadRelation => leadRelation.user) || [];
+                return { ...project, teamLeads, teams: project.teams };
+            });
 
-            setProjects(projectsResponse.data);
+            setProjects(projectsWithCorrectLeads);
             setTeams(teamsResponse.data);
             setOrgMembers(orgMembersResponse.data);
             setConversations(conversationsData);

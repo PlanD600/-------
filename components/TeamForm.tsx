@@ -1,13 +1,11 @@
+// src/components/TeamForm.tsx
 import React, { useState, useMemo, useEffect } from 'react';
-import { User, Team, Membership } from '../types'; // ייבוא ה-Membership כדי לקבל גישה ל-role
-
-// הגדרת רשימת התפקידים המורשים להיות ראשי צוות
-const LEAD_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TEAM_LEADER'];
+import { User, Team, Membership } from '../types';
 
 interface TeamFormProps {
     team?: Team | null;
     users: User[];
-    potentialLeads: User[];
+    allMemberships: Membership[]; // ✨ הוסף את השורה הזו
     onSubmit: (data: Pick<Team, 'name' | 'leadIds' | 'memberIds'>) => void;
     onCancel: () => void;
     titleId: string;
@@ -15,7 +13,7 @@ interface TeamFormProps {
     apiError?: string;
 }
 
-const TeamForm = ({ team, users, onSubmit, onCancel, titleId, isLoading, apiError }: TeamFormProps) => {
+const TeamForm = ({ team, users, allMemberships, onSubmit, onCancel, titleId, isLoading, apiError }: TeamFormProps) => {
     const [name, setName] = useState('');
     const [leadIds, setLeadIds] = useState<string[]>([]);
     const [memberIds, setMemberIds] = useState<string[]>([]);
@@ -26,17 +24,23 @@ const TeamForm = ({ team, users, onSubmit, onCancel, titleId, isLoading, apiErro
         setMemberIds(team?.memberIds || []);
     }, [team]);
     
-    // 💡 תיקון: סינון המשתמשים על בסיס התפקיד שלהם
+    // ✨ תיקון: הגבלת רשימת המשתמשים שניתן לבחור כראשי צוות
     const availableLeads = useMemo(() => {
-        // בחר רק משתמשים שהתפקיד שלהם הוא בתוך LEAD_ROLES
-        const potentialLeads = users.filter(user => LEAD_ROLES.includes(user.role as Membership['role']));
-        // סנן אותם שוב כדי שלא יהיו גם ראשי צוות וגם חברי צוות באותו טופס
-        return potentialLeads.filter(user => !memberIds.includes(user.id));
-    }, [users, memberIds]);
+        const leadRoles = ['TEAM_LEADER', 'ADMIN', 'SUPER_ADMIN'];
+        const userWithRoles = users.map(user => {
+            const membership = allMemberships.find(m => m.userId === user.id);
+            return {
+                ...user,
+                role: membership?.role
+            };
+        }).filter(user => user.role && leadRoles.includes(user.role));
+        
+        return userWithRoles;
+    }, [users, allMemberships]);
 
     const availableMembers = useMemo(() => {
-        return users.filter(user => !leadIds.includes(user.id));
-    }, [users, leadIds]);
+        return users;
+    }, [users]);
 
     const handleLeadToggle = (leadId: string) => {
         setLeadIds(prev => prev.includes(leadId) ? prev.filter(id => id !== leadId) : [...prev, leadId]);
