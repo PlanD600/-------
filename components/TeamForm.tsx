@@ -5,7 +5,7 @@ import { User, Team, Membership } from '../types';
 interface TeamFormProps {
     team?: Team | null;
     users: User[];
-    allMemberships: Membership[]; // ✨ הוסף את השורה הזו
+    allMemberships: Membership[];
     onSubmit: (data: Pick<Team, 'name' | 'leadIds' | 'memberIds'>) => void;
     onCancel: () => void;
     titleId: string;
@@ -15,35 +15,31 @@ interface TeamFormProps {
 
 const TeamForm = ({ team, users, allMemberships, onSubmit, onCancel, titleId, isLoading, apiError }: TeamFormProps) => {
     const [name, setName] = useState('');
-    const [leadIds, setLeadIds] = useState<string[]>([]);
+    const [leadId, setLeadId] = useState<string | null>(null); // 💡 שינוי: leadId הוא כעת מחרוזת בודדת או null.
     const [memberIds, setMemberIds] = useState<string[]>([]);
 
     useEffect(() => {
         setName(team?.name || '');
-        setLeadIds(team?.leadIds || []);
+        // 💡 שינוי: נגדיר את leadId כראש הצוות הראשון במערך, אם קיים.
+        setLeadId(team?.leadIds?.[0] || null);
         setMemberIds(team?.memberIds || []);
     }, [team]);
     
-    // ✨ תיקון: הגבלת רשימת המשתמשים שניתן לבחור כראשי צוות
+    // רשימת המשתמשים שיכולים להיות ראשי צוות (ללא שינוי, זה כבר תקין).
     const availableLeads = useMemo(() => {
         const leadRoles = ['TEAM_LEADER', 'ADMIN', 'SUPER_ADMIN'];
-        const userWithRoles = users.map(user => {
-            const membership = allMemberships.find(m => m.userId === user.id);
-            return {
-                ...user,
-                role: membership?.role
-            };
-        }).filter(user => user.role && leadRoles.includes(user.role));
-        
-        return userWithRoles;
+        return users.filter(user => 
+            allMemberships.find(m => m.userId === user.id && leadRoles.includes(m.role))
+        );
     }, [users, allMemberships]);
 
     const availableMembers = useMemo(() => {
         return users;
     }, [users]);
 
-    const handleLeadToggle = (leadId: string) => {
-        setLeadIds(prev => prev.includes(leadId) ? prev.filter(id => id !== leadId) : [...prev, leadId]);
+    // 💡 שינוי: פונקציית הבחירה של ראש הצוות תהיה מבוססת על בחירה יחידה.
+    const handleLeadChange = (selectedId: string) => {
+        setLeadId(selectedId === leadId ? null : selectedId);
     };
 
     const handleMemberToggle = (memberId: string) => {
@@ -52,11 +48,13 @@ const TeamForm = ({ team, users, allMemberships, onSubmit, onCancel, titleId, is
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!name.trim() || leadIds.length === 0) {
-            alert('אנא מלא את שם הצוות ובחר לפחות ראש צוות אחד.');
+        // 💡 שינוי: בדיקה אם נבחר ראש צוות יחיד.
+        if (!name.trim() || !leadId) {
+            alert('אנא מלא את שם הצוות ובחר ראש צוות אחד.');
             return;
         }
-        onSubmit({ name, leadIds, memberIds });
+        // 💡 שינוי: נשלח את leadIds כשהוא מכיל מערך עם מזהה יחיד.
+        onSubmit({ name, leadIds: [leadId], memberIds });
     };
 
     return (
@@ -69,11 +67,19 @@ const TeamForm = ({ team, users, allMemberships, onSubmit, onCancel, titleId, is
             </div>
             <div>
                 <fieldset>
-                    <legend className="block text-sm font-medium text-gray-700">ראשי צוות</legend>
+                    <legend className="block text-sm font-medium text-gray-700">ראש צוות</legend>
+                    {/* 💡 שינוי: החלף מ-checkbox ל-radio לבחירה יחידה */}
                     <div className="mt-1 max-h-32 overflow-y-auto space-y-2 rounded-md border border-gray-300 p-3 bg-gray-50">
                         {availableLeads.map(user => (
                             <label key={user.id} className="flex items-center space-x-3 space-x-reverse cursor-pointer hover:bg-gray-100 p-1 rounded-md">
-                                <input type="checkbox" checked={leadIds.includes(user.id)} onChange={() => handleLeadToggle(user.id)} className="w-4 h-4 rounded border-gray-300 text-[#4A2B2C] focus:ring-[#4A2B2C]" />
+                                <input 
+                                    type="radio" 
+                                    name="lead-selection" // נותן לכל הקבוצה שם זהה
+                                    value={user.id}
+                                    checked={leadId === user.id} 
+                                    onChange={() => handleLeadChange(user.id)} 
+                                    className="w-4 h-4 rounded-full border-gray-300 text-[#4A2B2C] focus:ring-[#4A2B2C]" 
+                                />
                                 <span className="text-gray-800 select-none">{user.fullName}</span>
                             </label>
                         ))}

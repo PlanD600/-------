@@ -54,13 +54,14 @@ const Dashboard = () => {
                 api.getConversations(user.id, currentUserRole, { signal }),
             ]);
             
-            // ✨ תיקון: המרת מבנה הנתונים של הפרויקטים מהשרת לפני שמירתם ב-State
-            const projectsWithCorrectLeads = projectsResponse.data.map(project => {
-                const teamLeads = project.projectTeamLeads?.map(leadRelation => leadRelation.user) || [];
-                return { ...project, teamLeads, teams: project.teams };
-            });
+            // ✨ תיקון: מיפוי נכון של שדות הנתונים משמות שונים מהשרת
+            const projectsWithCorrectData = projectsResponse.data.map(project => ({
+                ...project,
+                teamLeads: project.projectTeamLeads?.map(leadRelation => leadRelation.user) || [],
+                teams: project.teams || [],
+            }));
 
-            setProjects(projectsWithCorrectLeads);
+            setProjects(projectsWithCorrectData);
             setTeams(teamsResponse.data);
             setOrgMembers(orgMembersResponse.data);
             setConversations(conversationsData);

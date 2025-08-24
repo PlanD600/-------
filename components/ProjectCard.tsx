@@ -1,3 +1,4 @@
+// src/components/ProjectCard.tsx
 import React from 'react';
 import { Project, ProjectStatus } from '../types';
 import { EditIcon, ArchiveIcon, TrashIcon } from './icons';
@@ -54,8 +55,7 @@ const ProjectCard = ({ project, onClick, onEdit, onArchive, onDelete }: ProjectC
                         aria-label={`הצג פרטי פרויקט: ${project.title}. סטטוס: ${project.status}.`}
                     >
                         <h3 className="font-bold text-lg text-[#3D2324] mb-1 truncate">{project.title}</h3>
-                        {/* שינוי עיקרי כאן: לוודא שיש גובה קבוע או מקסימלי לתיאור */}
-                        <div className="text-sm text-gray-500 pr-2 overflow-y-auto max-h-[80px]"> {/* שינוי: הוספנו max-h-[80px] */}
+                        <div className="text-sm text-gray-500 pr-2 overflow-y-auto max-h-[80px]">
                             <p className="break-words">{project.description || 'אין תיאור לפרויקט'}</p>
                         </div>
                     </button>

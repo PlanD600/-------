@@ -1,5 +1,5 @@
 // src/components/AddProjectForm.tsx
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { User, ProjectPayload, MonthlyBudgetPayload, Team } from '../types';
 
 interface AddProjectFormProps {
@@ -18,7 +18,7 @@ const FormInput = ({ id, label, children }: { id: string, label: string, childre
 );
 
 const TextInput = (props: React.InputHTMLAttributes<HTMLInputElement>) => (
-    <input
+     <input
         {...props}
         className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#4A2B2C] focus:border-[#4A2B2C]"
     />
@@ -28,13 +28,13 @@ const AddProjectForm = ({ onSubmit, onCancel, teamLeads: availableLeads, teams, 
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [selectedTeamLeadIds, setSelectedTeamLeadIds] = useState<string[]>([]);
+    const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>([]);
+    const [assignMethod, setAssignMethod] = useState<'team' | 'teamLeads'>(teams && teams.length > 0 ? 'team' : 'teamLeads');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [incomeBudget, setIncomeBudget] = useState<number | ''>('');
     const [expenseBudget, setExpenseBudget] = useState<number | ''>('');
     const [formError, setFormError] = useState('');
-    const [selectedTeamId, setSelectedTeamId] = useState('');
-    const [assignMethod, setAssignMethod] = useState<'team' | 'teamLeads'>(teams.length > 0 ? 'team' : 'teamLeads');
 
     const handleLeadToggle = (leadId: string) => {
         setSelectedTeamLeadIds(prev =>
@@ -44,37 +44,45 @@ const AddProjectForm = ({ onSubmit, onCancel, teamLeads: availableLeads, teams, 
         );
     };
 
+    const handleTeamToggle = (teamId: string) => {
+        setSelectedTeamIds(prev =>
+            prev.includes(teamId)
+                ? prev.filter(id => id !== teamId)
+                : [...prev, teamId]
+        );
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setFormError('');
 
-    // בדיקות אימות
     if (!title.trim()) {
         setFormError('שם הפרויקט הוא שדה חובה.');
         return;
     }
 
-    // 💡 יצירת מערך teamLeads בצורה דינמית
     let teamLeadsToSend: string[] = [];
-    let teamIdsToSend: string[] = []; // 💡 שינוי: מערך חדש למזהי צוותים
+    let teamIdsToSend: string[] = [];
 
-    if (assignMethod === 'team' && selectedTeamId) {
-        const selectedTeam = teams.find(t => t.id === selectedTeamId);
-        if (selectedTeam?.leads) {
-            teamLeadsToSend = selectedTeam.leads.map(lead => lead.id);
-            teamIdsToSend = [selectedTeamId]; // 💡 שינוי: הוספת ה-ID של הצוות למערך
+    if (assignMethod === 'team') {
+        if (selectedTeamIds.length === 0) {
+            setFormError('חובה לבחור לפחות צוות אחד.');
+            return;
         }
-    } else if (assignMethod === 'teamLeads') {
+        teamIdsToSend = selectedTeamIds;
+        const allLeadsFromTeams = teams.filter(t => selectedTeamIds.includes(t.id))
+                                       .flatMap(t => t.leads || [])
+                                       .map(lead => lead.id);
+        teamLeadsToSend = [...new Set(allLeadsFromTeams)];
+    } else { // assignMethod === 'teamLeads'
+        if (selectedTeamLeadIds.length === 0) {
+            setFormError('חובה לבחור לפחות ראש צוות אחד.');
+            return;
+        }
         teamLeadsToSend = selectedTeamLeadIds;
-        // במקרה זה אין צוותים, לכן נשאיר את teamIdsToSend ריק
         teamIdsToSend = [];
     }
-
-    if (teamLeadsToSend.length === 0) {
-        setFormError('חובה לבחור צוות או לפחות ראש צוות אחד.');
-        return;
-    }
-
+    
     if (startDate && endDate) {
         const start = new Date(startDate);
         const end = new Date(endDate);
@@ -99,12 +107,13 @@ const AddProjectForm = ({ onSubmit, onCancel, teamLeads: availableLeads, teams, 
         title,
         description,
         teamLeads: teamLeadsToSend,
-        teamIds: teamIdsToSend, // 💡 שינוי: העברת מערך מזהי הצוותים לשרת
+        teamIds: teamIdsToSend,
         startDate,
         endDate,
         monthlyBudgets: monthlyBudgetsPayload.length > 0 ? monthlyBudgetsPayload : undefined,
     });
 };
+
     return (
         <div className="flex flex-col h-full max-h-[80vh] md:max-h-[70vh]">
             <h3 id={titleId} className="text-xl font-bold text-[#3D2324] mb-4 flex-shrink-0">יצירת פרויקט חדש</h3>
@@ -123,9 +132,10 @@ const AddProjectForm = ({ onSubmit, onCancel, teamLeads: availableLeads, teams, 
                             value={title}
                             onChange={e => setTitle(e.target.value)}
                             placeholder="לדוגמא: השקת מוצר חדש"
+                            required
                         />
                     </FormInput>
-
+                    
                     <FormInput id="proj-desc" label="תיאור הפרויקט">
                         <textarea
                             id="proj-desc"
@@ -136,68 +146,76 @@ const AddProjectForm = ({ onSubmit, onCancel, teamLeads: availableLeads, teams, 
                             className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#4A2B2C] focus:border-[#4A2B2C]"
                         ></textarea>
                     </FormInput>
-
-                    <>
-                        {teams && teams.length > 0 && (
-                            <div className="flex items-center space-x-4 space-x-reverse mb-4">
-                                <span className="text-sm font-medium text-gray-700">שייך פרויקט:</span>
-                                <button
-                                    type="button"
-                                    onClick={() => setAssignMethod('team')}
-                                    className={`px-3 py-1 text-sm font-semibold rounded-md transition-colors ${assignMethod === 'team' ? 'bg-[#4A2B2C] text-white' : 'bg-gray-200 text-gray-800'}`}
-                                >
-                                    לצוות
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setAssignMethod('teamLeads')}
-                                    className={`px-3 py-1 text-sm font-semibold rounded-md transition-colors ${assignMethod === 'teamLeads' ? 'bg-[#4A2B2C] text-white' : 'bg-gray-200 text-gray-800'}`}
-                                >
-                                    לראשי צוות
-                                </button>
-                            </div>
-                        )}
-
-                        {assignMethod === 'team' && teams && teams.length > 0 && (
-                            <FormInput id="proj-team" label="שייך לצוות">
-                                <select
-                                    id="proj-team"
-                                    value={selectedTeamId}
-                                    onChange={e => setSelectedTeamId(e.target.value)}
-                                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#4A2B2C] focus:border-[#4A2B2C]"
-                                >
-                                    <option value="">-- בחר צוות --</option>
+                    
+                    {/* 💡 הוספת העיצוב החדש */}
+                    {teams && teams.length > 0 && availableLeads && availableLeads.length > 0 && (
+                        <div className="flex items-center space-x-4 space-x-reverse mb-4">
+                            <span className="text-sm font-medium text-gray-700">שייך פרויקט:</span>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setAssignMethod('team');
+                                    setSelectedTeamLeadIds([]);
+                                }}
+                                className={`px-3 py-1 text-sm font-semibold rounded-md transition-colors ${assignMethod === 'team' ? 'bg-[#4A2B2C] text-white' : 'bg-gray-200 text-gray-800'}`}
+                            >
+                                לצוות
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setAssignMethod('teamLeads');
+                                    setSelectedTeamIds([]);
+                                }}
+                                className={`px-3 py-1 text-sm font-semibold rounded-md transition-colors ${assignMethod === 'teamLeads' ? 'bg-[#4A2B2C] text-white' : 'bg-gray-200 text-gray-800'}`}
+                            >
+                                לראשי צוות
+                            </button>
+                        </div>
+                    )}
+                    
+                    {assignMethod === 'team' && teams && teams.length > 0 && (
+                        <FormInput id="proj-teams" label="שיוך צוותים">
+                            <fieldset>
+                               <legend className="sr-only">בחר צוותים</legend>
+                                <div className="max-h-32 overflow-y-auto space-y-2 rounded-md border border-gray-300 p-3 bg-white">
                                     {teams.map(team => (
-                                        <option key={team.id} value={team.id}>
-                                            {team.name}
-                                        </option>
+                                        <label key={team.id} className="flex items-center space-x-3 space-x-reverse cursor-pointer hover:bg-gray-50 p-1 rounded-md">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedTeamIds.includes(team.id)}
+                                                onChange={() => handleTeamToggle(team.id)}
+                                                className="w-4 h-4 rounded border-gray-300 text-[#4A2B2C] focus:ring-[#4A2B2C]"
+                                            />
+                                            <span className="text-gray-800 select-none">{team.name}</span>
+                                        </label>
                                     ))}
-                                </select>
-                            </FormInput>
-                        )}
+                                </div>
+                            </fieldset>
+                        </FormInput>
+                    )}
 
-                        {assignMethod === 'teamLeads' && (
-                            <FormInput id="proj-lead" label="שיוך ראשי צוות">
-                                <fieldset>
-                                    <legend className="sr-only">בחר ראשי צוות</legend>
-                                    <div className="max-h-32 overflow-y-auto space-y-2 rounded-md border border-gray-300 p-3 bg-white">
-                                        {availableLeads.map(lead => (
-                                            <label key={lead.id} className="flex items-center space-x-3 space-x-reverse cursor-pointer hover:bg-gray-50 p-1 rounded-md">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedTeamLeadIds.includes(lead.id)}
-                                                    onChange={() => handleLeadToggle(lead.id)}
-                                                    className="w-4 h-4 rounded border-gray-300 text-[#4A2B2C] focus:ring-[#4A2B2C]"
-                                                />
-                                                <span className="text-gray-800 select-none">{lead.fullName}</span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                </fieldset>
-                            </FormInput>
-                        )}
-                    </>
-
+                    {assignMethod === 'teamLeads' && (
+                        <FormInput id="proj-lead" label="שיוך ראשי צוות">
+                            <fieldset>
+                               <legend className="sr-only">בחר ראשי צוות</legend>
+                                <div className="max-h-32 overflow-y-auto space-y-2 rounded-md border border-gray-300 p-3 bg-white">
+                                    {availableLeads.map(lead => (
+                                        <label key={lead.id} className="flex items-center space-x-3 space-x-reverse cursor-pointer hover:bg-gray-50 p-1 rounded-md">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedTeamLeadIds.includes(lead.id)}
+                                                onChange={() => handleLeadToggle(lead.id)}
+                                                className="w-4 h-4 rounded border-gray-300 text-[#4A2B2C] focus:ring-[#4A2B2C]"
+                                            />
+                                            <span className="text-gray-800 select-none">{lead.fullName}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </fieldset>
+                        </FormInput>
+                    )}
+                    
                     <div className="grid grid-cols-2 gap-4">
                         <FormInput id="proj-start-date" label="תאריך התחלה">
                             <TextInput
@@ -216,8 +234,30 @@ const AddProjectForm = ({ onSubmit, onCancel, teamLeads: availableLeads, teams, 
                             />
                         </FormInput>
                     </div>
-                </div>
+                    
+                    <FormInput id="proj-income-budget" label="תקציב הכנסה (₪)">
+                        <TextInput
+                            id="proj-income-budget"
+                            type="number"
+                            value={incomeBudget}
+                            onChange={e => setIncomeBudget(Number(e.target.value))}
+                            placeholder="0"
+                            min="0"
+                        />
+                    </FormInput>
 
+                    <FormInput id="proj-expense-budget" label="תקציב הוצאה (₪)">
+                        <TextInput
+                            id="proj-expense-budget"
+                            type="number"
+                            value={expenseBudget}
+                            onChange={e => setExpenseBudget(Number(e.target.value))}
+                            placeholder="0"
+                            min="0"
+                        />
+                    </FormInput>
+                </div>
+                
                 <div className="flex justify-end space-x-2 space-x-reverse pt-3 mt-auto border-t border-gray-200 flex-shrink-0">
                     <button type="button" onClick={onCancel} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
                         ביטול

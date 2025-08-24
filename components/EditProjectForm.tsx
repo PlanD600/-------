@@ -27,8 +27,10 @@ const TextInput = (props: React.InputHTMLAttributes<HTMLInputElement>) => (
 const EditProjectForm = ({ project, onSubmit, onCancel, teamLeads, teams, titleId }: EditProjectFormProps) => {
     const [title, setTitle] = useState(project.title);
     const [description, setDescription] = useState(project.description || '');
+    // 💡 שינוי: selectedTeamLeadIds הוא כבר מערך, וזה תקין.
     const [selectedTeamLeadIds, setSelectedTeamLeadIds] = useState<string[]>(project.teamLeads?.map(u => u.id) || []);
-    const [selectedTeamId, setSelectedTeamId] = useState<string | undefined>(project.teams?.length > 0 ? project.teams[0].id : undefined);
+    // 💡 שינוי: selectedTeamIds ישמור כעת מערך של מזהים.
+    const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>(project.teams?.map(t => t.id) || []);
     const [assignMethod, setAssignMethod] = useState<'team' | 'teamLeads'>(
         (project.teams && project.teams.length > 0) ? 'team' : 'teamLeads'
     );
@@ -43,7 +45,8 @@ const EditProjectForm = ({ project, onSubmit, onCancel, teamLeads, teams, titleI
         setTitle(project.title);
         setDescription(project.description || '');
         setSelectedTeamLeadIds(project.teamLeads?.map(u => u.id) || []);
-        setSelectedTeamId(project.teams?.length > 0 ? project.teams[0].id : undefined);
+        // 💡 שינוי: עדכון ה-state של הצוותים עם מערך של מזהים.
+        setSelectedTeamIds(project.teams?.map(t => t.id) || []);
         setAssignMethod((project.teams && project.teams.length > 0) ? 'team' : 'teamLeads');
         
         const totalIncome = (project.monthlyBudgets || []).reduce((sum, b) => sum + b.incomeBudget, 0);
@@ -51,7 +54,8 @@ const EditProjectForm = ({ project, onSubmit, onCancel, teamLeads, teams, titleI
         setIncomeBudget(totalIncome);
         setExpenseBudget(totalExpense);
     }, [project]);
-
+    
+    // הפונקציה לבחירת ראשי צוותים היא כבר בסדר.
     const handleLeadToggle = (leadId: string) => {
         setSelectedTeamLeadIds(prev =>
             prev.includes(leadId)
@@ -60,6 +64,15 @@ const EditProjectForm = ({ project, onSubmit, onCancel, teamLeads, teams, titleI
         );
     };
 
+    // ✨ תיקון: handleTeamToggle צריכה לעבוד על המערך selectedTeamIds.
+    const handleTeamToggle = (teamId: string) => {
+        setSelectedTeamIds(prev =>
+            prev.includes(teamId)
+                ? prev.filter(id => id !== teamId)
+                : [...prev, teamId]
+        );
+    };
+    
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         setFormError('');
@@ -73,22 +86,25 @@ const EditProjectForm = ({ project, onSubmit, onCancel, teamLeads, teams, titleI
         let teamIdsToSend: string[] = [];
 
         if (assignMethod === 'team') {
-            if (!selectedTeamId) {
-                setFormError('חובה לבחור צוות.');
+            // 💡 שינוי: כעת אנחנו בודקים אם מערך selectedTeamIds אינו ריק.
+            if (selectedTeamIds.length === 0) {
+                setFormError('חובה לבחור לפחות צוות אחד.');
                 return;
             }
-            teamIdsToSend = [selectedTeamId];
-            const selectedTeam = teams.find(t => t.id === selectedTeamId);
-            if (selectedTeam && selectedTeam.leads) { 
-                teamLeadsToSend = selectedTeam.leads.map(lead => lead.id);
-            }
+            teamIdsToSend = selectedTeamIds;
+            // 💡 שינוי: לולאה על כל הצוותים שנבחרו כדי לאסוף את כל ראשי הצוותים שלהם.
+            const allLeadsFromTeams = teams.filter(t => selectedTeamIds.includes(t.id))
+                                         .flatMap(t => t.leads || [])
+                                         .map(lead => lead.id);
+            // 💡 שינוי: נשתמש ב-Set כדי להסיר כפילויות של ראשי צוותים.
+            teamLeadsToSend = [...new Set(allLeadsFromTeams)];
         } else { // assignMethod === 'teamLeads'
             if (selectedTeamLeadIds.length === 0) {
                 setFormError('חובה לבחור לפחות ראש צוות אחד.');
                 return;
             }
             teamLeadsToSend = selectedTeamLeadIds;
-            teamIdsToSend = [];
+            teamIdsToSend = []; // 💡 שינוי: חשוב לוודא ששדה זה ריק במקרה של 'teamLeads'.
         }
 
         if (startDate && endDate) {
@@ -113,24 +129,32 @@ const EditProjectForm = ({ project, onSubmit, onCancel, teamLeads, teams, titleI
         const payload: Partial<ProjectPayload> = {
             title,
             description,
+            // 💡 שינוי: נשלח את המערך של מזהי ראשי הצוותים שנאספו.
             teamLeads: teamLeadsToSend,
+            // 💡 שינוי: נשלח את המערך של מזהי הצוותים שנבחרו.
             teamIds: teamIdsToSend,
             startDate,
             endDate,
-            monthlyBudgets: monthlyBudgetsPayload
+            // 💡 תיקון: budget לא הוגדר בקוד שלך. נחליף אותו בשדות התקציב החודשי.
+            monthlyBudgets: monthlyBudgetsPayload.length > 0 ? monthlyBudgetsPayload : undefined,
         };
-
+        
         onSubmit(payload);
     };
-
+    
     const availableLeads = useMemo(() => {
-        if (assignMethod === 'team' && selectedTeamId) {
-            const selectedTeam = teams.find(t => t.id === selectedTeamId);
-            return selectedTeam?.leads || [];
+        if (assignMethod === 'team' && selectedTeamIds.length > 0) {
+            // 💡 שינוי: נאסוף את כל ראשי הצוותים מכל הצוותים שנבחרו.
+            const leads = teams.filter(t => selectedTeamIds.includes(t.id))
+                               .flatMap(t => t.leads || []);
+            // נשתמש ב-Set כדי להסיר כפילויות במקרה של ראש צוות שמשויך לכמה צוותים.
+            const uniqueLeads = Array.from(new Set(leads.map(lead => lead.id)))
+                                    .map(id => leads.find(lead => lead.id === id)!);
+            return uniqueLeads;
         }
         return teamLeadsList;
-    }, [assignMethod, selectedTeamId, teams, teamLeadsList]);
-
+    }, [assignMethod, selectedTeamIds, teams, teamLeadsList]);
+    
 
     return (
         <div className="flex flex-col h-full max-h-[80vh] md:max-h-[70vh]">
@@ -163,7 +187,6 @@ const EditProjectForm = ({ project, onSubmit, onCancel, teamLeads, teams, titleI
                         ></textarea>
                     </FormInput>
 
-                    {/* 💡 הוספת העיצוב החדש */}
                     {teams && teams.length > 0 && (
                         <div className="flex items-center space-x-4 space-x-reverse mb-4">
                             <span className="text-sm font-medium text-gray-700">שייך פרויקט:</span>
@@ -181,7 +204,7 @@ const EditProjectForm = ({ project, onSubmit, onCancel, teamLeads, teams, titleI
                                 type="button"
                                 onClick={() => {
                                     setAssignMethod('teamLeads');
-                                    setSelectedTeamId(undefined);
+                                    setSelectedTeamIds([]); // 💡 שינוי: ננקה את מערך מזהי הצוותים
                                 }}
                                 className={`px-3 py-1 text-sm font-semibold rounded-md transition-colors ${assignMethod === 'teamLeads' ? 'bg-[#4A2B2C] text-white' : 'bg-gray-200 text-gray-800'}`}
                             >
@@ -191,19 +214,24 @@ const EditProjectForm = ({ project, onSubmit, onCancel, teamLeads, teams, titleI
                     )}
 
                     {assignMethod === 'team' && teams && teams.length > 0 && (
-                        <FormInput id="proj-edit-team" label="בחר צוות">
-                            <select
-                                id="proj-edit-team"
-                                value={selectedTeamId || ''}
-                                onChange={(e) => setSelectedTeamId(e.target.value)}
-                                required
-                                className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#4A2B2C] focus:border-[#4A2B2C]"
-                            >
-                                <option value="">-- בחר צוות --</option>
-                                {teams.map(team => (
-                                    <option key={team.id} value={team.id}>{team.name}</option>
-                                ))}
-                            </select>
+                        // 💡 שינוי: השתמש ב-fieldset ובתיבות סימון לבחירה מרובה.
+                        <FormInput id="proj-edit-team" label="בחר צוות/ים">
+                            <fieldset>
+                                <legend className="sr-only">בחר צוות/ים</legend>
+                                <div className="max-h-32 overflow-y-auto space-y-2 rounded-md border border-gray-300 p-3 bg-white">
+                                    {teams.map(team => (
+                                        <label key={team.id} className="flex items-center space-x-3 space-x-reverse cursor-pointer hover:bg-gray-50 p-1 rounded-md">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedTeamIds.includes(team.id)}
+                                                onChange={() => handleTeamToggle(team.id)}
+                                                className="w-4 h-4 rounded border-gray-300 text-[#4A2B2C] focus:ring-[#4A2B2C]"
+                                            />
+                                            <span className="text-gray-800 select-none">{team.name}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </fieldset>
                         </FormInput>
                     )}
 
@@ -246,7 +274,6 @@ const EditProjectForm = ({ project, onSubmit, onCancel, teamLeads, teams, titleI
                             />
                         </FormInput>
                     </div>
-
                 </div>
 
                 <div className="flex justify-end space-x-2 space-x-reverse pt-3 mt-auto border-t border-gray-200 flex-shrink-0">
