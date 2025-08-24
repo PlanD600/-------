@@ -127,6 +127,7 @@ const OverviewTab = ({ projects, teamLeads, users, teams, allMemberships, refres
     };
 
     const handleEdit = (id: string) => {
+        if (!projects || projects.length === 0) return;
         const project = projects.find(p => p.id === id);
         if (project) {
             setProjectToEdit(project);
@@ -134,6 +135,7 @@ const OverviewTab = ({ projects, teamLeads, users, teams, allMemberships, refres
     };
     
     const handleArchive = async (id: string) => {
+        if (!projects || projects.length === 0) return;
         const project = projects.find(p => p.id === id);
         if (!project) return;
         try {

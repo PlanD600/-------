@@ -21,13 +21,17 @@ const Header = ({ onNavigate, notifications, setNotifications }: HeaderProps) =>
     const menuRef = useRef<HTMLDivElement>(null);
     const notificationsRef = useRef<HTMLDivElement>(null);
     
-    const currentOrg = memberships.find(m => m.organizationId === currentOrgId)?.organization;
+    const currentOrg = memberships?.find(m => m.organizationId === currentOrgId)?.organization;
     const unreadCount = useMemo(() => notifications.filter(n => !n.read).length, [notifications]);
 
     const uniqueOrganizations = useMemo(() => {
+        if (!memberships || memberships.length === 0) {
+            return [];
+        }
+        
         const orgMap = new Map();
         memberships.forEach(m => {
-            if (!orgMap.has(m.organization.id)) {
+            if (m.organization && !orgMap.has(m.organization.id)) {
                 orgMap.set(m.organization.id, m.organization);
             }
         });

@@ -65,7 +65,10 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
     const viewTaskTitleId = useId();
     const deleteTaskTitleId = useId();
 
-    const selectedProject = useMemo(() => projects.find(p => p.id === selectedProjectId), [projects, selectedProjectId]);
+    const selectedProject = useMemo(() => {
+        if (!projects || projects.length === 0) return null;
+        return projects.find(p => p.id === selectedProjectId);
+    }, [projects, selectedProjectId]);
     const currentTaskToView = useMemo(() => tasks.find(t => t.id === taskToView?.id) || null, [tasks, taskToView]);
 
     const availableUsersForTask = useMemo(() => {
@@ -107,6 +110,10 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
         if (userFilter === 'all') {
             return tasks;
         }
+        if (!teamMembers || teamMembers.length === 0) {
+            return tasks;
+        }
+        
         const filteredUser = teamMembers.find(member => member.name === userFilter);
         if (!filteredUser) return tasks;
 

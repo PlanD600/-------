@@ -27,6 +27,10 @@ const TeamForm = ({ team, users, allMemberships, onSubmit, onCancel, titleId, is
     
     // רשימת המשתמשים שיכולים להיות ראשי צוות (ללא שינוי, זה כבר תקין).
     const availableLeads = useMemo(() => {
+        if (!allMemberships || allMemberships.length === 0) {
+            return [];
+        }
+        
         const leadRoles = ['TEAM_LEADER', 'ADMIN', 'SUPER_ADMIN'];
         return users.filter(user => 
             allMemberships.find(m => m.userId === user.id && leadRoles.includes(m.role))

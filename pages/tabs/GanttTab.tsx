@@ -71,7 +71,10 @@ const GanttTab = ({ projects, users, refreshData }: { projects: Project[], users
     // --- State & Refs ---
     const [localProjects, setLocalProjects] = useState<(Project & { isCollapsed?: boolean })[]>([]);
     const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
-    const selectedProject = useMemo(() => projects.find(p => p.id === selectedProjectId), [projects, selectedProjectId]);
+    const selectedProject = useMemo(() => {
+        if (!projects || projects.length === 0) return null;
+        return projects.find(p => p.id === selectedProjectId);
+    }, [projects, selectedProjectId]);
     const [view, setView] = useState<ViewMode>(ViewMode.Week);
     const [ganttColumnWidth, setGanttColumnWidth] = useState(150);
     const ganttContainerRef = useRef<HTMLDivElement>(null);
@@ -88,9 +91,10 @@ const GanttTab = ({ projects, users, refreshData }: { projects: Project[], users
 
     useEffect(() => {
         const fetchTeams = async () => {
+            if (!user || !currentUserRole) return;
             setLoadingTeams(true);
             try {
-                const response = await api.getTeams();
+                const response = await api.getTeams(user.id, currentUserRole);
                 setTeams(response.data);
             } catch (error) {
                 console.error("Failed to fetch teams:", error);
@@ -99,7 +103,7 @@ const GanttTab = ({ projects, users, refreshData }: { projects: Project[], users
             }
         };
         fetchTeams();
-    }, []);
+    }, [user, currentUserRole]);
 
     useEffect(() => {
         const sortedProjects = projects.map(p => ({
@@ -265,6 +269,7 @@ const GanttTab = ({ projects, users, refreshData }: { projects: Project[], users
             return;
         }
 
+        if (!localProjects || localProjects.length === 0) return;
         const project = localProjects.find(p => p.id === (task.project || task.id));
         if (!project) return;
 
@@ -301,6 +306,7 @@ const GanttTab = ({ projects, users, refreshData }: { projects: Project[], users
     };;
 
     const handleTaskChange = async (task: GanttTask) => {
+        if (!localProjects || localProjects.length === 0) return;
         const project = localProjects.find(p => p.id === (task.project || task.id));
         if (!project || task.type !== 'task') return;
 

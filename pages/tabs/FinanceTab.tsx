@@ -122,7 +122,7 @@ const FinanceTab = ({ projects, refreshData }: FinanceTabProps) => {
     };
 
     useEffect(() => {
-        if (filteredProjectId !== 'all' && !projects.find(p => p.id === filteredProjectId)) {
+        if (filteredProjectId !== 'all' && (!projects || !projects.find(p => p.id === filteredProjectId))) {
             setFilteredProjectId('all');
         }
         fetchData();

@@ -177,15 +177,17 @@ const Dashboard = () => {
             return { usersInOrg: [], teamLeads: [], teamMembers: [] };
         }
 
-        const uniqueUsers = orgMembers
-            .map(m => m.user)
-            .filter((user, index, self) => user && self.findIndex(u => u.id === user.id) === index)
-            .filter((user): user is User => user !== null);
+        // Filter out any orgMembers with undefined or null user
+        const validOrgMembers = orgMembers.filter(m => m.user != null);
+
+        const uniqueUsers = validOrgMembers
+            .map(m => m.user!)
+            .filter((user, index, self) => self.findIndex(u => u.id === user.id) === index);
 
         const leads = new Map<string, User>();
         const members: { id: string, name: string }[] = [];
 
-        orgMembers.forEach(m => {
+        validOrgMembers.forEach(m => {
             if (m.user) {
                 members.push({ id: m.user.id, name: m.user.fullName });
                 if (m.role === 'TEAM_LEADER' || m.role === 'ADMIN' || m.role === 'SUPER_ADMIN') {
