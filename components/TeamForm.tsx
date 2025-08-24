@@ -27,19 +27,41 @@ const TeamForm = ({ team, users, allMemberships, onSubmit, onCancel, titleId, is
     
     // רשימת המשתמשים שיכולים להיות ראשי צוות
     const availableLeads = useMemo(() => {
-        if (!allMemberships || allMemberships.length === 0) {
-            return [];
-        }
+        console.log('🔍 TeamForm Debug - allMemberships:', allMemberships);
+        console.log('🔍 TeamForm Debug - users:', users);
         
-        if (!users || users.length === 0) {
+        if (!allMemberships || allMemberships.length === 0) {
+            console.log('❌ No memberships available');
             return [];
         }
         
         const leadRoles = ['TEAM_LEADER', 'ADMIN', 'SUPER_ADMIN'];
-        return users.filter(user => 
-            allMemberships.find(m => m.userId === user.id && leadRoles.includes(m.role))
-        );
-    }, [users, allMemberships]);
+        console.log('🔍 Looking for roles:', leadRoles);
+        
+        // בדיקה: מה המבנה האמיתי של allMemberships?
+        if (allMemberships.length > 0) {
+            console.log('🔍 First membership structure:', allMemberships[0]);
+            console.log('🔍 First membership keys:', Object.keys(allMemberships[0]));
+        }
+        
+        // פשוט יותר: נבנה את רשימת ה-team leaders ישירות מה-allMemberships
+        const leads = allMemberships
+            .filter(m => {
+                const hasLeadRole = leadRoles.includes(m.role);
+                const hasUser = m.user != null;
+                
+                if (hasLeadRole && hasUser) {
+                    console.log(`✅ Found lead membership: ${m.user.fullName} with role: ${m.role}`);
+                }
+                
+                return hasLeadRole && hasUser;
+            })
+            .map(m => m.user!)
+            .filter((user, index, self) => self.findIndex(u => u.id === user.id) === index); // הסרת כפילויות
+        
+        console.log('🔍 Available leads found:', leads.length, leads.map(l => l.fullName));
+        return leads;
+    }, [allMemberships]);
 
     const availableMembers = useMemo(() => {
         return users;
