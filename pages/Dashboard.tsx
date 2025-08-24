@@ -17,8 +17,9 @@ const LAST_ACTIVE_TAB_KEY = 'lastActiveTab';
  */
 const useDashboardData = (currentOrgId: string | null, user: User | null, currentUserRole: string | null | undefined) => {
     const [projects, setProjects] = useState<Project[]>([]);
+    const [archivedProjects, setArchivedProjects] = useState<Project[]>([]);
     const [teams, setTeams] = useState<Team[]>([]);
-    const [orgMembers, setOrgMembers] = useState<Membership[]>([]);
+    const [orgMembers, setOrgMembers] = useState<User[]>([]);
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
@@ -36,8 +37,9 @@ const useDashboardData = (currentOrgId: string | null, user: User | null, curren
 
         try {
             // ✅ תיקון: הקריאות לפונקציות ה-API עודכנו כדי להתאים לממשק החדש
-            const [projectsResponse, teamsResponse, orgMembersResponse, conversationsData] = await Promise.all([
-                api.getProjects(user.id, currentUserRole, { page: 1, limit: 100, signal }),
+            const [projectsResponse, archivedProjectsResponse, teamsResponse, orgMembersResponse, conversationsData] = await Promise.all([
+                api.getProjects(user.id, currentUserRole, { page: 1, limit: 100, isArchived: false, signal }),
+                api.getProjects(user.id, currentUserRole, { page: 1, limit: 100, isArchived: true, signal }),
                 api.getTeams(user.id, currentUserRole, { page: 1, limit: 100, signal }),
                 api.getUsersInOrg(user.id, currentUserRole, { page: 1, limit: 100, signal }),
                 api.getConversations(user.id, currentUserRole, { signal }),
@@ -49,7 +51,14 @@ const useDashboardData = (currentOrgId: string | null, user: User | null, curren
                 teams: project.teams || [],
             }));
 
+            const archivedProjectsWithCorrectData = archivedProjectsResponse.data.map(project => ({
+                ...project,
+                teamLeads: project.projectTeamLeads?.map(leadRelation => leadRelation.user) || [],
+                teams: project.teams || [],
+            }));
+
             setProjects(projectsWithCorrectData);
+            setArchivedProjects(archivedProjectsWithCorrectData);
             setTeams(teamsResponse.data);
             setOrgMembers(orgMembersResponse.data);
             setConversations(conversationsData);
@@ -71,7 +80,23 @@ const useDashboardData = (currentOrgId: string | null, user: User | null, curren
         await fetchData(abortController.signal);
     }, [fetchData]);
 
-    return { projects, teams, orgMembers, conversations, notifications, setNotifications, setConversations, setTeams, setProjects, loading, error, setError, refreshData };
+    return { 
+        projects, 
+        archivedProjects,
+        teams, 
+        orgMembers, 
+        conversations, 
+        notifications, 
+        setNotifications, 
+        setConversations, 
+        setTeams, 
+        setProjects, 
+        setArchivedProjects,
+        loading, 
+        error, 
+        setError, 
+        refreshData 
+    };
 };
 
 const ErrorPopup = ({ message, onClose }: { message: string, onClose: () => void }) => {
@@ -104,8 +129,8 @@ const Dashboard = () => {
     const [activeSettingsCategory, setActiveSettingsCategory] = useState('profile');
 
     const {
-        projects, teams, orgMembers, conversations, notifications,
-        setNotifications, setConversations, setTeams, setProjects, loading, error, setError, refreshData
+        projects, archivedProjects, teams, orgMembers, conversations, notifications,
+        setNotifications, setConversations, setTeams, setProjects, setArchivedProjects, loading, error, setError, refreshData
     } = useDashboardData(currentOrgId, user, currentUserRole);
 
     const [activeTab, setActiveTab] = useState(() => {
@@ -237,6 +262,7 @@ const Dashboard = () => {
                     activeTab={activeTab}
                     onTabChange={setActiveTab}
                     projects={projects}
+                    archivedProjects={archivedProjects}
                     teamMembers={teamMembers}
                     teamLeads={teamLeads}
                     users={usersInOrg}

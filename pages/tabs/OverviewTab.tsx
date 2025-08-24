@@ -16,6 +16,7 @@ import { useAuth } from '../../hooks/useAuth';
 
 interface OverviewTabProps {
     projects: Project[];
+    archivedProjects: Project[];
     teamLeads: User[];
     users: User[];
     teams: Team[];
@@ -62,7 +63,7 @@ const ViewToggle = ({ view, setView, labelledby }: { view: 'active' | 'archived'
 );
 
 
-const OverviewTab = ({ projects, teamLeads, users, teams, allMemberships, refreshData, projectsView, setProjectsView }: OverviewTabProps) => {
+const OverviewTab = ({ projects, archivedProjects, teamLeads, users, teams, allMemberships, refreshData, projectsView, setProjectsView }: OverviewTabProps) => {
     const { user, currentUserRole } = useAuth();
     const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] = useState(false);
     const [isCreateTeamModalOpen, setIsCreateTeamModalOpen] = useState(false);
@@ -84,20 +85,25 @@ const OverviewTab = ({ projects, teamLeads, users, teams, allMemberships, refres
     const canManageOrg = currentUserRole === 'ADMIN' || currentUserRole === 'SUPER_ADMIN';
 
     const projectStatuses: ProjectStatus[] = ['מתוכנן', 'בתהליך', 'לקראת סיום', 'בסיכון', 'מוקפא', 'הושלם'];
-    const projectTeams = useMemo(() => Array.from(new Set(projects.flatMap(p => p.teams?.map(t => t.name) || []))), [projects]);
+    const projectTeams = useMemo(() => {
+        const allProjects = [...projects, ...archivedProjects];
+        return Array.from(new Set(allProjects.flatMap(p => p.teams?.map(t => t.name) || [])));
+    }, [projects, archivedProjects]);
 
     const filteredProjects = useMemo(() => {
-        return projects
-            .filter(p => (projectsView === 'active' ? !p.isArchived : p.isArchived))
+        const projectsToFilter = projectsView === 'active' ? projects : archivedProjects;
+        return projectsToFilter
             .filter(p => statusFilter === 'all' || p.status === statusFilter)
             .filter(p => teamFilter === 'all' || p.teams.some(t => t.name === teamFilter));
-    }, [projects, projectsView, statusFilter, teamFilter]);
+    }, [projects, archivedProjects, projectsView, statusFilter, teamFilter]);
 
     const handleCreateProject = async (projectData: ProjectPayload) => {
         try {
             await api.createProject(projectData);
             refreshData();
             setIsCreateProjectModalOpen(false);
+            // חזרה לתצוגת הפרויקטים הפעילים אחרי יצירת פרויקט
+            setProjectsView('active');
         } catch (error) {
             console.error("Failed to create project:", error);
             alert(`Error: ${(error as Error).message}`);
@@ -110,6 +116,8 @@ const OverviewTab = ({ projects, teamLeads, users, teams, allMemberships, refres
             await api.createTeam(teamData);
             refreshData();
             setIsCreateTeamModalOpen(false);
+            // חזרה לתצוגת הפרויקטים הפעילים אחרי יצירת צוות
+            setProjectsView('active');
         } catch (error) {
             console.error("Failed to create team:", error);
             alert(`Error: ${(error as Error).message}`);
@@ -124,6 +132,8 @@ const OverviewTab = ({ projects, teamLeads, users, teams, allMemberships, refres
             await api.updateProject(projectToEdit.id, updatedData);
             refreshData();
             setProjectToEdit(null);
+            // חזרה לתצוגת הפרויקטים הפעילים אחרי עדכון פרויקט
+            setProjectsView('active');
         } catch (error) {
             console.error("Failed to update project:", error);
             alert(`Error: ${(error as Error).message}`);
@@ -131,21 +141,23 @@ const OverviewTab = ({ projects, teamLeads, users, teams, allMemberships, refres
     };
 
     const handleEdit = (id: string) => {
-        if (!projects || projects.length === 0) return;
-        const project = projects.find(p => p.id === id);
+        // מחפש פרויקט ברשימת הפרויקטים הפעילים או בארכיון
+        const project = projects.find(p => p.id === id) || archivedProjects.find(p => p.id === id);
         if (project) {
             setProjectToEdit(project);
         }
     };
     
     const handleArchive = async (id: string) => {
-        if (!projects || projects.length === 0) return;
-        const project = projects.find(p => p.id === id);
+        // מחפש פרויקט ברשימת הפרויקטים הפעילים או בארכיון
+        const project = projects.find(p => p.id === id) || archivedProjects.find(p => p.id === id);
         if (!project) return;
         try {
             const newIsArchivedStatus = !project.isArchived; 
             await api.archiveProject(id, newIsArchivedStatus);
             refreshData();
+            // אם הפרויקט עבר לארכיון, נשאר בתצוגת הארכיון
+            // אם הפרויקט חזר מהארכיון, נחזור לתצוגת הפרויקטים הפעילים
             setProjectsView(newIsArchivedStatus ? 'archived' : 'active');
         } catch (error) {
              console.error("Failed to archive project:", error);
@@ -154,7 +166,11 @@ const OverviewTab = ({ projects, teamLeads, users, teams, allMemberships, refres
     };
 
     const handleDelete = (id: string) => {
-        setProjectToDeleteId(id);
+        // מחפש פרויקט ברשימת הפרויקטים הפעילים או בארכיון
+        const project = projects.find(p => p.id === id) || archivedProjects.find(p => p.id === id);
+        if (project) {
+            setProjectToDeleteId(id);
+        }
     };
 
     const confirmDelete = async () => {
@@ -163,6 +179,10 @@ const OverviewTab = ({ projects, teamLeads, users, teams, allMemberships, refres
                 await api.deleteProject(projectToDeleteId);
                 refreshData();
                 setProjectToDeleteId(null);
+                // אם הפרויקט שנמחק היה בארכיון, נחזור לתצוגת הפרויקטים הפעילים
+                if (projectsView === 'archived') {
+                    setProjectsView('active');
+                }
             } catch (error) {
                 console.error("Failed to delete project:", error);
                 alert(`Error: ${(error as Error).message}`);
@@ -227,7 +247,13 @@ const OverviewTab = ({ projects, teamLeads, users, teams, allMemberships, refres
                              <ProjectCard 
                                 key={project.id} 
                                 project={project}
-                                onClick={() => setSelectedProject(project)}
+                                onClick={() => {
+                                    // מחפש פרויקט ברשימת הפרויקטים הפעילים או בארכיון
+                                    const fullProject = projects.find(p => p.id === project.id) || archivedProjects.find(p => p.id === project.id);
+                                    if (fullProject) {
+                                        setSelectedProject(fullProject);
+                                    }
+                                }}
                                 onEdit={permissions.canEditOrArchive ? handleEdit : undefined}
                                 onArchive={permissions.canEditOrArchive ? handleArchive : undefined}
                                 onDelete={permissions.canDelete ? handleDelete : undefined}

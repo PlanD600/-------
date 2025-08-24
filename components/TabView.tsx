@@ -17,6 +17,7 @@ interface TabViewProps {
     activeTab: string;
     onTabChange: (tab: string) => void;
     projects: Project[];
+    archivedProjects: Project[];
     teamMembers: TeamMember[];
     teamLeads: User[];
     users: User[];
@@ -48,7 +49,7 @@ const TabButton = ({ label, isActive, onClick, id, controlsId }: { label: string
 );
 
 
-const TabView = ({ activeTab, onTabChange, projects, teamMembers, teamLeads, users, teams, allMemberships, conversations, setConversations, socket, refreshData, projectsView, setProjectsView }: TabViewProps) => {
+const TabView = ({ activeTab, onTabChange, projects, archivedProjects, teamMembers, teamLeads, users, teams, allMemberships, conversations, setConversations, socket, refreshData, projectsView, setProjectsView }: TabViewProps) => {
     const { memberships, currentOrgId } = useAuth();
 
     const currentUserRole = useMemo(() => {
@@ -64,6 +65,7 @@ const TabView = ({ activeTab, onTabChange, projects, teamMembers, teamLeads, use
             component: (
                 <OverviewTab
                     projects={projects}
+                    archivedProjects={archivedProjects}
                     teamLeads={teamLeads}
                     users={users}
                     teams={teams}
@@ -79,7 +81,7 @@ const TabView = ({ activeTab, onTabChange, projects, teamMembers, teamLeads, use
         { id: 'gantt', label: 'גאנט', component: <GanttTab projects={projects} users={users} refreshData={refreshData} /> },
         { id: 'chat', label: 'הודעות', component: <ChatTab conversations={conversations} setConversations={setConversations} users={users} socket={socket} /> }
 
-    ].filter(Boolean) as { id: string, label: string, component: React.ReactNode }[], [projects, teamMembers, teamLeads, users, teams, conversations, socket, refreshData, canViewFinance, projectsView, setProjectsView, allMemberships]);
+    ].filter(Boolean) as { id: string, label: string, component: React.ReactNode }[], [projects, archivedProjects, teamMembers, teamLeads, users, teams, conversations, socket, refreshData, canViewFinance, projectsView, setProjectsView, allMemberships]);
 
 
     return (
