@@ -113,8 +113,9 @@ export interface ProjectPayload {
     teamLeads: string[];
     startDate: string;
     endDate: string;
-    teamIds?: string[];
+    teamIds?: string[];
     monthlyBudgets?: MonthlyBudgetPayload[];
+    isArchived?: boolean;
 }
 
 export interface MonthlyBudgetPayload {

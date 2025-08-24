@@ -38,6 +38,7 @@ const EditProjectForm = ({ project, onSubmit, onCancel, teamLeads, teams, titleI
     const [endDate, setEndDate] = useState(project.endDate?.split('T')[0] || '');
     const [incomeBudget, setIncomeBudget] = useState<number | string>(0);
     const [expenseBudget, setExpenseBudget] = useState<number | string>(0);
+    const [isArchived, setIsArchived] = useState(project.isArchived || false);
     const [formError, setFormError] = useState('');
     const teamLeadsList = teamLeads || [];
 
@@ -48,6 +49,7 @@ const EditProjectForm = ({ project, onSubmit, onCancel, teamLeads, teams, titleI
         // 💡 שינוי: עדכון ה-state של הצוותים עם מערך של מזהים.
         setSelectedTeamIds(project.teams?.map(t => t.id) || []);
         setAssignMethod((project.teams && project.teams.length > 0) ? 'team' : 'teamLeads');
+        setIsArchived(project.isArchived || false);
         
         const totalIncome = (project.monthlyBudgets || []).reduce((sum, b) => sum + b.incomeBudget, 0);
         const totalExpense = (project.monthlyBudgets || []).reduce((sum, b) => sum + b.expenseBudget, 0);
@@ -135,6 +137,7 @@ const EditProjectForm = ({ project, onSubmit, onCancel, teamLeads, teams, titleI
             teamIds: teamIdsToSend,
             startDate,
             endDate,
+            isArchived,
             // 💡 תיקון: budget לא הוגדר בקוד שלך. נחליף אותו בשדות התקציב החודשי.
             monthlyBudgets: monthlyBudgetsPayload.length > 0 ? monthlyBudgetsPayload : undefined,
         };
@@ -274,6 +277,19 @@ const EditProjectForm = ({ project, onSubmit, onCancel, teamLeads, teams, titleI
                             />
                         </FormInput>
                     </div>
+
+                    <FormInput id="proj-edit-archived" label="סטטוס ארכיון">
+                        <div className="flex items-center space-x-3 space-x-reverse">
+                            <input
+                                id="proj-edit-archived"
+                                type="checkbox"
+                                checked={isArchived}
+                                onChange={e => setIsArchived(e.target.checked)}
+                                className="w-4 h-4 rounded border-gray-300 text-[#4A2B2C] focus:ring-[#4A2B2C]"
+                            />
+                            <span className="text-sm text-gray-700">העבר לארכיון</span>
+                        </div>
+                    </FormInput>
                 </div>
 
                 <div className="flex justify-end space-x-2 space-x-reverse pt-3 mt-auto border-t border-gray-200 flex-shrink-0">

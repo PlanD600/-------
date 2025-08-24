@@ -34,6 +34,7 @@ const AddProjectForm = ({ onSubmit, onCancel, teamLeads: availableLeads, teams, 
     const [endDate, setEndDate] = useState('');
     const [incomeBudget, setIncomeBudget] = useState<number | ''>('');
     const [expenseBudget, setExpenseBudget] = useState<number | ''>('');
+    const [isArchived, setIsArchived] = useState(false);
     const [formError, setFormError] = useState('');
 
     const handleLeadToggle = (leadId: string) => {
@@ -110,6 +111,7 @@ const AddProjectForm = ({ onSubmit, onCancel, teamLeads: availableLeads, teams, 
         teamIds: teamIdsToSend,
         startDate,
         endDate,
+        isArchived,
         monthlyBudgets: monthlyBudgetsPayload.length > 0 ? monthlyBudgetsPayload : undefined,
     });
 };
@@ -234,6 +236,19 @@ const AddProjectForm = ({ onSubmit, onCancel, teamLeads: availableLeads, teams, 
                             />
                         </FormInput>
                     </div>
+
+                    <FormInput id="proj-archived" label="סטטוס ארכיון">
+                        <div className="flex items-center space-x-3 space-x-reverse">
+                            <input
+                                id="proj-archived"
+                                type="checkbox"
+                                checked={isArchived}
+                                onChange={e => setIsArchived(e.target.checked)}
+                                className="w-4 h-4 rounded border-gray-300 text-[#4A2B2C] focus:ring-[#4A2B2C]"
+                            />
+                            <span className="text-sm text-gray-700">העבר לארכיון</span>
+                        </div>
+                    </FormInput>
                     
                     <FormInput id="proj-income-budget" label="תקציב הכנסה (₪)">
                         <TextInput
