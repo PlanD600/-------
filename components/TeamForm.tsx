@@ -25,9 +25,13 @@ const TeamForm = ({ team, users, allMemberships, onSubmit, onCancel, titleId, is
         setMemberIds(team?.memberIds || []);
     }, [team]);
     
-    // רשימת המשתמשים שיכולים להיות ראשי צוות (ללא שינוי, זה כבר תקין).
+    // רשימת המשתמשים שיכולים להיות ראשי צוות
     const availableLeads = useMemo(() => {
         if (!allMemberships || allMemberships.length === 0) {
+            return [];
+        }
+        
+        if (!users || users.length === 0) {
             return [];
         }
         
@@ -61,6 +65,18 @@ const TeamForm = ({ team, users, allMemberships, onSubmit, onCancel, titleId, is
         onSubmit({ name, leadIds: [leadId], memberIds });
     };
 
+    // Show loading state if data is not ready
+    if (isLoading || !allMemberships || !users) {
+        return (
+            <div className="space-y-4 p-2">
+                <h3 id={titleId} className="text-lg font-bold text-gray-800">{team ? 'עריכת צוות' : 'יצירת צוות חדש'}</h3>
+                <div className="text-center py-8">
+                    <div className="text-gray-500">טוען נתונים...</div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <form onSubmit={handleSubmit} key={team?.id || 'new'} className="space-y-4 p-2">
             <h3 id={titleId} className="text-lg font-bold text-gray-800">{team ? 'עריכת צוות' : 'יצירת צוות חדש'}</h3>
@@ -74,19 +90,27 @@ const TeamForm = ({ team, users, allMemberships, onSubmit, onCancel, titleId, is
                     <legend className="block text-sm font-medium text-gray-700">ראש צוות</legend>
                     {/* 💡 שינוי: החלף מ-checkbox ל-radio לבחירה יחידה */}
                     <div className="mt-1 max-h-32 overflow-y-auto space-y-2 rounded-md border border-gray-300 p-3 bg-gray-50">
-                        {availableLeads.map(user => (
-                            <label key={user.id} className="flex items-center space-x-3 space-x-reverse cursor-pointer hover:bg-gray-100 p-1 rounded-md">
-                                <input 
-                                    type="radio" 
-                                    name="lead-selection" // נותן לכל הקבוצה שם זהה
-                                    value={user.id}
-                                    checked={leadId === user.id} 
-                                    onChange={() => handleLeadChange(user.id)} 
-                                    className="w-4 h-4 rounded-full border-gray-300 text-[#4A2B2C] focus:ring-[#4A2B2C]" 
-                                />
-                                <span className="text-gray-800 select-none">{user.fullName}</span>
-                            </label>
-                        ))}
+                        {availableLeads.length > 0 ? (
+                            availableLeads.map(user => (
+                                <label key={user.id} className="flex items-center space-x-3 space-x-reverse cursor-pointer hover:bg-gray-100 p-1 rounded-md">
+                                    <input 
+                                        type="radio" 
+                                        name="lead-selection" // נותן לכל הקבוצה שם זהה
+                                        value={user.id}
+                                        checked={leadId === user.id} 
+                                        onChange={() => handleLeadChange(user.id)} 
+                                        className="w-4 h-4 rounded-full border-gray-300 text-[#4A2B2C] focus:ring-[#4A2B2C]" 
+                                    />
+                                    <span className="text-gray-800 select-none">{user.fullName}</span>
+                                </label>
+                            ))
+                        ) : (
+                            <div className="text-gray-500 text-center py-4">
+                                אין משתמשים זמינים לתפקיד ראש צוות
+                                <br />
+                                <span className="text-xs">נדרשים משתמשים עם תפקיד: מנהל, מנהל ארגון, או ראש צוות</span>
+                            </div>
+                        )}
                     </div>
                 </fieldset>
             </div>

@@ -72,6 +72,7 @@ const OverviewTab = ({ projects, teamLeads, users, teams, allMemberships, refres
 
     const [statusFilter, setStatusFilter] = useState('all');
     const [teamFilter, setTeamFilter] = useState('all');
+    const [isCreatingTeam, setIsCreatingTeam] = useState(false);
     
     const viewToggleLabelId = useId();
     const createProjectModalTitleId = useId();
@@ -104,6 +105,7 @@ const OverviewTab = ({ projects, teamLeads, users, teams, allMemberships, refres
     };
 
     const handleCreateTeam = async (teamData: TeamPayload) => {
+        setIsCreatingTeam(true);
         try {
             await api.createTeam(teamData);
             refreshData();
@@ -111,6 +113,8 @@ const OverviewTab = ({ projects, teamLeads, users, teams, allMemberships, refres
         } catch (error) {
             console.error("Failed to create team:", error);
             alert(`Error: ${(error as Error).message}`);
+        } finally {
+            setIsCreatingTeam(false);
         }
     };
     
@@ -252,9 +256,10 @@ const OverviewTab = ({ projects, teamLeads, users, teams, allMemberships, refres
                 <TeamForm
                     titleId={createTeamModalTitleId}
                     users={users}
-                    potentialLeads={teamLeads}
+                    allMemberships={allMemberships}
                     onSubmit={handleCreateTeam}
                     onCancel={() => setIsCreateTeamModalOpen(false)}
+                    isLoading={isCreatingTeam}
                 />
             </Modal>
             
