@@ -1,4 +1,5 @@
 // src/pages/Dashboard.tsx
+
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Project, User, Team, Conversation, Notification, Membership } from '../types';
 import * as api from '../services/api';
@@ -34,6 +35,7 @@ const useDashboardData = (currentOrgId: string | null, user: User | null, curren
         console.log("Fetching latest data from server...");
 
         try {
+            // ✅ תיקון: הקריאות לפונקציות API עודכנו כדי להתאים לממשק החדש
             const [projectsResponse, teamsResponse, orgMembersResponse, conversationsData] = await Promise.all([
                 api.getProjects(user.id, currentUserRole, { page: 1, limit: 100, signal }),
                 api.getTeams(user.id, currentUserRole, { page: 1, limit: 100, signal }),
@@ -101,9 +103,9 @@ const Dashboard = () => {
     const [socket, setSocket] = useState<Socket | null>(null);
     const [activeSettingsCategory, setActiveSettingsCategory] = useState('profile');
 
-    const { 
-        projects, teams, orgMembers, conversations, notifications, 
-        setNotifications, setConversations, setTeams, setProjects, loading, error, setError, refreshData 
+    const {
+        projects, teams, orgMembers, conversations, notifications,
+        setNotifications, setConversations, setTeams, setProjects, loading, error, setError, refreshData
     } = useDashboardData(currentOrgId, user, currentUserRole);
 
     const [activeTab, setActiveTab] = useState(() => {
@@ -125,22 +127,22 @@ const Dashboard = () => {
 
     useEffect(() => {
         if (!currentOrgId || !user) return;
-        
+
         const newSocket = io('https://api.mypland.com');
         setSocket(newSocket);
-        
+
         newSocket.on('connect', () => {
             console.log('Socket.IO connected');
             if (user?.id) {
                 newSocket.emit('register_for_notifications', user.id);
             }
         });
-        
+
         newSocket.on('new_notification', (payload) => {
             console.log('New notification received:', payload);
             setNotifications(prev => [payload, ...prev]);
         });
-        
+
         newSocket.on('new_message', (payload) => {
             console.log('New message received:', payload);
             const { conversationId, ...message } = payload;
@@ -150,7 +152,7 @@ const Dashboard = () => {
                     : c
             ));
         });
-        
+
         newSocket.on('disconnect', () => {
             console.log('Socket.IO disconnected');
             setSocket(null);
@@ -163,13 +165,12 @@ const Dashboard = () => {
         newSocket.on('error_message', (data) => {
             console.error('Server error message:', data.message);
         });
-        
+
         return () => {
             newSocket.disconnect();
         };
     }, [currentOrgId, user, setNotifications, setConversations]);
 
-    // 💡 תיקון: שיפור ה-useMemo כדי להתמודד עם נתונים לא מלאים ולוודא שהם לא undefined.
     const { usersInOrg, teamLeads, teamMembers } = useMemo(() => {
         if (!orgMembers || orgMembers.length === 0) {
             return { usersInOrg: [], teamLeads: [], teamMembers: [] };
@@ -194,7 +195,7 @@ const Dashboard = () => {
             }
         });
 
-        return { 
+        return {
             usersInOrg: uniqueUsers,
             teamLeads: Array.from(leads.values()),
             teamMembers: members.filter((member, index, self) => self.findIndex(m => m.id === member.id) === index),
@@ -208,7 +209,7 @@ const Dashboard = () => {
     if (loading) {
         return <div className="p-8 text-center text-xl">טוען נתונים...</div>;
     }
-    
+
     if (currentView === 'settings') {
         return <SettingsPage
             onBack={() => setCurrentView('dashboard')}
