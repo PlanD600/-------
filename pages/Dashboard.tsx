@@ -35,7 +35,7 @@ const useDashboardData = (currentOrgId: string | null, user: User | null, curren
         console.log("Fetching latest data from server...");
 
         try {
-            // ✅ תיקון: הקריאות לפונקציות API עודכנו כדי להתאים לממשק החדש
+            // ✅ תיקון: הקריאות לפונקציות ה-API עודכנו כדי להתאים לממשק החדש
             const [projectsResponse, teamsResponse, orgMembersResponse, conversationsData] = await Promise.all([
                 api.getProjects(user.id, currentUserRole, { page: 1, limit: 100, signal }),
                 api.getTeams(user.id, currentUserRole, { page: 1, limit: 100, signal }),
@@ -171,6 +171,7 @@ const Dashboard = () => {
         };
     }, [currentOrgId, user, setNotifications, setConversations]);
 
+    // ✅ תיקון: שיפור ה-useMemo כדי להתמודד עם נתונים לא מלאים ולוודא שהם לא undefined.
     const { usersInOrg, teamLeads, teamMembers } = useMemo(() => {
         if (!orgMembers || orgMembers.length === 0) {
             return { usersInOrg: [], teamLeads: [], teamMembers: [] };
