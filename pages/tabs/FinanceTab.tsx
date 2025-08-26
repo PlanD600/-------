@@ -14,14 +14,29 @@ interface FinanceTabProps {
 
 const isPdfEnabled = false; // ✨ החזרת כפתור הורדת PDF שנה ל-true✨
 
-const StatCard = ({ title, value, colorClass = 'text-gray-900' }: { title: string, value: number, colorClass?: string }) => (
-    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-        <h3 className="text-base font-semibold text-gray-500">{title}</h3>
-        <p className={`text-3xl font-bold mt-2 ${colorClass}`}>
-            {value.toLocaleString('he-IL', { style: 'currency', currency: 'ILS', minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-        </p>
-    </div>
-);
+const StatCard = ({ title, value, colorClass = 'text-gray-900', signMode = 'none' as 'none' | 'positive' | 'negative' | 'auto' }: { title: string, value: number, colorClass?: string, signMode?: 'none' | 'positive' | 'negative' | 'auto' }) => {
+    const absoluteAmount = Math.abs(value);
+    const formattedAmount = absoluteAmount.toLocaleString('he-IL', {
+        style: 'currency',
+        currency: 'ILS',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+    });
+
+    let sign = '';
+    if (signMode === 'positive') sign = '+';
+    else if (signMode === 'negative') sign = '-';
+    else if (signMode === 'auto') sign = value > 0 ? '+' : value < 0 ? '-' : '';
+
+    return (
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+            <h3 className="text-base font-semibold text-gray-500">{title}</h3>
+            <p className={`text-3xl font-bold mt-2 ${colorClass}`}>
+                {`${sign}${formattedAmount}`}
+            </p>
+        </div>
+    );
+};
 
 const FinanceTableWithHistory = ({ title, entriesByMonth, onEdit, onDelete }: { title: string, entriesByMonth: Record<string, FinanceEntry[]>, onEdit: (entry: FinanceEntry) => void, onDelete: (entry: FinanceEntry) => void }) => {
     const months = useMemo(() => Object.keys(entriesByMonth).sort().reverse(), [entriesByMonth]);
@@ -302,12 +317,13 @@ const FinanceTab = ({ projects, refreshData }: FinanceTabProps) => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {summary && (
                     <>
-                        <StatCard title="סך הכנסות" value={summary.totalIncome ?? 0} colorClass="text-green-600" />
-                        <StatCard title="סך הוצאות" value={summary.totalExpenses ?? 0} colorClass="text-red-600" />
+                        <StatCard title="סך הכנסות" value={summary.totalIncome ?? 0} colorClass="text-green-600" signMode="positive" />
+                        <StatCard title="סך הוצאות" value={summary.totalExpenses ?? 0} colorClass="text-red-600" signMode="negative" />
                         <StatCard
                             title="מאזן"
                             value={summary.balance ?? 0}
                             colorClass={(summary.balance ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}
+                            signMode="auto"
                         />
                     </>
                 )}
