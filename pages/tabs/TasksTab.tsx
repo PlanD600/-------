@@ -70,35 +70,47 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
     }, [projects, selectedProjectId]);
     const currentTaskToView = useMemo(() => tasks.find(t => t.id === taskToView?.id) || null, [tasks, taskToView]);
 
-    const availableUsersForTask = useMemo(() => {
+    const availableUsersForTask = useMemo(() => {
         if (!selectedProject) {
             return [];
         }
         
         const allowedUserIds = new Set<string>();
 
-        // ✨ שינוי: הוספת ראשי צוות של הפרויקט
-        selectedProject.teamLeads.forEach(lead => allowedUserIds.add(lead.id));
+        if (selectedProject.teamLeads) {
+            selectedProject.teamLeads.forEach(lead => allowedUserIds.add(lead.id));
+        }
 
-        // ✨ שינוי: הוספת חברי צוותים המשויכים לפרויקט
-        selectedProject.teams.forEach(team => {
-            team.memberIds.forEach(memberId => allowedUserIds.add(memberId));
-        });
-
+        // ✨ תיקון: שימוש ב-`teams` במקום ב-`team`
+        if (selectedProject.teams) {
+            selectedProject.teams.forEach(team => {
+                if (team.memberIds) {
+                    team.memberIds.forEach(memberId => allowedUserIds.add(memberId));
+                }
+            });
+        }
+        
         return users.filter(user => allowedUserIds.has(user.id));
     }, [users, selectedProject]);
 
-    // ✨ שינוי: יצרנו useMemo חדש שמסנן את רשימת העובדים לסינון
     const availableFilterUsers = useMemo(() => {
         if (!selectedProject) {
             return teamMembers;
         }
 
         const allowedIds = new Set<string>();
-        selectedProject.teamLeads.forEach(lead => allowedIds.add(lead.id));
-        selectedProject.teams.forEach(team => {
-            team.memberIds.forEach(memberId => allowedIds.add(memberId));
-        });
+        if (selectedProject.teamLeads) {
+            selectedProject.teamLeads.forEach(lead => allowedIds.add(lead.id));
+        }
+        
+        // ✨ תיקון: שימוש ב-`teams` במקום ב-`team`
+        if (selectedProject.teams) {
+            selectedProject.teams.forEach(team => {
+                if (team.memberIds) {
+                    team.memberIds.forEach(memberId => allowedIds.add(memberId));
+                }
+            });
+        }
         
         return teamMembers.filter(member => allowedIds.has(member.id));
     }, [selectedProject, teamMembers]);
@@ -133,11 +145,11 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
             return tasks;
         }
         
-        const filteredUser = teamMembers.find(member => member.name === userFilter);
+        const filteredUser = availableFilterUsers.find(member => member.name === userFilter);
         if (!filteredUser) return tasks;
 
         return tasks.filter(task => task.assignees?.some(assignee => assignee.id === filteredUser.id));
-    }, [tasks, userFilter, teamMembers]);
+    }, [tasks, userFilter, availableFilterUsers]);
 
     const isManager = useMemo(() => {
         if (!user || !selectedProject) return false;
