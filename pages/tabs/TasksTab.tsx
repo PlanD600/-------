@@ -70,21 +70,23 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
     }, [projects, selectedProjectId]);
     const currentTaskToView = useMemo(() => tasks.find(t => t.id === taskToView?.id) || null, [tasks, taskToView]);
 
-    const availableUsersForTask = useMemo(() => {
+    // ✨ תיקון: שינוי לוגיקת הסינון כדי למנוע שגיאות
+    const availableUsersForTask = useMemo(() => {
         if (!selectedProject) {
             return [];
         }
         
         const allowedUserIds = new Set<string>();
 
-        if (selectedProject.teamLeads) {
+        // הוספת ראשי צוות של הפרויקט
+        if (selectedProject.teamLeads) { // ✨ תיקון: בדיקה לפני forEach
             selectedProject.teamLeads.forEach(lead => allowedUserIds.add(lead.id));
         }
 
-        // ✨ תיקון: שימוש ב-`teams` במקום ב-`team`
-        if (selectedProject.teams) {
+        // הוספת חברי צוותים המשויכים לפרויקט
+        if (selectedProject.teams) { // ✨ תיקון: שימוש ב`teams` במקום `team` ובדיקה לפני forEach
             selectedProject.teams.forEach(team => {
-                if (team.memberIds) {
+                if (team.memberIds) { // ✨ תיקון: בדיקה לפני forEach
                     team.memberIds.forEach(memberId => allowedUserIds.add(memberId));
                 }
             });
@@ -93,6 +95,7 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
         return users.filter(user => allowedUserIds.has(user.id));
     }, [users, selectedProject]);
 
+    // ✨ תיקון: יצרנו useMemo חדש שמסנן את רשימת העובדים לסינון
     const availableFilterUsers = useMemo(() => {
         if (!selectedProject) {
             return teamMembers;
@@ -103,10 +106,9 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
             selectedProject.teamLeads.forEach(lead => allowedIds.add(lead.id));
         }
         
-        // ✨ תיקון: שימוש ב-`teams` במקום ב-`team`
-        if (selectedProject.teams) {
+        if (selectedProject.teams) { // ✨ תיקון: שימוש ב`teams` במקום `team` ובדיקה לפני forEach
             selectedProject.teams.forEach(team => {
-                if (team.memberIds) {
+                if (team.memberIds) { // ✨ תיקון: בדיקה לפני forEach
                     team.memberIds.forEach(memberId => allowedIds.add(memberId));
                 }
             });
