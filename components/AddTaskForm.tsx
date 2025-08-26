@@ -5,7 +5,7 @@ import { User, TaskPayload } from '../types';
 interface AddTaskFormProps {
     onSubmit: (taskData: TaskPayload) => void;
     onCancel: () => void;
-    allUsers: User[];
+    availableAssignees: User[];
     titleId: string;
 }
 
@@ -29,7 +29,7 @@ const TextInput = ({ className = '', ...props }: React.InputHTMLAttributes<HTMLI
     );
 };
 
-const AddTaskForm = ({ onSubmit, onCancel, allUsers, titleId }: AddTaskFormProps) => {
+const AddTaskForm = ({ onSubmit, onCancel, availableAssignees, titleId }: AddTaskFormProps) => {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [assigneesIds, setAssigneesIds] = useState<string[]>([]);
@@ -117,7 +117,7 @@ const AddTaskForm = ({ onSubmit, onCancel, allUsers, titleId }: AddTaskFormProps
                         <fieldset>
                             <legend className="sr-only">שייך עובדים למשימה</legend>
                             <div className="max-h-32 overflow-y-auto space-y-2 rounded-md border border-gray-300 p-3 bg-white">
-                                {allUsers.map(user => (
+                                {availableAssignees.map(user => (
                                     <label key={user.id} className="flex items-center space-x-3 space-x-reverse cursor-pointer hover:bg-gray-50 p-1 rounded-md">
                                         <input
                                             type="checkbox"
