@@ -241,23 +241,23 @@ const FinanceTab = ({ projects, refreshData }: FinanceTabProps) => {
             alert(`Error: ${(error as Error).message}`);
         }
     };
-    
+
     // 💡 פונקציה מעודכנת להורדת PDF
     const handleExportToPdf = async () => {
-      try {
-        const pdfBlob = await api.generateFinancePDF(filteredProjectId);
-        const url = window.URL.createObjectURL(pdfBlob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', `finance-report-${new Date().toISOString()}.pdf`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-      } catch (error) {
-        console.error('Error downloading PDF:', error);
-        alert(`Error: ${(error as Error).message}`);
-      }
+        try {
+            const pdfBlob = await api.generateFinancePDF(filteredProjectId);
+            const url = window.URL.createObjectURL(pdfBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `finance-report-${new Date().toISOString()}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Error downloading PDF:', error);
+            alert(`Error: ${(error as Error).message}`);
+        }
     };
 
     if (loading) {
@@ -297,11 +297,11 @@ const FinanceTab = ({ projects, refreshData }: FinanceTabProps) => {
                         </>
                     )}
                     {isPdfEnabled && ( // ✨ התחלת התנאי ✨
-                     <button onClick={handleExportToPdf} className="flex items-center gap-2 bg-gray-500 text-white px-4 py-2 rounded-lg shadow hover:bg-gray-600 transition-colors">
-                        <DownloadIcon className="w-5 h-5" />
-                        <span>הורד PDF</span>
-                    </button>
-                    )} 
+                        <button onClick={handleExportToPdf} className="flex items-center gap-2 bg-gray-500 text-white px-4 py-2 rounded-lg shadow hover:bg-gray-600 transition-colors">
+                            <DownloadIcon className="w-5 h-5" />
+                            <span>הורד PDF</span>
+                        </button>
+                    )}
 
                     <button onClick={() => openModal('INCOME')} className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg shadow hover:bg-green-700 transition-colors">
                         <PlusIcon className="w-5 h-5" />
@@ -321,8 +321,8 @@ const FinanceTab = ({ projects, refreshData }: FinanceTabProps) => {
                         <StatCard title="סך הוצאות" value={summary.totalExpenses ?? 0} colorClass="text-red-600" signMode="negative" />
                         <StatCard
                             title="מאזן"
-                            value={summary.balance ?? 0}
-                            colorClass={(summary.balance ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}
+                            value={(summary.totalIncome ?? 0) - (summary.totalExpenses ?? 0)} // זהו החישוב הנכון
+                            colorClass={((summary.totalIncome ?? 0) - (summary.totalExpenses ?? 0)) >= 0 ? 'text-green-600' : 'text-red-600'}
                             signMode="auto"
                         />
                     </>
@@ -343,7 +343,7 @@ const FinanceTab = ({ projects, refreshData }: FinanceTabProps) => {
                     onSubmit={handleAddEntry}
                 />
             </Modal>
-            
+
             <Modal isOpen={!!editingEntry} onClose={() => setEditingEntry(null)} size="md" titleId="edit-finance-entry-title">
                 {editingEntry && (
                     <EditFinanceEntryForm
@@ -356,26 +356,26 @@ const FinanceTab = ({ projects, refreshData }: FinanceTabProps) => {
                 )}
             </Modal>
 
-            <ConfirmationModal 
-                isOpen={!!deletingEntry} 
-                onClose={() => setDeletingEntry(null)} 
-                onConfirm={handleDeleteEntry} 
+            <ConfirmationModal
+                isOpen={!!deletingEntry}
+                onClose={() => setDeletingEntry(null)}
+                onConfirm={handleDeleteEntry}
                 title="מחיקת רשומת כספים"
                 message={`האם אתה בטוח שברצונך למחוק את הרשומה "${deletingEntry?.description}"?`}
             />
 
-            <ConfirmationModal 
-                isOpen={confirmReset} 
-                onClose={() => setConfirmReset(false)} 
-                onConfirm={handleResetFinances} 
+            <ConfirmationModal
+                isOpen={confirmReset}
+                onClose={() => setConfirmReset(false)}
+                onConfirm={handleResetFinances}
                 title="איפוס כספי הפרויקט"
                 message={`האם אתה בטוח שברצונך לאפס את כל רשומות הכספים והתקציבים עבור פרויקט זה? פעולה זו הינה בלתי הפיכה.`}
             />
-            
-            <ConfirmationModal 
-                isOpen={confirmRestore} 
-                onClose={() => setConfirmRestore(false)} 
-                onConfirm={handleRestoreFinances} 
+
+            <ConfirmationModal
+                isOpen={confirmRestore}
+                onClose={() => setConfirmRestore(false)}
+                onConfirm={handleRestoreFinances}
                 title="שחזור תקציב"
                 message={`האם אתה בטוח שברצונך לשחזר את התקציב לפרויקט זה? פעולה זו תמחק את התקציב הקיים.`}
             />

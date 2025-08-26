@@ -68,6 +68,9 @@ const OverviewTab = ({ projects, archivedProjects, teamLeads, users, teams, allM
     const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] = useState(false);
     const [isCreateTeamModalOpen, setIsCreateTeamModalOpen] = useState(false);
     const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+    const [isTeamsModalOpen, setIsTeamsModalOpen] = useState(false);
+    const [teamToEdit, setTeamToEdit] = useState<Team | null>(null);
+    const [teamToDeleteId, setTeamToDeleteId] = useState<string | null>(null);
     const [projectToEdit, setProjectToEdit] = useState<Project | null>(null);
     const [projectToDeleteId, setProjectToDeleteId] = useState<string | null>(null);
 
@@ -79,6 +82,8 @@ const OverviewTab = ({ projects, archivedProjects, teamLeads, users, teams, allM
     const createProjectModalTitleId = useId();
     const createTeamModalTitleId = useId();
     const editModalTitleId = useId();
+    const teamsModalTitleId = useId();
+    const editTeamModalTitleId = useId();
     const statusFilterId = useId();
     const teamFilterId = useId();
 
@@ -123,6 +128,31 @@ const OverviewTab = ({ projects, archivedProjects, teamLeads, users, teams, allM
             alert(`Error: ${(error as Error).message}`);
         } finally {
             setIsCreatingTeam(false);
+        }
+    };
+    
+    const handleUpdateTeam = async (data: TeamPayload) => {
+        if (!teamToEdit) return;
+        try {
+            await api.updateTeam(teamToEdit.id, data);
+            refreshData();
+            setTeamToEdit(null);
+            setIsTeamsModalOpen(true);
+        } catch (error) {
+            console.error('Failed to update team:', error);
+            alert(`Error: ${(error as Error).message}`);
+        }
+    };
+
+    const handleDeleteTeam = async () => {
+        if (!teamToDeleteId) return;
+        try {
+            await api.deleteTeam(teamToDeleteId);
+            refreshData();
+            setTeamToDeleteId(null);
+        } catch (error) {
+            console.error('Failed to delete team:', error);
+            alert(`Error: ${(error as Error).message}`);
         }
     };
     
@@ -236,6 +266,12 @@ const OverviewTab = ({ projects, archivedProjects, teamLeads, users, teams, allM
                         </>
                     )}
                 </div>
+                <button
+                    onClick={() => setIsTeamsModalOpen(true)}
+                    className="flex items-center space-x-2 space-x-reverse bg-white text-[#4A2B2C] border border-gray-300 px-4 py-2 rounded-lg shadow-sm hover:bg-gray-50 transition-colors"
+                >
+                    <span>צוות</span>
+                </button>
             </div>
 
             {/* ... קוד ה-JSX של רשימת הפרויקטים נשאר זהה ... */}
@@ -289,6 +325,76 @@ const OverviewTab = ({ projects, archivedProjects, teamLeads, users, teams, allM
                 />
             </Modal>
             
+            {/* Teams list modal */}
+            <Modal isOpen={isTeamsModalOpen} onClose={() => setIsTeamsModalOpen(false)} titleId={teamsModalTitleId}>
+                <div className="space-y-4">
+                    <h3 id={teamsModalTitleId} className="text-lg font-bold text-gray-800">צוותים</h3>
+                    {(() => {
+                        const userId = user?.id;
+                        const userTeams = teams.filter(t => (t.leadIds?.includes(userId || '') || t.memberIds?.includes(userId || '')));
+                        const teamsToShow = (currentUserRole === 'ADMIN' || currentUserRole === 'SUPER_ADMIN') ? teams : (currentUserRole === 'TEAM_LEADER' || currentUserRole === 'EMPLOYEE') ? (userTeams.slice(0, 1)) : [];
+
+                        if (!teamsToShow || teamsToShow.length === 0) {
+                            return <div className="text-gray-500">לא קיימים צוותים להצגה.</div>;
+                        }
+
+                        const getLeadNames = (team: Team) => {
+                            if (team.leads && team.leads.length > 0) return team.leads.map(u => u.fullName).join(', ');
+                            if (team.teamLeads && team.teamLeads.length > 0) return team.teamLeads.map(l => l.user.fullName).join(', ');
+                            if (team.leadIds && team.leadIds.length > 0) {
+                                const mapped = team.leadIds.map(id => users.find(u => u.id === id)?.fullName).filter(Boolean) as string[];
+                                return mapped.join(', ');
+                            }
+                            return '—';
+                        };
+                        const getMemberNames = (team: Team) => {
+                            if (team.members && team.members.length > 0) return team.members.map(u => u.fullName).join(', ');
+                            if (team.memberIds && team.memberIds.length > 0) {
+                                const mapped = team.memberIds.map(id => users.find(u => u.id === id)?.fullName).filter(Boolean) as string[];
+                                return mapped.join(', ');
+                            }
+                            return '—';
+                        };
+
+                        return (
+                            <div className="space-y-3">
+                                {teamsToShow.map(team => (
+                                    <div key={team.id} className="flex items-start justify-between p-4 bg-white border border-gray-200 rounded-lg">
+                                        <div className="space-y-1">
+                                            <div className="text-base font-semibold text-gray-900">{team.name}</div>
+                                            <div className="text-sm text-gray-600"><span className="font-medium">ראש צוות:</span> {getLeadNames(team)}</div>
+                                            <div className="text-sm text-gray-600"><span className="font-medium">חברי צוות:</span> {getMemberNames(team)}</div>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            {((currentUserRole === 'ADMIN' || currentUserRole === 'SUPER_ADMIN') || (currentUserRole === 'TEAM_LEADER' && (team.leadIds?.includes(userId || '') || team.leads?.some(l => l.id === userId)))) && (
+                                                <button onClick={() => { setTeamToEdit(team); setIsTeamsModalOpen(false); }} className="px-3 py-1 text-sm bg-blue-600 text-white rounded-md">עריכה</button>
+                                            )}
+                                            {(currentUserRole === 'ADMIN' || currentUserRole === 'SUPER_ADMIN') && (
+                                                <button onClick={() => setTeamToDeleteId(team.id)} className="px-3 py-1 text-sm bg-red-600 text-white rounded-md">מחיקה</button>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        );
+                    })()}
+                </div>
+            </Modal>
+
+            {/* Edit team modal */}
+            <Modal isOpen={!!teamToEdit} onClose={() => setTeamToEdit(null)} titleId={editTeamModalTitleId}>
+                {teamToEdit && (
+                    <TeamForm
+                        titleId={editTeamModalTitleId}
+                        team={teamToEdit}
+                        users={users}
+                        allMemberships={allMemberships}
+                        onSubmit={handleUpdateTeam}
+                        onCancel={() => setTeamToEdit(null)}
+                    />
+                )}
+            </Modal>
+            
             <Modal isOpen={!!projectToEdit} onClose={() => setProjectToEdit(null)} titleId={editModalTitleId} size="md">
                 {projectToEdit && (
                     <EditProjectForm
@@ -316,6 +422,14 @@ const OverviewTab = ({ projects, archivedProjects, teamLeads, users, teams, allM
                 onConfirm={confirmDelete}
                 title="אישור מחיקה"
                 message="האם אתה בטוח שברצונך למחוק פרויקט זה? פעולה זו היא בלתי הפיכה."
+            />
+            
+            <ConfirmationModal
+                isOpen={!!teamToDeleteId}
+                onClose={() => setTeamToDeleteId(null)}
+                onConfirm={handleDeleteTeam}
+                title="מחיקת צוות"
+                message="האם אתה בטוח שברצונך למחוק צוות זה? פעולה זו היא בלתי הפיכה."
             />
         </div>
     );
