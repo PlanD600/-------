@@ -12,64 +12,63 @@ import TaskCardItem from '../../components/TaskCardItem';
 import TaskDetailModal from '../../components/TaskDetailModal';
 
 interface TeamMember {
-    id: string;
-    name: string;
+    id: string;
+    name: string;
 }
 
 interface TasksTabProps {
-    projects: Project[];
-    teamMembers: TeamMember[];
-    refreshData: () => void;
-    users: User[];
+    projects: Project[];
+    teamMembers: TeamMember[];
+    refreshData: () => void;
+    users: User[];
 }
 
 const ViewToggle = ({ view, setView, labelledby }: { view: 'list' | 'card', setView: (view: 'list' | 'card') => void, labelledby: string }) => (
-    <div role="radiogroup" aria-labelledby={labelledby} className="flex items-center rounded-lg bg-gray-200 p-1 flex-shrink-0">
-        <button
-            role="radio"
-            aria-checked={view === 'list'}
-            onClick={() => setView('list')}
-            className={`px-3 py-1 text-xs md:text-sm font-semibold rounded-md transition-colors ${view === 'list' ? 'bg-white shadow-sm text-[#4A2B2C]' : 'text-gray-600 hover:bg-gray-100'}`}
-        >
-            רשימה
-        </button>
-        <button
-            role="radio"
-            aria-checked={view === 'card'}
-            onClick={() => setView('card')}
-            className={`px-3 py-1 text-xs md:text-sm font-semibold rounded-md transition-colors ${view === 'card' ? 'bg-white shadow-sm text-[#4A2B2C]' : 'text-gray-600 hover:bg-gray-100'}`}
-        >
-            כרטיסיות
-        </button>
-    </div>
+    <div role="radiogroup" aria-labelledby={labelledby} className="flex items-center rounded-lg bg-gray-200 p-1 flex-shrink-0">
+        <button
+            role="radio"
+            aria-checked={view === 'list'}
+            onClick={() => setView('list')}
+            className={`px-3 py-1 text-xs md:text-sm font-semibold rounded-md transition-colors ${view === 'list' ? 'bg-white shadow-sm text-[#4A2B2C]' : 'text-gray-600 hover:bg-gray-100'}`}
+        >
+            רשימה
+        </button>
+        <button
+            role="radio"
+            aria-checked={view === 'card'}
+            onClick={() => setView('card')}
+            className={`px-3 py-1 text-xs md:text-sm font-semibold rounded-md transition-colors ${view === 'card' ? 'bg-white shadow-sm text-[#4A2B2C]' : 'text-gray-600 hover:bg-gray-100'}`}
+        >
+            כרטיסיות
+        </button>
+    </div>
 );
 
 const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) => {
-    const { user, currentUserRole } = useAuth();
-    const [selectedProjectId, setSelectedProjectId] = useState<string>('');
-    const [tasks, setTasks] = useState<Task[]>([]);
-    const [loadingTasks, setLoadingTasks] = useState(false);
+    const { user, currentUserRole } = useAuth();
+    const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+    const [tasks, setTasks] = useState<Task[]>([]);
+    const [loadingTasks, setLoadingTasks] = useState(false);
 
     const [userFilter, setUserFilter] = useState<string>('all');
-    const [view, setView] = useState<'list' | 'card'>('list');
+    const [view, setView] = useState<'list' | 'card'>('list');
 
-    const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
-    const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
-    const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
-    const [taskToView, setTaskToView] = useState<Task | null>(null);
+    const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
+    const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
+    const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
+    const [taskToView, setTaskToView] = useState<Task | null>(null);
 
-    const viewToggleLabelId = useId();
-    const addTaskTitleId = useId();
-    const editTaskTitleId = useId();
-    const viewTaskTitleId = useId();
-    const deleteTaskTitleId = useId();
+    const viewToggleLabelId = useId();
+    const addTaskTitleId = useId();
+    const editTaskTitleId = useId();
+    const viewTaskTitleId = useId();
+    const deleteTaskTitleId = useId();
 
-    const selectedProject = useMemo(() => {
-        if (!projects || projects.length === 0) return null;
-        return projects.find(p => p.id === selectedProjectId);
-    }, [projects, selectedProjectId]);
-    const currentTaskToView = useMemo(() => tasks.find(t => t.id === taskToView?.id) || null, [tasks, taskToView]);
-
+    const selectedProject = useMemo(() => {
+        if (!projects || projects.length === 0) return null;
+        return projects.find(p => p.id === selectedProjectId);
+    }, [projects, selectedProjectId]);
+    const currentTaskToView = useMemo(() => tasks.find(t => t.id === taskToView?.id) || null, [tasks, taskToView]);
 
     // לוגיקה חדשה: איסוף מזהי עובדים וראשי צוותים, וסינון מתוך users
     const projectUsers = useMemo(() => {
@@ -96,27 +95,26 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
         return projectUsers;
     }, [projectUsers]);
 
+    useEffect(() => {
+        const fetchTasks = async () => {
+            if (!selectedProjectId) {
+                setTasks([]);
+                return;
+            }
+            setLoadingTasks(true);
+            try {
+                const response = await api.getTasksForProject(selectedProjectId);
+                setTasks(response.data);
+            } catch (error) {
+                console.error("Failed to fetch tasks for project:", error);
+                setTasks([]);
+            } finally {
+                setLoadingTasks(false);
+            }
+        };
 
-    useEffect(() => {
-        const fetchTasks = async () => {
-            if (!selectedProjectId) {
-                setTasks([]);
-                return;
-            }
-            setLoadingTasks(true);
-            try {
-                const response = await api.getTasksForProject(selectedProjectId);
-                setTasks(response.data);
-            } catch (error) {
-                console.error("Failed to fetch tasks for project:", error);
-                setTasks([]);
-            } finally {
-                setLoadingTasks(false);
-            }
-        };
-
-        fetchTasks();
-    }, [selectedProjectId]);
+        fetchTasks();
+    }, [selectedProjectId]);
 
     // סינון משימות לפי מזהה עובד
     const filteredTasks = useMemo(() => {
@@ -127,107 +125,105 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
     }, [tasks, userFilter]);
 
     // הגדרה חדשה: מנהל הוא כל מי שתפקידו ADMIN, SUPER_ADMIN או TEAM_LEADER
-    const isManager = useMemo(() => {
-        return currentUserRole === 'ADMIN' || currentUserRole === 'SUPER_ADMIN' || currentUserRole === 'TEAM_LEADER';
-    }, [currentUserRole]);
+    const isManager = useMemo(() =>
+        currentUserRole === 'ADMIN' || currentUserRole === 'SUPER_ADMIN' || currentUserRole === 'TEAM_LEADER',
+        [currentUserRole]
+    );
 
-    const canUserChangeStatus = useMemo(() => {
-        if (!user || !currentTaskToView || !selectedProject) return false;
-        if (isManager) return true;
-        if (currentTaskToView.assignees?.some(assignee => assignee.id === user.id)) {
-            return true;
-        }
-        return false;
-    }, [user, currentTaskToView, selectedProject, isManager]);
+    const canUserChangeStatus = useMemo(() => {
+        if (!user || !currentTaskToView || !selectedProject) return false;
+        if (isManager) return true;
+        if (currentTaskToView.assignees?.some(assignee => assignee.id === user.id)) {
+            return true;
+        }
+        return false;
+    }, [user, currentTaskToView, selectedProject, isManager]);
 
+    const handleCreateTask = async (taskData: TaskPayload) => {
+        if (!selectedProjectId) return;
+        try {
+            await api.createTask(selectedProjectId, taskData);
+            const response = await api.getTasksForProject(selectedProjectId);
+            setTasks(response.data);
+            setIsAddTaskOpen(false);
+        } catch (error) {
+            console.error("Failed to create task", error);
+            alert(`Error: ${(error as Error).message}`);
+        }
+    };
 
-    const handleCreateTask = async (taskData: TaskPayload) => {
-        if (!selectedProjectId) return;
-        try {
-            await api.createTask(selectedProjectId, taskData);
-            const response = await api.getTasksForProject(selectedProjectId);
-            setTasks(response.data);
-            setIsAddTaskOpen(false);
-        } catch (error) {
-            console.error("Failed to create task", error);
-            alert(`Error: ${(error as Error).message}`);
-        }
-    };
+    const handleUpdateTask = async (updatedTaskData: Partial<TaskPayload>) => {
+        if (!selectedProjectId || !taskToEdit) return;
 
-    const handleUpdateTask = async (updatedTaskData: Partial<TaskPayload>) => {
-        if (!selectedProjectId || !taskToEdit) return;
+        try {
+            await api.updateTask(selectedProjectId, taskToEdit.id, updatedTaskData);
+            const response = await api.getTasksForProject(selectedProjectId);
+            setTasks(response.data);
+            setTaskToEdit(null);
+        } catch (error) {
+            console.error("Failed to update task", error);
+            alert(`Error: ${(error as Error).message}`);
+        }
+    };
 
-        try {
-            await api.updateTask(selectedProjectId, taskToEdit.id, updatedTaskData);
-            const response = await api.getTasksForProject(selectedProjectId);
-            setTasks(response.data);
-            setTaskToEdit(null);
-        } catch (error) {
-            console.error("Failed to update task", error);
-            alert(`Error: ${(error as Error).message}`);
-        }
-    };
+    const handleUpdateTaskField = async (taskId: string, updates: Partial<TaskPayload>) => {
+        if (!selectedProjectId) return;
+        try {
+            const updatedTask = await api.updateTask(selectedProjectId, taskId, updates);
+            setTasks(prevTasks => prevTasks.map(t => t.id === taskId ? updatedTask : t));
+        } catch (error) {
+            console.error("Failed to update task field", error);
+            alert(`Error: ${(error as Error).message}`);
+        }
+    };
 
-    const handleUpdateTaskField = async (taskId: string, updates: Partial<TaskPayload>) => {
-        if (!selectedProjectId) return;
-        try {
-            const updatedTask = await api.updateTask(selectedProjectId, taskId, updates);
-            setTasks(prevTasks => prevTasks.map(t => t.id === taskId ? updatedTask : t));
-        } catch (error) {
-            console.error("Failed to update task field", error);
-            alert(`Error: ${(error as Error).message}`);
-        }
-    };
+    const confirmDeleteTask = async () => {
+        const idToDelete = taskToDelete?.id;
+        if (!selectedProjectId || !idToDelete) return;
+        try {
+            await api.deleteTask(selectedProjectId, idToDelete);
+            setTasks(prevTasks => prevTasks.filter(t => t.id !== idToDelete));
+            setTaskToDelete(null);
+            setTaskToView(null);
+        } catch (error) {
+            console.error("Failed to delete task", error);
+            alert(`Error: ${(error as Error).message}`);
+        }
+    };
 
+    const handleAddTaskComment = async (commentText: string) => {
+        if (!currentTaskToView || !selectedProject || !user) return;
 
-    const confirmDeleteTask = async () => {
-        const idToDelete = taskToDelete?.id;
-        if (!selectedProjectId || !idToDelete) return;
-        try {
-            await api.deleteTask(selectedProjectId, idToDelete);
-            setTasks(prevTasks => prevTasks.filter(t => t.id !== idToDelete));
-            setTaskToDelete(null);
-            setTaskToView(null);
-        } catch (error) {
-            console.error("Failed to delete task", error);
-            alert(`Error: ${(error as Error).message}`);
-        }
-    };
+        try {
+            const newComment = await api.addTaskComment(selectedProject.id, currentTaskToView.id, commentText);
+            const updatedTask = { ...currentTaskToView, comments: [...currentTaskToView.comments, newComment] };
+            setTasks(prevTasks => prevTasks.map(t => t.id === currentTaskToView.id ? updatedTask : t));
+        } catch (error) {
+            console.error("Failed to add comment", error);
+            alert(`Error: ${(error as Error).message}`);
+        }
+    };
 
-    const handleAddTaskComment = async (commentText: string) => {
-        if (!currentTaskToView || !selectedProject || !user) return;
+    return (
+        <div className="space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-800">ניהול משימות</h2>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+                    <label htmlFor="project-select" className="sr-only">בחר פרויקט</label>
+                    <select
+                        id="project-select"
+                        value={selectedProjectId}
+                        onChange={(e) => {
+                            setSelectedProjectId(e.target.value);
+                            setUserFilter('all');
+                        }}
+                        className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-[#4A2B2C] focus:border-[#4A2B2C] block w-full sm:w-auto p-2"
+                    >
+                        <option value="">-- בחר פרויקט --</option>
+                        {projects.filter(p => !p.isArchived).map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
+                    </select>
 
-        try {
-            const newComment = await api.addTaskComment(selectedProject.id, currentTaskToView.id, commentText);
-            const updatedTask = { ...currentTaskToView, comments: [...currentTaskToView.comments, newComment] };
-            setTasks(prevTasks => prevTasks.map(t => t.id === currentTaskToView.id ? updatedTask : t));
-        } catch (error) {
-            console.error("Failed to add comment", error);
-            alert(`Error: ${(error as Error).message}`);
-        }
-    };
-
-
-    return (
-        <div className="space-y-6">
-            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
-                <h2 className="text-xl md:text-2xl font-bold text-gray-800">ניהול משימות</h2>
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
-                    <label htmlFor="project-select" className="sr-only">בחר פרויקט</label>
-                    <select
-                        id="project-select"
-                        value={selectedProjectId}
-                        onChange={(e) => {
-                            setSelectedProjectId(e.target.value);
-                            setUserFilter('all');
-                        }}
-                        className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-[#4A2B2C] focus:border-[#4A2B2C] block w-full sm:w-auto p-2"
-                    >
-                        <option value="">-- בחר פרויקט --</option>
-                        {projects.filter(p => !p.isArchived).map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
-                    </select>
-
-                    <label htmlFor="user-filter-select" className="sr-only">סנן לפי עובד</label>
+                    <label htmlFor="user-filter-select" className="sr-only">סנן לפי עובד</label>
                     <select
                         id="user-filter-select"
                         value={userFilter}
@@ -241,8 +237,8 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
                         ))}
                     </select>
 
-                    <span id={viewToggleLabelId} className="sr-only">בחר תצוגת משימות</span>
-                    <ViewToggle view={view} setView={setView} labelledby={viewToggleLabelId} />
+                    <span id={viewToggleLabelId} className="sr-only">בחר תצוגת משימות</span>
+                    <ViewToggle view={view} setView={setView} labelledby={viewToggleLabelId} />
                     {isManager && (
                         <button
                             onClick={() => setIsAddTaskOpen(true)}
@@ -253,45 +249,45 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
                             <span>הוסף משימה</span>
                         </button>
                     )}
-                </div>
-            </div>
+                </div>
+            </div>
 
-            <div className="min-h-[400px]">
-                {!selectedProjectId ? (
-                    <div className="text-center py-16 px-4 bg-gray-50 rounded-2xl">
-                        <p className="text-gray-500">יש לבחור פרויקט כדי להציג את המשימות שלו.</p>
-                    </div>
-                ) : loadingTasks ? (
-                    <div className="text-center py-16 text-gray-500">טוען משימות...</div>
-                ) : filteredTasks.length === 0 ? (
-                    <div className="text-center py-16 px-4 bg-gray-50 rounded-2xl">
-                        <p className="text-gray-500">
-                            {tasks.length > 0
-                                ? 'לא נמצאו משימות התואמות לסינון הנוכחי.'
-                                : 'לא נמצאו משימות עבור פרויקט זה.'
-                            }
-                        </p>
-                    </div>
-                ) : view === 'list' ? (
-                    <div className="space-y-3">
-                        <div className="hidden md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_minmax(0,1.5fr)_minmax(0,1.5fr)] gap-x-4 px-3 py-2 text-xs font-bold text-gray-500 uppercase tracking-wider border-b">
-                            <span>סטטוס</span>
-                            <span>שם המשימה</span>
-                            <span>תאריכים</span>
-                            <span>משויכים</span>
-                        </div>
-                        {filteredTasks.map(task => (
-                            <TaskListItem key={task.id} task={task} onView={() => setTaskToView(task)} />
-                        ))}
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {filteredTasks.map(task => (
-                            <TaskCardItem key={task.id} task={task} onView={() => setTaskToView(task)} />
-                        ))}
-                    </div>
-                )}
-            </div>
+            <div className="min-h-[400px]">
+                {!selectedProjectId ? (
+                    <div className="text-center py-16 px-4 bg-gray-50 rounded-2xl">
+                        <p className="text-gray-500">יש לבחור פרויקט כדי להציג את המשימות שלו.</p>
+                    </div>
+                ) : loadingTasks ? (
+                    <div className="text-center py-16 text-gray-500">טוען משימות...</div>
+                ) : filteredTasks.length === 0 ? (
+                    <div className="text-center py-16 px-4 bg-gray-50 rounded-2xl">
+                        <p className="text-gray-500">
+                            {tasks.length > 0
+                                ? 'לא נמצאו משימות התואמות לסינון הנוכחי.'
+                                : 'לא נמצאו משימות עבור פרויקט זה.'
+                            }
+                        </p>
+                    </div>
+                ) : view === 'list' ? (
+                    <div className="space-y-3">
+                        <div className="hidden md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_minmax(0,1.5fr)_minmax(0,1.5fr)] gap-x-4 px-3 py-2 text-xs font-bold text-gray-500 uppercase tracking-wider border-b">
+                            <span>סטטוס</span>
+                            <span>שם המשימה</span>
+                            <span>תאריכים</span>
+                            <span>משויכים</span>
+                        </div>
+                        {filteredTasks.map(task => (
+                            <TaskListItem key={task.id} task={task} onView={() => setTaskToView(task)} />
+                        ))}
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {filteredTasks.map(task => (
+                            <TaskCardItem key={task.id} task={task} onView={() => setTaskToView(task)} />
+                        ))}
+                    </div>
+                )}
+            </div>
 
             <Modal isOpen={isAddTaskOpen} onClose={() => setIsAddTaskOpen(false)} titleId={addTaskTitleId} size="sm">
                 <AddTaskForm titleId={addTaskTitleId} onSubmit={handleCreateTask} onCancel={() => setIsAddTaskOpen(false)} availableAssignees={projectUsers} />
@@ -301,35 +297,35 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
                 {taskToEdit && <EditTaskForm titleId={editTaskTitleId} task={taskToEdit} onSubmit={handleUpdateTask} onCancel={() => setTaskToEdit(null)} users={projectUsers} />}
             </Modal>
 
-            <TaskDetailModal
-                isOpen={!!taskToView}
-                onClose={() => setTaskToView(null)}
-                project={selectedProject ?? null}
-                task={currentTaskToView}
-                isManager={isManager}
-                canUserChangeStatus={canUserChangeStatus}
-                onUpdateTaskField={handleUpdateTaskField}
-                titleId={viewTaskTitleId}
-                onEdit={() => {
-                    if (currentTaskToView) setTaskToEdit(currentTaskToView);
-                    setTaskToView(null);
-                }}
-                onDelete={() => {
-                    if (currentTaskToView) setTaskToDelete(currentTaskToView);
-                    setTaskToView(null);
-                }}
-                onAddComment={handleAddTaskComment}
-            />
+            <TaskDetailModal
+                isOpen={!!taskToView}
+                onClose={() => setTaskToView(null)}
+                project={selectedProject ?? null}
+                task={currentTaskToView}
+                isManager={isManager}
+                canUserChangeStatus={canUserChangeStatus}
+                onUpdateTaskField={handleUpdateTaskField}
+                titleId={viewTaskTitleId}
+                onEdit={() => {
+                    if (currentTaskToView) setTaskToEdit(currentTaskToView);
+                    setTaskToView(null);
+                }}
+                onDelete={() => {
+                    if (currentTaskToView) setTaskToDelete(currentTaskToView);
+                    setTaskToView(null);
+                }}
+                onAddComment={handleAddTaskComment}
+            />
 
-            <ConfirmationModal
-                isOpen={!!taskToDelete}
-                onClose={() => setTaskToDelete(null)}
-                onConfirm={confirmDeleteTask}
-                title="אישור מחיקת משימה"
-                message={`האם אתה בטוח שברצונך למחוק את המשימה "${taskToDelete?.title}"? פעולה זו היא בלתי הפיכה.`}
-            />
-        </div>
-    );
+            <ConfirmationModal
+                isOpen={!!taskToDelete}
+                onClose={() => setTaskToDelete(null)}
+                onConfirm={confirmDeleteTask}
+                title="אישור מחיקת משימה"
+                message={`האם אתה בטוח שברצונך למחוק את המשימה "${taskToDelete?.title}"? פעולה זו היא בלתי הפיכה.`}
+            />
+        </div>
+    );
 };
 
 export default TasksTab;

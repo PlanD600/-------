@@ -1,4 +1,3 @@
-// src/components/TeamForm.tsx
 import React, { useState, useMemo, useEffect } from 'react';
 import { User, Team, Membership } from '../types';
 
@@ -15,59 +14,27 @@ interface TeamFormProps {
 
 const TeamForm = ({ team, users, allMemberships, onSubmit, onCancel, titleId, isLoading, apiError }: TeamFormProps) => {
     const [name, setName] = useState('');
-    const [leadId, setLeadId] = useState<string | null>(null); // 💡 שינוי: leadId הוא כעת מחרוזת בודדת או null.
+    const [leadId, setLeadId] = useState<string | null>(null); // בחירה יחידה לראש צוות
     const [memberIds, setMemberIds] = useState<string[]>([]);
 
     useEffect(() => {
         setName(team?.name || '');
-        // 💡 שינוי: נגדיר את leadId כראש הצוות הראשון במערך, אם קיים.
         setLeadId(team?.leadIds?.[0] || null);
         setMemberIds(team?.memberIds || []);
     }, [team]);
-    
-    // רשימת המשתמשים שיכולים להיות ראשי צוות
+
+    // מבנה חדש: ראשי הצוות מתוך כל הממברשיפים בעלי תפקיד מתאים
+    const leadRoles = ['TEAM_LEADER', 'ADMIN', 'SUPER_ADMIN'];
     const availableLeads = useMemo(() => {
-        console.log('🔍 TeamForm Debug - allMemberships:', allMemberships);
-        console.log('🔍 TeamForm Debug - users:', users);
-        
-        if (!allMemberships || allMemberships.length === 0) {
-            console.log('❌ No memberships available');
-            return [];
-        }
-        
-        const leadRoles = ['TEAM_LEADER', 'ADMIN', 'SUPER_ADMIN'];
-        console.log('🔍 Looking for roles:', leadRoles);
-        
-        // בדיקה: מה המבנה האמיתי של allMemberships?
-        if (allMemberships.length > 0) {
-            console.log('🔍 First membership structure:', allMemberships[0]);
-            console.log('🔍 First membership keys:', Object.keys(allMemberships[0]));
-        }
-        
-        // פשוט יותר: נבנה את רשימת ה-team leaders ישירות מה-allMemberships
-        const leads = allMemberships
-            .filter(m => {
-                const hasLeadRole = leadRoles.includes(m.role);
-                const hasUser = m.user != null;
-                
-                if (hasLeadRole && hasUser) {
-                    console.log(`✅ Found lead membership: ${m.user.fullName} with role: ${m.role}`);
-                }
-                
-                return hasLeadRole && hasUser;
-            })
+        return allMemberships
+            .filter(m => leadRoles.includes(m.role) && m.user)
             .map(m => m.user!)
-            .filter((user, index, self) => self.findIndex(u => u.id === user.id) === index); // הסרת כפילויות
-        
-        console.log('🔍 Available leads found:', leads.length, leads.map(l => l.fullName));
-        return leads;
+            .filter((user, idx, arr) => arr.findIndex(u => u.id === user.id) === idx);
     }, [allMemberships]);
 
-    const availableMembers = useMemo(() => {
-        return users;
-    }, [users]);
+    // חברי צוות אפשריים = כל המשתמשים שאינם ראש צוות נבחר
+    const availableMembers = useMemo(() => users.filter(u => u.id !== leadId), [users, leadId]);
 
-    // 💡 שינוי: פונקציית הבחירה של ראש הצוות תהיה מבוססת על בחירה יחידה.
     const handleLeadChange = (selectedId: string) => {
         setLeadId(selectedId === leadId ? null : selectedId);
     };
@@ -78,16 +45,13 @@ const TeamForm = ({ team, users, allMemberships, onSubmit, onCancel, titleId, is
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        // 💡 שינוי: בדיקה אם נבחר ראש צוות יחיד.
         if (!name.trim() || !leadId) {
             alert('אנא מלא את שם הצוות ובחר ראש צוות אחד.');
             return;
         }
-        // 💡 שינוי: נשלח את leadIds כשהוא מכיל מערך עם מזהה יחיד.
         onSubmit({ name, leadIds: [leadId], memberIds });
     };
 
-    // Show loading state if data is not ready
     if (isLoading || !allMemberships || !users) {
         return (
             <div className="space-y-4 p-2">
@@ -110,18 +74,17 @@ const TeamForm = ({ team, users, allMemberships, onSubmit, onCancel, titleId, is
             <div>
                 <fieldset>
                     <legend className="block text-sm font-medium text-gray-700">ראש צוות</legend>
-                    {/* 💡 שינוי: החלף מ-checkbox ל-radio לבחירה יחידה */}
                     <div className="mt-1 max-h-32 overflow-y-auto space-y-2 rounded-md border border-gray-300 p-3 bg-gray-50">
                         {availableLeads.length > 0 ? (
                             availableLeads.map(user => (
                                 <label key={user.id} className="flex items-center space-x-3 space-x-reverse cursor-pointer hover:bg-gray-100 p-1 rounded-md">
-                                    <input 
-                                        type="radio" 
-                                        name="lead-selection" // נותן לכל הקבוצה שם זהה
+                                    <input
+                                        type="radio"
+                                        name="lead-selection"
                                         value={user.id}
-                                        checked={leadId === user.id} 
-                                        onChange={() => handleLeadChange(user.id)} 
-                                        className="w-4 h-4 rounded-full border-gray-300 text-[#4A2B2C] focus:ring-[#4A2B2C]" 
+                                        checked={leadId === user.id}
+                                        onChange={() => handleLeadChange(user.id)}
+                                        className="w-4 h-4 rounded-full border-gray-300 text-[#4A2B2C] focus:ring-[#4A2B2C]"
                                     />
                                     <span className="text-gray-800 select-none">{user.fullName}</span>
                                 </label>
@@ -158,4 +121,5 @@ const TeamForm = ({ team, users, allMemberships, onSubmit, onCancel, titleId, is
         </form>
     );
 };
+
 export default TeamForm;

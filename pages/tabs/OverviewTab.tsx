@@ -77,7 +77,7 @@ const OverviewTab = ({ projects, archivedProjects, teamLeads, users, teams, allM
     const [statusFilter, setStatusFilter] = useState('all');
     const [teamFilter, setTeamFilter] = useState('all');
     const [isCreatingTeam, setIsCreatingTeam] = useState(false);
-    
+
     const viewToggleLabelId = useId();
     const createProjectModalTitleId = useId();
     const createTeamModalTitleId = useId();
@@ -130,7 +130,7 @@ const OverviewTab = ({ projects, archivedProjects, teamLeads, users, teams, allM
             setIsCreatingTeam(false);
         }
     };
-    
+
     const handleUpdateTeam = async (data: TeamPayload) => {
         if (!teamToEdit) return;
         try {
@@ -155,7 +155,7 @@ const OverviewTab = ({ projects, archivedProjects, teamLeads, users, teams, allM
             alert(`Error: ${(error as Error).message}`);
         }
     };
-    
+
     const handleUpdateProjectDetails = async (updatedData: Partial<ProjectPayload>) => {
         if (!projectToEdit) return;
         try {
@@ -177,20 +177,20 @@ const OverviewTab = ({ projects, archivedProjects, teamLeads, users, teams, allM
             setProjectToEdit(project);
         }
     };
-    
+
     const handleArchive = async (id: string) => {
         // מחפש פרויקט ברשימת הפרויקטים הפעילים או בארכיון
         const project = projects.find(p => p.id === id) || archivedProjects.find(p => p.id === id);
         if (!project) return;
         try {
-            const newIsArchivedStatus = !project.isArchived; 
+            const newIsArchivedStatus = !project.isArchived;
             await api.archiveProject(id, newIsArchivedStatus);
             refreshData();
             // אם הפרויקט עבר לארכיון, נשאר בתצוגת הארכיון
             // אם הפרויקט חזר מהארכיון, נחזור לתצוגת הפרויקטים הפעילים
             setProjectsView(newIsArchivedStatus ? 'archived' : 'active');
         } catch (error) {
-             console.error("Failed to archive project:", error);
+            console.error("Failed to archive project:", error);
             alert(`Error: ${(error as Error).message}`);
         }
     };
@@ -219,7 +219,7 @@ const OverviewTab = ({ projects, archivedProjects, teamLeads, users, teams, allM
             }
         }
     };
-    
+
     const getProjectPermissions = (project: Project) => {
         const isTeamLeadOfProject = currentUserRole === 'TEAM_LEADER' && project.teamLeads?.some(lead => lead.id === user?.id);
         const canEditOrArchive = canManageOrg || isTeamLeadOfProject;
@@ -239,31 +239,25 @@ const OverviewTab = ({ projects, archivedProjects, teamLeads, users, teams, allM
                     <div className="flex items-center gap-x-4">
                         <h2 className="text-2xl font-bold text-gray-800">כל הפרויקטים</h2>
                         <span id={viewToggleLabelId} className="sr-only">בחר תצוגת פרויקטים</span>
-                        <ViewToggle view={projectsView} setView={setProjectsView} labelledby={viewToggleLabelId} /> 
+                        <ViewToggle view={projectsView} setView={setProjectsView} labelledby={viewToggleLabelId} />
                     </div>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                         <FilterSelect id={statusFilterId} label="סינון לפי סטטוס" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} options={projectStatuses} defaultOption="כל הסטטוסים" />
                         <FilterSelect id={teamFilterId} label="סינון לפי צוות" value={teamFilter} onChange={(e) => setTeamFilter(e.target.value)} options={projectTeams} defaultOption="כל הצוותים" />
                     </div>
                 </div>
-                 <div className="flex items-center space-x-2 space-x-reverse">
+                <div className="flex items-center space-x-2 space-x-reverse">
                     {canManageOrg && (
-                        <>
-                            <button
-                                onClick={() => setIsCreateProjectModalOpen(true)}
-                                className="flex items-center space-x-2 space-x-reverse bg-[#4A2B2C] text-white px-4 py-2 rounded-lg shadow hover:bg-opacity-90 transition-colors"
-                            >
-                                <PlusIcon className="w-5 h-5" />
-                                <span>צור פרויקט</span>
-                            </button>
-                            <button
-                                onClick={() => setIsCreateTeamModalOpen(true)}
-                                className="flex items-center space-x-2 space-x-reverse bg-white text-[#4A2B2C] border border-gray-300 px-4 py-2 rounded-lg shadow-sm hover:bg-gray-50 transition-colors"
-                            >
-                                <PlusIcon className="w-5 h-5" />
-                                <span>צור צוות</span>
-                            </button>
-                        </>
+                        <button onClick={() => setIsCreateProjectModalOpen(true)} className="...">
+                            <PlusIcon />
+                            <span>צור פרויקט</span>
+                        </button>
+                    )}
+                    {canManageOrg && (
+                        <button onClick={() => setIsCreateTeamModalOpen(true)} className="...">
+                            <PlusIcon />
+                            <span>צור צוות</span>
+                        </button>
                     )}
                 </div>
                 <button
@@ -280,8 +274,8 @@ const OverviewTab = ({ projects, archivedProjects, teamLeads, users, teams, allM
                     {filteredProjects.map(project => {
                         const permissions = getProjectPermissions(project);
                         return (
-                             <ProjectCard 
-                                key={project.id} 
+                            <ProjectCard
+                                key={project.id}
                                 project={project}
                                 onClick={() => {
                                     // מחפש פרויקט ברשימת הפרויקטים הפעילים או בארכיון
@@ -290,9 +284,9 @@ const OverviewTab = ({ projects, archivedProjects, teamLeads, users, teams, allM
                                         setSelectedProject(fullProject);
                                     }
                                 }}
-                                onEdit={permissions.canEditOrArchive ? handleEdit : undefined}
-                                onArchive={permissions.canEditOrArchive ? handleArchive : undefined}
-                                onDelete={permissions.canDelete ? handleDelete : undefined}
+                                onEdit={canManageOrg ? handleEdit : undefined}
+                                onArchive={canManageOrg ? handleArchive : undefined}
+                                onDelete={canManageOrg ? handleDelete : undefined}
                             />
                         )
                     })}
@@ -305,7 +299,7 @@ const OverviewTab = ({ projects, archivedProjects, teamLeads, users, teams, allM
             )}
 
             <Modal isOpen={isCreateProjectModalOpen} onClose={() => setIsCreateProjectModalOpen(false)} titleId={createProjectModalTitleId} size="md">
-                <AddProjectForm 
+                <AddProjectForm
                     titleId={createProjectModalTitleId}
                     onSubmit={handleCreateProject}
                     onCancel={() => setIsCreateProjectModalOpen(false)}
@@ -313,7 +307,7 @@ const OverviewTab = ({ projects, archivedProjects, teamLeads, users, teams, allM
                     teams={teams}
                 />
             </Modal>
-            
+
             <Modal isOpen={isCreateTeamModalOpen} onClose={() => setIsCreateTeamModalOpen(false)} titleId={createTeamModalTitleId}>
                 <TeamForm
                     titleId={createTeamModalTitleId}
@@ -324,7 +318,7 @@ const OverviewTab = ({ projects, archivedProjects, teamLeads, users, teams, allM
                     isLoading={isCreatingTeam}
                 />
             </Modal>
-            
+
             {/* Teams list modal */}
             <Modal isOpen={isTeamsModalOpen} onClose={() => setIsTeamsModalOpen(false)} titleId={teamsModalTitleId}>
                 <div className="space-y-4">
@@ -394,7 +388,7 @@ const OverviewTab = ({ projects, archivedProjects, teamLeads, users, teams, allM
                     />
                 )}
             </Modal>
-            
+
             <Modal isOpen={!!projectToEdit} onClose={() => setProjectToEdit(null)} titleId={editModalTitleId} size="md">
                 {projectToEdit && (
                     <EditProjectForm
@@ -423,7 +417,7 @@ const OverviewTab = ({ projects, archivedProjects, teamLeads, users, teams, allM
                 title="אישור מחיקה"
                 message="האם אתה בטוח שברצונך למחוק פרויקט זה? פעולה זו היא בלתי הפיכה."
             />
-            
+
             <ConfirmationModal
                 isOpen={!!teamToDeleteId}
                 onClose={() => setTeamToDeleteId(null)}
