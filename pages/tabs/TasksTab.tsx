@@ -139,14 +139,10 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
         return tasks.filter(task => task.assignees?.some(assignee => assignee.id === filteredUser.id));
     }, [tasks, userFilter, availableFilterUsers]);
 
-    const isManager = useMemo(() => {
-        if (!user || !selectedProject) return false;
-        if (currentUserRole === 'ADMIN' || currentUserRole === 'SUPER_ADMIN') return true;
-        if (currentUserRole === 'TEAM_LEADER' && selectedProject.teamLeads?.some(lead => lead.id === user.id)) {
-            return true;
-        }
-        return false;
-    }, [user, selectedProject, currentUserRole]);
+    // הגדרה חדשה: מנהל הוא כל מי שתפקידו ADMIN, SUPER_ADMIN או TEAM_LEADER
+    const isManager = useMemo(() => {
+        return currentUserRole === 'ADMIN' || currentUserRole === 'SUPER_ADMIN' || currentUserRole === 'TEAM_LEADER';
+    }, [currentUserRole]);
 
     const canUserChangeStatus = useMemo(() => {
         if (!user || !currentTaskToView || !selectedProject) return false;
@@ -260,16 +256,16 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
 
                     <span id={viewToggleLabelId} className="sr-only">בחר תצוגת משימות</span>
                     <ViewToggle view={view} setView={setView} labelledby={viewToggleLabelId} />
-                    {isManager && (
-                        <button
-                            onClick={() => setIsAddTaskOpen(true)}
-                            disabled={!selectedProjectId}
-                            className="flex items-center space-x-2 space-x-reverse bg-[#4A2B2C] text-white px-3 py-2 text-sm rounded-lg shadow hover:bg-opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            <PlusIcon className="w-4 h-4" />
-                            <span>הוסף משימה</span>
-                        </button>
-                    )}
+                    {isManager && (
+                        <button
+                            onClick={() => setIsAddTaskOpen(true)}
+                            disabled={!selectedProjectId}
+                            className="flex items-center space-x-2 space-x-reverse bg-[#4A2B2C] text-white px-3 py-2 text-sm rounded-lg shadow hover:bg-opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <PlusIcon className="w-4 h-4" />
+                            <span>הוסף משימה</span>
+                        </button>
+                    )}
                 </div>
             </div>
 
