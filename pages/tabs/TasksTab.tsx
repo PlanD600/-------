@@ -71,33 +71,25 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
     const currentTaskToView = useMemo(() => tasks.find(t => t.id === taskToView?.id) || null, [tasks, taskToView]);
 
 
-    // שלב 1: יצירת רשימת משתמשי הפרויקט (עובדים וראשי צוותים) ללא כפילויות
+    // לוגיקה חדשה: איסוף מזהי עובדים וראשי צוותים, וסינון מתוך users
     const projectUsers = useMemo(() => {
         if (!selectedProject) return [];
-        const userMap = new Map<string, User>();
-        // הוספת ראשי צוותים
+        const allUserIds = new Set<string>();
+        // הוסף את מזהי ראשי הצוותים
         if (selectedProject.teamLeads) {
-            selectedProject.teamLeads.forEach(lead => {
-                if (lead && lead.id) userMap.set(lead.id, lead);
-            });
+            selectedProject.teamLeads.forEach(lead => allUserIds.add(lead.id));
         }
-        // הוספת חברי צוותים
+        // הוסף את מזהי חברי הצוותים המשויכים לפרויקט
         if (selectedProject.teams) {
             selectedProject.teams.forEach(team => {
-                if (team.members) {
-                    team.members.forEach(member => {
-                        if (member && member.id) userMap.set(member.id, member);
-                    });
+                if (team.memberIds) {
+                    team.memberIds.forEach(memberId => allUserIds.add(memberId));
                 }
             });
         }
-        return Array.from(userMap.values());
-    }, [selectedProject]);
-
-    // רשימת העובדים לסינון (רק ממשתמשי הפרויקט)
-    const availableFilterUsers = useMemo(() => {
-        return projectUsers;
-    }, [projectUsers]);
+        // סנן מתוך רשימת המשתמשים המלאה
+        return users.filter(user => allUserIds.has(user.id));
+    }, [selectedProject, users]);
 
     // רשימת העובדים לשיוך משימה (רק ממשתמשי הפרויקט)
     const availableUsersForTask = useMemo(() => {
@@ -126,18 +118,13 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
         fetchTasks();
     }, [selectedProjectId]);
 
-    // סינון משימות לפי משתמש שנבחר (לפי id)
+    // סינון משימות לפי מזהה עובד
     const filteredTasks = useMemo(() => {
         if (userFilter === 'all') {
             return tasks;
         }
-        if (!availableFilterUsers || availableFilterUsers.length === 0) {
-            return tasks;
-        }
-        const filteredUser = availableFilterUsers.find(member => member.id === userFilter);
-        if (!filteredUser) return tasks;
-        return tasks.filter(task => task.assignees?.some(assignee => assignee.id === filteredUser.id));
-    }, [tasks, userFilter, availableFilterUsers]);
+        return tasks.filter(task => task.assignees?.some(assignee => assignee.id === userFilter));
+    }, [tasks, userFilter]);
 
     // הגדרה חדשה: מנהל הוא כל מי שתפקידו ADMIN, SUPER_ADMIN או TEAM_LEADER
     const isManager = useMemo(() => {
@@ -249,8 +236,8 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
                         className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-[#4A2B2C] focus:border-[#4A2B2C] block w-full sm:w-auto p-2 disabled:opacity-50"
                     >
                         <option value="all">כל העובדים</option>
-                        {availableFilterUsers.map(member => (
-                            <option key={member.id} value={member.id}>{member.fullName}</option>
+                        {projectUsers.map(user => (
+                            <option key={user.id} value={user.id}>{user.fullName}</option>
                         ))}
                     </select>
 
@@ -307,12 +294,12 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
             </div>
 
             <Modal isOpen={isAddTaskOpen} onClose={() => setIsAddTaskOpen(false)} titleId={addTaskTitleId} size="sm">
-                <AddTaskForm titleId={addTaskTitleId} onSubmit={handleCreateTask} onCancel={() => setIsAddTaskOpen(false)} availableAssignees={availableUsersForTask} />
+                <AddTaskForm titleId={addTaskTitleId} onSubmit={handleCreateTask} onCancel={() => setIsAddTaskOpen(false)} availableAssignees={projectUsers} />
             </Modal>
 
-            <Modal isOpen={!!taskToEdit} onClose={() => setTaskToEdit(null)} titleId={editTaskTitleId} size="sm">
-                {taskToEdit && <EditTaskForm titleId={editTaskTitleId} task={taskToEdit} onSubmit={handleUpdateTask} onCancel={() => setTaskToEdit(null)} users={availableUsersForTask} />}
-            </Modal>
+            <Modal isOpen={!!taskToEdit} onClose={() => setTaskToEdit(null)} titleId={editTaskTitleId} size="sm">
+                {taskToEdit && <EditTaskForm titleId={editTaskTitleId} task={taskToEdit} onSubmit={handleUpdateTask} onCancel={() => setTaskToEdit(null)} users={projectUsers} />}
+            </Modal>
 
             <TaskDetailModal
                 isOpen={!!taskToView}
