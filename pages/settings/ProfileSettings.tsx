@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import * as api from '../../services/api';
+import Modal from '../../components/Modal';
+import { CloseIcon } from '../../components/icons';
 
 // הודעות שגיאה בעברית
 const errorMessagesHe: Record<string, string> = {
     'Invalid email format': "פורמט אימייל לא תקין",
-    'Email already in use': "האימייל כבר בשימוש",
     'Failed to update profile': "עדכון הפרופיל נכשל",
     'Network Error': "תקלה ברשת. נסה שוב מאוחר יותר.",
     'Unauthorized': "אין הרשאה לביצוע הפעולה",
+    'Unique constraint failed on the fields: (`email`)': "האימייל כבר בשימוש במערכת.",
+    'Failed to update user profile': "עדכון הפרופיל נכשל."
 };
 
 const ProfileSettings = () => {
@@ -58,36 +61,47 @@ const ProfileSettings = () => {
         setIsLoading(true);
         setError('');
         setSuccess('');
+        if (!user) return;
+
         try {
-            let newProfilePictureUrl = user?.profilePictureUrl;
+            let updates: api.UpdateMyProfilePayload = {};
+            let hasChanges = false;
+
+            if (fullName !== user.fullName) { updates.fullName = fullName; hasChanges = true; }
+            if (jobTitle !== user.jobTitle) { updates.jobTitle = jobTitle; hasChanges = true; }
+            if (email !== user.email) {
+                if (email && !/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(email)) {
+                    setError(errorMessagesHe['Invalid email format']);
+                    setIsLoading(false);
+                    return;
+                }
+                updates.email = email;
+                hasChanges = true;
+            }
+
+            // טיפול בהעלאת תמונה
             if (profilePictureFile) {
                 const uploadResponse = await api.uploadProfilePicture(profilePictureFile);
-                const serverBaseUrl = 'https://api.mypland.com';
-                newProfilePictureUrl = `${serverBaseUrl}${uploadResponse.profilePictureUrl}`;
+                updates.profilePictureUrl = uploadResponse.profilePictureUrl;
+                hasChanges = true;
+            }
+            
+            if (hasChanges) {
+                const updatedUser = await api.updateMyProfile(updates);
+                updateUser(updatedUser);
+                setSuccess('הפרופיל עודכן בהצלחה!');
+                setProfilePictureFile(null); // נקה את התמונה הזמנית אחרי העלאה
+            } else {
+                setSuccess('אין שינויים לשמור.');
             }
 
-            // בדיקת תקינות אימייל
-            if (email && !/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(email)) {
-                setError(errorMessagesHe['Invalid email format']);
-                setIsLoading(false);
-                return;
-            }
-
-            const updatedUser = await api.updateMyProfile({
-                fullName,
-                jobTitle,
-                email,
-                profilePictureUrl: newProfilePictureUrl
-            });
-
-            updateUser(updatedUser);
-            setSuccess('הפרופיל עודכן בהצלחה!');
-            setProfilePictureFile(null);
         } catch (err: any) {
-            // תרגום שגיאה לעברית
-            const msg = err.message;
-            const heMsg = errorMessagesHe[msg] || 'עדכון הפרופיל נכשל';
+            const serverError = err?.message || 'Failed to update profile';
+            const heMsg = errorMessagesHe[serverError] || 'עדכון הפרופיל נכשל';
             setError(heMsg);
+            if (serverError.includes("Unique constraint failed")) {
+                setError(errorMessagesHe['Unique constraint failed on the fields: (`email`)']);
+            }
         } finally {
             setIsLoading(false);
         }
@@ -113,7 +127,7 @@ const ProfileSettings = () => {
         }
 
         try {
-            await api.changeMyPassword(newPassword); // ← שימוש בפונקציה החדשה
+            await api.changeMyPassword(newPassword);
             setPasswordSuccess('הסיסמה עודכנה בהצלחה!');
             setNewPassword('');
             setConfirmPassword('');
@@ -122,7 +136,7 @@ const ProfileSettings = () => {
             setPasswordError(err.message || 'עדכון הסיסמה נכשל');
         }
     };
-
+    
     return (
         <div>
             <h3 className="text-xl font-bold text-gray-800 mb-6">הפרופיל שלי</h3>
@@ -214,17 +228,15 @@ const ProfileSettings = () => {
                 </div>
             </form>
 
-            {/* מודל שינוי סיסמה */}
             {showPasswordModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6 relative">
-                        <button
-                            className="absolute top-3 left-3 text-gray-600 hover:text-gray-900"
-                            onClick={() => setShowPasswordModal(false)}
-                        >
-                            סגור
-                        </button>
-                        <h4 className="text-lg font-bold mb-4 text-gray-800">שנה סיסמה</h4>
+                <Modal isOpen={showPasswordModal} onClose={() => setShowPasswordModal(false)} titleId="change-password-modal">
+                    <div className="p-2">
+                        <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-200">
+                             <h4 id="change-password-modal" className="text-lg font-bold text-gray-800">שנה סיסמה</h4>
+                              <button onClick={() => setShowPasswordModal(false)} className="p-1 rounded-full hover:bg-gray-200" aria-label="סגור חלון">
+                                <CloseIcon className="w-6 h-6"/>
+                            </button>
+                        </div>
                         <form onSubmit={handlePasswordChange} className="space-y-4">
                             <div>
                                 <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">סיסמה חדשה</label>
@@ -255,7 +267,7 @@ const ProfileSettings = () => {
                             </div>
                         </form>
                     </div>
-                </div>
+                </Modal>
             )}
         </div>
     );
