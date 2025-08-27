@@ -247,19 +247,25 @@ const OverviewTab = ({ projects, archivedProjects, teamLeads, users, teams, allM
                     </div>
                 </div>
                 <div className="flex items-center space-x-2 space-x-reverse">
-                    {canManageOrg && (
-                        <button onClick={() => setIsCreateProjectModalOpen(true)} className="...">
-                            <PlusIcon />
-                            <span>צור פרויקט</span>
-                        </button>
-                    )}
-                    {canManageOrg && (
-                        <button onClick={() => setIsCreateTeamModalOpen(true)} className="...">
-                            <PlusIcon />
-                            <span>צור צוות</span>
-                        </button>
-                    )}
-                </div>
+                    {canManageOrg && (
+                        <>
+                            <button
+                                onClick={() => setIsCreateProjectModalOpen(true)}
+                                className="flex items-center space-x-2 space-x-reverse bg-white text-[#4A2B2C] border border-gray-300 px-4 py-2 rounded-full shadow-sm hover:bg-gray-50 transition-colors"
+                            >
+                                <PlusIcon className="w-5 h-5" />
+                                <span>צור פרויקט</span>
+                            </button>
+                            <button
+                                onClick={() => setIsCreateTeamModalOpen(true)}
+                                className="flex items-center space-x-2 space-x-reverse bg-white text-[#4A2B2C] border border-gray-300 px-4 py-2 rounded-full shadow-sm hover:bg-gray-50 transition-colors"
+                            >
+                                <PlusIcon className="w-5 h-5" />
+                                <span>צור צוות</span>
+                            </button>
+                        </>
+                    )}
+                </div>
                 <button
                     onClick={() => setIsTeamsModalOpen(true)}
                     className="flex items-center space-x-2 space-x-reverse bg-white text-[#4A2B2C] border border-gray-300 px-4 py-2 rounded-lg shadow-sm hover:bg-gray-50 transition-colors"
