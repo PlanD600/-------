@@ -1,4 +1,4 @@
-import React, { useState, useId, useEffect } from 'react';
+import React, { useState, useId, useEffect, useMemo } from 'react';
 import { Project, Task, TaskStatus, User, TaskPayload } from '../types';
 import * as api from '../services/api';
 import Modal from './Modal';
@@ -55,13 +55,37 @@ const ProjectTasksModal = ({ isOpen, project, onClose, users, refreshProject }: 
         }
     }, [isOpen, project]);
 
+
+    // 💡 שימוש ב-useMemo כדי לסנן את רשימת המשתמשים הרלוונטיים לפרויקט הנוכחי.
+    // הלוגיקה זהה לזו שהטמענו ב-TasksTab.
+    const projectUsers = useMemo(() => {
+        if (!project) return [];
+        const relevantUserIds = new Set<string>();
+
+        // 1. הוספת ראשי צוותים המשויכים ישירות לפרויקט
+        project.teamLeads?.forEach(lead => {
+            if (lead?.id) {
+                relevantUserIds.add(lead.id);
+            }
+        });
+
+        // 2. הוספת כל חברי הצוות וראשי הצוותים מהצוותים המשויכים לפרויקט
+        project.teams?.forEach(team => {
+            team.leadIds?.forEach(leadId => relevantUserIds.add(leadId));
+            team.memberIds?.forEach(memberId => relevantUserIds.add(memberId));
+        });
+
+        // 3. סינון רשימת המשתמשים הכללית (`users`) כדי להחזיר רק את הרלוונטיים
+        return users.filter(user => relevantUserIds.has(user.id));
+    }, [project, users]);
+
+
     if (!project) return null;
 
     const handleAddTask = async (taskData: TaskPayload) => {
         try {
             const newTask = await api.createTask(project.id, taskData);
 
-            // לוגיקה ליצירת רשומת הוצאה חדשה למשימה
             if (taskData.expense && taskData.expense > 0) {
                 await api.createFinanceEntry({
                     type: 'EXPENSE',
@@ -169,7 +193,8 @@ const ProjectTasksModal = ({ isOpen, project, onClose, users, refreshProject }: 
                     titleId={addTaskModalTitleId}
                     onSubmit={handleAddTask}
                     onCancel={() => setIsAddTaskModalOpen(false)}
-                    availableAssignees={users}
+                    // 💡 כאן השתמשנו במשתנה המסונן במקום ברשימה המלאה
+                    availableAssignees={projectUsers}
                 />
             </Modal>
         </>
