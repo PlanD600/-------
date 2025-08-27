@@ -74,24 +74,24 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
 
     // יצירת רשימת משתמשי הפרויקט (עובדים וראשי צוותים) ללא כפילויות
     const projectUsers = useMemo(() => {
-        if (!selectedProject) return [];
-        const relevantUserIds = new Set<string>();
+        if (!selectedProject) return [];
+        const relevantUserIds = new Set<string>();
 
-        // הוספת ראשי צוותים מהפרויקט
-        selectedProject.teamLeads?.forEach(lead => {
-            if (lead?.id) {
-                relevantUserIds.add(lead.id);
-            }
-        });
+        // הוספת ראשי צוותים מהפרויקט
+        selectedProject.teamLeads?.forEach(lead => {
+            if (lead?.id) {
+                relevantUserIds.add(lead.id);
+            }
+        });
 
-        // הוספת חברי צוותים מתוך כל הצוותים המשויכים לפרויקט
-        selectedProject.teams?.forEach(team => {
-            team.leadIds?.forEach(leadId => relevantUserIds.add(leadId));
-            team.memberIds?.forEach(memberId => relevantUserIds.add(memberId));
-        });
+        // הוספת חברי צוותים מתוך כל הצוותים המשויכים לפרויקט
+        selectedProject.teams?.forEach(team => {
+            team.leadIds?.forEach(leadId => relevantUserIds.add(leadId));
+            team.memberIds?.forEach(memberId => relevantUserIds.add(memberId));
+        });
 
-        return users.filter(user => relevantUserIds.has(user.id));
-    }, [selectedProject, users]);
+        return users.filter(user => relevantUserIds.has(user.id));
+    }, [selectedProject, users]);
 
 
     const availableFilterUsers = useMemo(() => {
