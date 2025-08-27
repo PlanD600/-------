@@ -38,7 +38,6 @@ const AddTaskForm = ({ onSubmit, onCancel, availableAssignees, titleId }: AddTas
     const [expense, setExpense] = useState('');
     const [color, setColor] = useState('#8A94A6');
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-    const [assignedUsers, setAssignedUsers] = useState<User[]>([]);
 
 
     const handleAssigneeToggle = (userId: string) => {

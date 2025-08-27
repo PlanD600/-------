@@ -1,6 +1,4 @@
-// src/pages/Dashboard.tsx
-
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, Dispatch, SetStateAction } from 'react';
 import { Project, User, Team, Conversation, Notification, Membership } from '../types';
 import * as api from '../services/api';
 import Header from '../components/Header';
@@ -19,7 +17,7 @@ const useDashboardData = (currentOrgId: string | null, user: User | null, curren
     const [projects, setProjects] = useState<Project[]>([]);
     const [archivedProjects, setArchivedProjects] = useState<Project[]>([]);
     const [teams, setTeams] = useState<Team[]>([]);
-    const [orgMembers, setOrgMembers] = useState<User[]>([]);
+    const [orgMembers, setOrgMembers] = useState<Membership[]>([]);
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
@@ -36,7 +34,6 @@ const useDashboardData = (currentOrgId: string | null, user: User | null, curren
         console.log("Fetching latest data from server...");
 
         try {
-            // ✅ תיקון: הקריאות לפונקציות ה-API עודכנו כדי להתאים לממשק החדש
             const [projectsResponse, archivedProjectsResponse, teamsResponse, orgMembersResponse, conversationsData] = await Promise.all([
                 api.getProjects(user.id, currentUserRole, { page: 1, limit: 100, isArchived: false, signal }),
                 api.getProjects(user.id, currentUserRole, { page: 1, limit: 100, isArchived: true, signal }),
@@ -44,19 +41,33 @@ const useDashboardData = (currentOrgId: string | null, user: User | null, curren
                 api.getUsersInOrg(user.id, currentUserRole, { page: 1, limit: 100, signal }),
                 api.getConversations(user.id, currentUserRole, { signal }),
             ]);
+                        
+            // שומרים את כל הצוותים במפה (Map) לגישה מהירה ויעילה לפי ID
+            const teamsMap = new Map<string, Team>(teamsResponse.data.map(team => [team.id, team]));
+
+            // פונקציית עזר שמעשירה פרויקט בודד עם נתוני הצוותים המלאים
+            const enrichProjectData = (project: Project): Project => {
+                // מזהים את הצוותים המשויכים לפרויקט הנוכחי
+                const associatedTeams = (project.teams || [])
+                    // משתמשים במפה כדי לקבל את אובייקט הצוות המלא (עם חברים וראשי צוותים)
+                    .map(teamRef => teamsMap.get(teamRef.id))
+                    // מסננים החוצה צוותים שלא נמצאו במפה (למקרה של חוסר התאמה בנתונים)
+                    .filter((team): team is Team => !!team);
+
+                return {
+                    ...project,
+                    // ממפים את ראשי הצוותים מהתשובה של השרת
+                    teamLeads: project.projectTeamLeads?.map(leadRelation => leadRelation.user) || [],
+                    // מחליפים את מערך הצוותים החלקי במערך הצוותים המלא והמעושר
+                    teams: associatedTeams,
+                };
+            };
             
-            const projectsWithCorrectData = projectsResponse.data.map(project => ({
-                ...project,
-                teamLeads: project.projectTeamLeads?.map(leadRelation => leadRelation.user) || [],
-                teams: project.teams || [],
-            }));
+            // מפעילים את פונקציית העזר על כל הפרויקטים הפעילים והמאורכבים
+            const projectsWithCorrectData = projectsResponse.data.map(enrichProjectData);
+            const archivedProjectsWithCorrectData = archivedProjectsResponse.data.map(enrichProjectData);
 
-            const archivedProjectsWithCorrectData = archivedProjectsResponse.data.map(project => ({
-                ...project,
-                teamLeads: project.projectTeamLeads?.map(leadRelation => leadRelation.user) || [],
-                teams: project.teams || [],
-            }));
-
+            
             setProjects(projectsWithCorrectData);
             setArchivedProjects(archivedProjectsWithCorrectData);
             setTeams(teamsResponse.data);
@@ -130,7 +141,7 @@ const Dashboard = () => {
 
     const {
         projects, archivedProjects, teams, orgMembers, conversations, notifications,
-        setNotifications, setConversations, setTeams, setProjects, setArchivedProjects, loading, error, setError, refreshData
+        setNotifications, setConversations, setTeams, loading, error, setError, refreshData
     } = useDashboardData(currentOrgId, user, currentUserRole);
 
     const [activeTab, setActiveTab] = useState(() => {
@@ -141,13 +152,13 @@ const Dashboard = () => {
     const [projectsView, setProjectsView] = useState<'active' | 'archived'>('active');
 
     useEffect(() => {
-        console.log('Dashboard useEffect triggered');
-        refreshData();
-    }, [refreshData]);
+        if (currentOrgId && user) {
+            refreshData();
+        }
+    }, [currentOrgId, user, refreshData]);
 
     useEffect(() => {
         localStorage.setItem(LAST_ACTIVE_TAB_KEY, activeTab);
-        console.log(`Tab changed to ${activeTab}. Saving to localStorage.`);
     }, [activeTab]);
 
     useEffect(() => {
@@ -180,7 +191,6 @@ const Dashboard = () => {
 
         newSocket.on('disconnect', () => {
             console.log('Socket.IO disconnected');
-            setSocket(null);
         });
 
         newSocket.on('connect_error', (error) => {
@@ -196,37 +206,26 @@ const Dashboard = () => {
         };
     }, [currentOrgId, user, setNotifications, setConversations]);
 
-    // ✅ תיקון: שיפור ה-useMemo כדי להתמודד עם נתונים לא מלאים ולוודא שהם לא undefined.
     const { usersInOrg, teamLeads, teamMembers } = useMemo(() => {
         if (!orgMembers || orgMembers.length === 0) {
             return { usersInOrg: [], teamLeads: [], teamMembers: [] };
         }
+        
+        const validOrgMembers = orgMembers.filter((m): m is Membership & { user: User } => m.user != null);
 
-        // Filter out any orgMembers with undefined or null user
-        const validOrgMembers = orgMembers.filter(m => m.user != null);
+        const uniqueUsers = Array.from(new Map(validOrgMembers.map(m => [m.user.id, m.user])).values());
 
-        const uniqueUsers = validOrgMembers
-            .map(m => m.user!)
-            .filter((user, index, self) => self.findIndex(u => u.id === user.id) === index);
-
-        const leads = new Map<string, User>();
-        const members: { id: string, name: string }[] = [];
-
-        validOrgMembers.forEach(m => {
-            if (m.user) {
-                members.push({ id: m.user.id, name: m.user.fullName });
-                if (m.role === 'TEAM_LEADER' || m.role === 'ADMIN' || m.role === 'SUPER_ADMIN') {
-                    if (!leads.has(m.user.id)) {
-                        leads.set(m.user.id, m.user);
-                    }
-                }
-            }
-        });
+        const leads = Array.from(new Map(validOrgMembers
+            .filter(m => m.role === 'TEAM_LEADER' || m.role === 'ADMIN' || m.role === 'SUPER_ADMIN')
+            .map(m => [m.user.id, m.user])
+        ).values());
+        
+        const members = uniqueUsers.map(u => ({ id: u.id, name: u.fullName }));
 
         return {
             usersInOrg: uniqueUsers,
-            teamLeads: Array.from(leads.values()),
-            teamMembers: members.filter((member, index, self) => self.findIndex(m => m.id === member.id) === index),
+            teamLeads: leads,
+            teamMembers: members,
         };
     }, [orgMembers]);
 
