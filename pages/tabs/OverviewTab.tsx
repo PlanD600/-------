@@ -1,5 +1,3 @@
-// src/pages/tabs/OverviewTab.tsx
-
 import React, { useState, useMemo, useId, Dispatch, SetStateAction } from 'react';
 import { Project, ProjectStatus, User, Team, ProjectPayload, TeamPayload, Membership } from '../../types';
 import * as api from '../../services/api';
@@ -107,7 +105,6 @@ const OverviewTab = ({ projects, archivedProjects, teamLeads, users, teams, allM
             await api.createProject(projectData);
             refreshData();
             setIsCreateProjectModalOpen(false);
-            // חזרה לתצוגת הפרויקטים הפעילים אחרי יצירת פרויקט
             setProjectsView('active');
         } catch (error) {
             console.error("Failed to create project:", error);
@@ -121,7 +118,6 @@ const OverviewTab = ({ projects, archivedProjects, teamLeads, users, teams, allM
             await api.createTeam(teamData);
             refreshData();
             setIsCreateTeamModalOpen(false);
-            // חזרה לתצוגת הפרויקטים הפעילים אחרי יצירת צוות
             setProjectsView('active');
         } catch (error) {
             console.error("Failed to create team:", error);
@@ -162,7 +158,6 @@ const OverviewTab = ({ projects, archivedProjects, teamLeads, users, teams, allM
             await api.updateProject(projectToEdit.id, updatedData);
             refreshData();
             setProjectToEdit(null);
-            // חזרה לתצוגת הפרויקטים הפעילים אחרי עדכון פרויקט
             setProjectsView('active');
         } catch (error) {
             console.error("Failed to update project:", error);
@@ -171,7 +166,6 @@ const OverviewTab = ({ projects, archivedProjects, teamLeads, users, teams, allM
     };
 
     const handleEdit = (id: string) => {
-        // מחפש פרויקט ברשימת הפרויקטים הפעילים או בארכיון
         const project = projects.find(p => p.id === id) || archivedProjects.find(p => p.id === id);
         if (project) {
             setProjectToEdit(project);
@@ -179,15 +173,12 @@ const OverviewTab = ({ projects, archivedProjects, teamLeads, users, teams, allM
     };
 
     const handleArchive = async (id: string) => {
-        // מחפש פרויקט ברשימת הפרויקטים הפעילים או בארכיון
         const project = projects.find(p => p.id === id) || archivedProjects.find(p => p.id === id);
         if (!project) return;
         try {
             const newIsArchivedStatus = !project.isArchived;
             await api.archiveProject(id, newIsArchivedStatus);
             refreshData();
-            // אם הפרויקט עבר לארכיון, נשאר בתצוגת הארכיון
-            // אם הפרויקט חזר מהארכיון, נחזור לתצוגת הפרויקטים הפעילים
             setProjectsView(newIsArchivedStatus ? 'archived' : 'active');
         } catch (error) {
             console.error("Failed to archive project:", error);
@@ -196,7 +187,6 @@ const OverviewTab = ({ projects, archivedProjects, teamLeads, users, teams, allM
     };
 
     const handleDelete = (id: string) => {
-        // מחפש פרויקט ברשימת הפרויקטים הפעילים או בארכיון
         const project = projects.find(p => p.id === id) || archivedProjects.find(p => p.id === id);
         if (project) {
             setProjectToDeleteId(id);
@@ -209,7 +199,6 @@ const OverviewTab = ({ projects, archivedProjects, teamLeads, users, teams, allM
                 await api.deleteProject(projectToDeleteId);
                 refreshData();
                 setProjectToDeleteId(null);
-                // אם הפרויקט שנמחק היה בארכיון, נחזור לתצוגת הפרויקטים הפעילים
                 if (projectsView === 'archived') {
                     setProjectsView('active');
                 }
@@ -233,7 +222,6 @@ const OverviewTab = ({ projects, archivedProjects, teamLeads, users, teams, allM
 
     return (
         <div className="space-y-6">
-            {/* ... קוד ה-JSX של הכותרת והפילטרים נשאר זהה ... */}
             <div className="flex flex-wrap gap-x-6 gap-y-4 justify-between items-center">
                 <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
                     <div className="flex items-center gap-x-4">
@@ -247,34 +235,35 @@ const OverviewTab = ({ projects, archivedProjects, teamLeads, users, teams, allM
                     </div>
                 </div>
                 <div className="flex items-center space-x-2 space-x-reverse">
-                    {canManageOrg && (
-                        <>
-                            <button
-                                onClick={() => setIsCreateProjectModalOpen(true)}
-                                className="flex items-center space-x-2 space-x-reverse bg-white text-[#4A2B2C] border border-gray-300 px-4 py-2 rounded-full shadow-sm hover:bg-gray-50 transition-colors"
-                            >
-                                <PlusIcon className="w-5 h-5" />
-                                <span>צור פרויקט</span>
-                            </button>
-                            <button
-                                onClick={() => setIsCreateTeamModalOpen(true)}
-                                className="flex items-center space-x-2 space-x-reverse bg-white text-[#4A2B2C] border border-gray-300 px-4 py-2 rounded-full shadow-sm hover:bg-gray-50 transition-colors"
-                            >
-                                <PlusIcon className="w-5 h-5" />
-                                <span>צור צוות</span>
-                            </button>
-                        </>
-                    )}
-                </div>
+                    {canManageOrg && (
+                        <>
+                            {/* ========== התחלת שינוי העיצוב ========== */}
+                            <button
+                                onClick={() => setIsCreateProjectModalOpen(true)}
+                                className="flex items-center space-x-2 space-x-reverse bg-white text-[#4A2B2C] border border-gray-300 px-4 py-2 rounded-lg shadow-sm hover:bg-gray-50 transition-colors"
+                            >
+                                <PlusIcon className="w-5 h-5" />
+                                <span>צור פרויקט</span>
+                            </button>
+                            <button
+                                onClick={() => setIsCreateTeamModalOpen(true)}
+                                className="flex items-center space-x-2 space-x-reverse bg-white text-[#4A2B2C] border border-gray-300 px-4 py-2 rounded-lg shadow-sm hover:bg-gray-50 transition-colors"
+                            >
+                                <PlusIcon className="w-5 h-5" />
+                                <span>צור צוות</span>
+                            </button>
+                            {/* ========== סיום שינוי העיצוב ========== */}
+                        </>
+                    )}
+                </div>
                 <button
                     onClick={() => setIsTeamsModalOpen(true)}
                     className="flex items-center space-x-2 space-x-reverse bg-white text-[#4A2B2C] border border-gray-300 px-4 py-2 rounded-lg shadow-sm hover:bg-gray-50 transition-colors"
                 >
-                    <span>צוות</span>
+                    <span>צוותים</span>
                 </button>
             </div>
 
-            {/* ... קוד ה-JSX של רשימת הפרויקטים נשאר זהה ... */}
             {filteredProjects.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                     {filteredProjects.map(project => {
@@ -284,15 +273,14 @@ const OverviewTab = ({ projects, archivedProjects, teamLeads, users, teams, allM
                                 key={project.id}
                                 project={project}
                                 onClick={() => {
-                                    // מחפש פרויקט ברשימת הפרויקטים הפעילים או בארכיון
                                     const fullProject = projects.find(p => p.id === project.id) || archivedProjects.find(p => p.id === project.id);
                                     if (fullProject) {
                                         setSelectedProject(fullProject);
                                     }
                                 }}
-                                onEdit={canManageOrg ? handleEdit : undefined}
-                                onArchive={canManageOrg ? handleArchive : undefined}
-                                onDelete={canManageOrg ? handleDelete : undefined}
+                                onEdit={permissions.canEditOrArchive ? handleEdit : undefined}
+                                onArchive={permissions.canEditOrArchive ? handleArchive : undefined}
+                                onDelete={permissions.canDelete ? handleDelete : undefined}
                             />
                         )
                     })}
@@ -325,14 +313,13 @@ const OverviewTab = ({ projects, archivedProjects, teamLeads, users, teams, allM
                 />
             </Modal>
 
-            {/* Teams list modal */}
             <Modal isOpen={isTeamsModalOpen} onClose={() => setIsTeamsModalOpen(false)} titleId={teamsModalTitleId}>
                 <div className="space-y-4">
                     <h3 id={teamsModalTitleId} className="text-lg font-bold text-gray-800">צוותים</h3>
                     {(() => {
                         const userId = user?.id;
                         const userTeams = teams.filter(t => (t.leadIds?.includes(userId || '') || t.memberIds?.includes(userId || '')));
-                        const teamsToShow = (currentUserRole === 'ADMIN' || currentUserRole === 'SUPER_ADMIN') ? teams : (currentUserRole === 'TEAM_LEADER' || currentUserRole === 'EMPLOYEE') ? (userTeams.slice(0, 1)) : [];
+                        const teamsToShow = (currentUserRole === 'ADMIN' || currentUserRole === 'SUPER_ADMIN') ? teams : (currentUserRole === 'TEAM_LEADER' || currentUserRole === 'EMPLOYEE') ? (userTeams) : [];
 
                         if (!teamsToShow || teamsToShow.length === 0) {
                             return <div className="text-gray-500">לא קיימים צוותים להצגה.</div>;
@@ -378,10 +365,18 @@ const OverviewTab = ({ projects, archivedProjects, teamLeads, users, teams, allM
                             </div>
                         );
                     })()}
+                    <div className="flex justify-end pt-4 mt-4 border-t border-gray-200">
+                        <button
+                            type="button"
+                            onClick={() => setIsTeamsModalOpen(false)}
+                            className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
+                        >
+                            סגור
+                        </button>
+                    </div>
                 </div>
             </Modal>
 
-            {/* Edit team modal */}
             <Modal isOpen={!!teamToEdit} onClose={() => setTeamToEdit(null)} titleId={editTeamModalTitleId}>
                 {teamToEdit && (
                     <TeamForm
