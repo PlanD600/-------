@@ -55,14 +55,13 @@ const ProjectTasksModal = ({ isOpen, project, onClose, users, refreshProject }: 
         }
     }, [isOpen, project]);
 
-
     if (!project) return null;
 
     const handleAddTask = async (taskData: TaskPayload) => {
         try {
             const newTask = await api.createTask(project.id, taskData);
 
-            // 💡 הוספנו לוגיקה ליצירת רשומת הוצאה חדשה למשימה
+            // לוגיקה ליצירת רשומת הוצאה חדשה למשימה
             if (taskData.expense && taskData.expense > 0) {
                 await api.createFinanceEntry({
                     type: 'EXPENSE',
@@ -86,9 +85,7 @@ const ProjectTasksModal = ({ isOpen, project, onClose, users, refreshProject }: 
     return (
         <>
             <Modal isOpen={isOpen} onClose={onClose} titleId={mainModalTitleId}>
-                {/* שינוי 1: הסרנו את ה-p-2 והשארנו flex flex-col max-h-[85vh] */}
                 <div className="flex flex-col max-h-[85vh]">
-                    {/* שינוי 2: הוספנו px-4 (padding אופקי) לכותרת */}
                     <div className="flex justify-between items-start mb-4 pb-4 border-b border-gray-200 px-4">
                         <h3 id={mainModalTitleId} className="text-xl font-bold text-[#3D2324] flex-1 truncate pr-4">
                             {project.title}
@@ -98,7 +95,6 @@ const ProjectTasksModal = ({ isOpen, project, onClose, users, refreshProject }: 
                         </button>
                     </div>
 
-                    {/* שינוי 3: ה-p-4 כבר קיים כאן וזה טוב */}
                     <div className="mb-4 p-4 bg-gray-50 rounded-lg text-sm">
                         <p className="text-gray-600 mb-3 overflow-y-auto max-h-[100px] pr-2 break-words">
                             {project.description || 'אין תיאור לפרויקט זה.'}
@@ -117,8 +113,7 @@ const ProjectTasksModal = ({ isOpen, project, onClose, users, refreshProject }: 
                         </div>
                     </div>
 
-                    {/* שינוי 4: הוספנו px-4 לבלוק המשימות */}
-                    <div className="flex-1 overflow-y-auto space-y-3 px-4 pr-2"> {/* שימו לב ל-px-4 */}
+                    <div className="flex-1 overflow-y-auto space-y-3 px-4 pr-2">
                         {isLoading ? (
                             <p className="text-center text-gray-500 py-8">טוען משימות...</p>
                         ) : tasks.length > 0 ? (
@@ -151,7 +146,6 @@ const ProjectTasksModal = ({ isOpen, project, onClose, users, refreshProject }: 
                         )}
                     </div>
 
-                    {/* שינוי 5: הוספנו px-4 לכפתור הוסף משימה */}
                     <div className="mt-4 pt-4 border-t border-gray-200 px-4">
                         <button
                             onClick={() => setIsAddTaskModalOpen(true)}
@@ -175,7 +169,7 @@ const ProjectTasksModal = ({ isOpen, project, onClose, users, refreshProject }: 
                     titleId={addTaskModalTitleId}
                     onSubmit={handleAddTask}
                     onCancel={() => setIsAddTaskModalOpen(false)}
-                    allUsers={users}
+                    availableAssignees={users}
                 />
             </Modal>
         </>

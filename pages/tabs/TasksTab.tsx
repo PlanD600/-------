@@ -73,19 +73,16 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
     const currentTaskToView = useMemo(() => tasks.find(t => t.id === taskToView?.id) || null, [tasks, taskToView]);
 
 
-    // יצירת רשימת משתמשי הפרויקט (עובדים וראשי צוותים) ללא כפילויות
     const projectUsers = useMemo(() => {
         if (!selectedProject) return [];
         const userMap = new Map<string, User>();
         
-        // הוספת ראשי צוותים
         if (selectedProject.teamLeads) {
             selectedProject.teamLeads.forEach(lead => {
                 if (lead && lead.id) userMap.set(lead.id, lead);
             });
         }
         
-        // הוספת חברי צוותים (תיקון: שימוש ב-selectedProject.teams)
         if (selectedProject.teams) {
             selectedProject.teams.forEach(team => {
                 if (team.members) {
