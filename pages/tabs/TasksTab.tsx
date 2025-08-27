@@ -72,33 +72,27 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
     }, [projects, selectedProjectId]);
     const currentTaskToView = useMemo(() => tasks.find(t => t.id === taskToView?.id) || null, [tasks, taskToView]);
 
-
+    // יצירת רשימת משתמשי הפרויקט (עובדים וראשי צוותים) ללא כפילויות
     const projectUsers = useMemo(() => {
-        if (!selectedProject) return [];
-        const userMap = new Map<string, User>();
-        
-        if (selectedProject.teamLeads) {
-            selectedProject.teamLeads.forEach(lead => {
-                if (lead && lead.id) userMap.set(lead.id, lead);
-            });
-        }
-        
-        if (selectedProject.teams) {
-            selectedProject.teams.forEach(team => {
-                if (team.members) {
-                    team.members.forEach(member => {
-                        if (member && member.id) userMap.set(member.id, member);
-                    });
-                }
-                if (team.leads) {
-                    team.leads.forEach(lead => {
-                        if (lead && lead.id) userMap.set(lead.id, lead);
-                    });
-                }
-            });
-        }
-        return Array.from(userMap.values());
-    }, [selectedProject]);
+        if (!selectedProject) return [];
+        const relevantUserIds = new Set<string>();
+
+        // הוספת ראשי צוותים מהפרויקט
+        selectedProject.teamLeads?.forEach(lead => {
+            if (lead?.id) {
+                relevantUserIds.add(lead.id);
+            }
+        });
+
+        // הוספת חברי צוותים מתוך כל הצוותים המשויכים לפרויקט
+        selectedProject.teams?.forEach(team => {
+            team.leadIds?.forEach(leadId => relevantUserIds.add(leadId));
+            team.memberIds?.forEach(memberId => relevantUserIds.add(memberId));
+        });
+
+        return users.filter(user => relevantUserIds.has(user.id));
+    }, [selectedProject, users]);
+
 
     const availableFilterUsers = useMemo(() => {
         return projectUsers;
