@@ -1,3 +1,5 @@
+// pages/tabs/TasksTab.tsx
+
 import React, { useState, useMemo, useId, useEffect } from 'react';
 import { Project, Task, Comment, TaskStatus, User, TaskPayload } from '../../types';
 import * as api from '../../services/api';
@@ -50,7 +52,7 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
     const [tasks, setTasks] = useState<Task[]>([]);
     const [loadingTasks, setLoadingTasks] = useState(false);
 
-    const [userFilter, setUserFilter] = useState<string>('all');
+    const [userFilter, setUserFilter] = useState<string>('all');
     const [view, setView] = useState<'list' | 'card'>('list');
 
     const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
@@ -71,38 +73,43 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
     const currentTaskToView = useMemo(() => tasks.find(t => t.id === taskToView?.id) || null, [tasks, taskToView]);
 
 
-    // שלב 1: יצירת רשימת משתמשי הפרויקט (עובדים וראשי צוותים) ללא כפילויות
-    const projectUsers = useMemo(() => {
-        if (!selectedProject) return [];
-        const userMap = new Map<string, User>();
-        // הוספת ראשי צוותים
-        if (selectedProject.teamLeads) {
-            selectedProject.teamLeads.forEach(lead => {
-                if (lead && lead.id) userMap.set(lead.id, lead);
-            });
-        }
-        // הוספת חברי צוותים
-        if (selectedProject.teams) {
-            selectedProject.teams.forEach(team => {
-                if (team.members) {
-                    team.members.forEach(member => {
-                        if (member && member.id) userMap.set(member.id, member);
+    // יצירת רשימת משתמשי הפרויקט (עובדים וראשי צוותים) ללא כפילויות
+    const projectUsers = useMemo(() => {
+        if (!selectedProject) return [];
+        const userMap = new Map<string, User>();
+        
+        // הוספת ראשי צוותים
+        if (selectedProject.teamLeads) {
+            selectedProject.teamLeads.forEach(lead => {
+                if (lead && lead.id) userMap.set(lead.id, lead);
+            });
+        }
+        
+        // הוספת חברי צוותים (תיקון: שימוש ב-selectedProject.teams)
+        if (selectedProject.teams) {
+            selectedProject.teams.forEach(team => {
+                if (team.members) {
+                    team.members.forEach(member => {
+                        if (member && member.id) userMap.set(member.id, member);
+                    });
+                }
+                if (team.leads) {
+                    team.leads.forEach(lead => {
+                        if (lead && lead.id) userMap.set(lead.id, lead);
                     });
                 }
-            });
-        }
-        return Array.from(userMap.values());
-    }, [selectedProject]);
+            });
+        }
+        return Array.from(userMap.values());
+    }, [selectedProject]);
 
-    // רשימת העובדים לסינון (רק ממשתמשי הפרויקט)
-    const availableFilterUsers = useMemo(() => {
-        return projectUsers;
-    }, [projectUsers]);
+    const availableFilterUsers = useMemo(() => {
+        return projectUsers;
+    }, [projectUsers]);
 
-    // רשימת העובדים לשיוך משימה (רק ממשתמשי הפרויקט)
-    const availableUsersForTask = useMemo(() => {
-        return projectUsers;
-    }, [projectUsers]);
+    const availableUsersForTask = useMemo(() => {
+        return projectUsers;
+    }, [projectUsers]);
 
 
     useEffect(() => {
@@ -126,23 +133,21 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
         fetchTasks();
     }, [selectedProjectId]);
 
-    // סינון משימות לפי משתמש שנבחר (לפי id)
-    const filteredTasks = useMemo(() => {
-        if (userFilter === 'all') {
-            return tasks;
-        }
-        if (!availableFilterUsers || availableFilterUsers.length === 0) {
-            return tasks;
-        }
-        const filteredUser = availableFilterUsers.find(member => member.id === userFilter);
-        if (!filteredUser) return tasks;
-        return tasks.filter(task => task.assignees?.some(assignee => assignee.id === filteredUser.id));
-    }, [tasks, userFilter, availableFilterUsers]);
+    const filteredTasks = useMemo(() => {
+        if (userFilter === 'all') {
+            return tasks;
+        }
+        if (!availableFilterUsers || availableFilterUsers.length === 0) {
+            return tasks;
+        }
+        const filteredUser = availableFilterUsers.find(member => member.id === userFilter);
+        if (!filteredUser) return tasks;
+        return tasks.filter(task => task.assignees?.some(assignee => assignee.id === filteredUser.id));
+    }, [tasks, userFilter, availableFilterUsers]);
 
-    // הגדרה חדשה: מנהל הוא כל מי שתפקידו ADMIN, SUPER_ADMIN או TEAM_LEADER
-    const isManager = useMemo(() => {
-        return currentUserRole === 'ADMIN' || currentUserRole === 'SUPER_ADMIN' || currentUserRole === 'TEAM_LEADER';
-    }, [currentUserRole]);
+    const isManager = useMemo(() => {
+        return currentUserRole === 'ADMIN' || currentUserRole === 'SUPER_ADMIN' || currentUserRole === 'TEAM_LEADER';
+    }, [currentUserRole]);
 
     const canUserChangeStatus = useMemo(() => {
         if (!user || !currentTaskToView || !selectedProject) return false;
@@ -241,31 +246,31 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
                     </select>
 
                     <label htmlFor="user-filter-select" className="sr-only">סנן לפי עובד</label>
-                    <select
-                        id="user-filter-select"
-                        value={userFilter}
-                        onChange={(e) => setUserFilter(e.target.value)}
-                        disabled={!selectedProjectId}
-                        className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-[#4A2B2C] focus:border-[#4A2B2C] block w-full sm:w-auto p-2 disabled:opacity-50"
-                    >
-                        <option value="all">כל העובדים</option>
-                        {availableFilterUsers.map(member => (
-                            <option key={member.id} value={member.id}>{member.fullName}</option>
-                        ))}
-                    </select>
+                    <select
+                        id="user-filter-select"
+                        value={userFilter}
+                        onChange={(e) => setUserFilter(e.target.value)}
+                        disabled={!selectedProjectId}
+                        className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-[#4A2B2C] focus:border-[#4A2B2C] block w-full sm:w-auto p-2 disabled:opacity-50"
+                    >
+                        <option value="all">כל העובדים</option>
+                        {availableFilterUsers.map(member => (
+                            <option key={member.id} value={member.id}>{member.fullName}</option>
+                        ))}
+                    </select>
 
                     <span id={viewToggleLabelId} className="sr-only">בחר תצוגת משימות</span>
                     <ViewToggle view={view} setView={setView} labelledby={viewToggleLabelId} />
-                    {isManager && (
-                        <button
-                            onClick={() => setIsAddTaskOpen(true)}
-                            disabled={!selectedProjectId}
-                            className="flex items-center space-x-2 space-x-reverse bg-[#4A2B2C] text-white px-3 py-2 text-sm rounded-lg shadow hover:bg-opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            <PlusIcon className="w-4 h-4" />
-                            <span>הוסף משימה</span>
-                        </button>
-                    )}
+                    {isManager && (
+                        <button
+                            onClick={() => setIsAddTaskOpen(true)}
+                            disabled={!selectedProjectId}
+                            className="flex items-center space-x-2 space-x-reverse bg-[#4A2B2C] text-white px-3 py-2 text-sm rounded-lg shadow hover:bg-opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <PlusIcon className="w-4 h-4" />
+                            <span>הוסף משימה</span>
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -306,9 +311,9 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
                 )}
             </div>
 
-            <Modal isOpen={isAddTaskOpen} onClose={() => setIsAddTaskOpen(false)} titleId={addTaskTitleId} size="sm">
-                <AddTaskForm titleId={addTaskTitleId} onSubmit={handleCreateTask} onCancel={() => setIsAddTaskOpen(false)} availableAssignees={availableUsersForTask} />
-            </Modal>
+            <Modal isOpen={isAddTaskOpen} onClose={() => setIsAddTaskOpen(false)} titleId={addTaskTitleId} size="sm">
+                <AddTaskForm titleId={addTaskTitleId} onSubmit={handleCreateTask} onCancel={() => setIsAddTaskOpen(false)} availableAssignees={availableUsersForTask} />
+            </Modal>
 
             <Modal isOpen={!!taskToEdit} onClose={() => setTaskToEdit(null)} titleId={editTaskTitleId} size="sm">
                 {taskToEdit && <EditTaskForm titleId={editTaskTitleId} task={taskToEdit} onSubmit={handleUpdateTask} onCancel={() => setTaskToEdit(null)} users={availableUsersForTask} />}

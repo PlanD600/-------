@@ -5,7 +5,7 @@ import { User, Team, Membership } from '../../types';
 import * as api from '../../services/api';
 import Modal from '../../components/Modal';
 import ConfirmationModal from '../../components/ConfirmationModal';
-import { PlusIcon, EditIcon, TrashIcon } from '../../components/icons';
+import { PlusIcon, EditIcon, TrashIcon, CloseIcon } from '../../components/icons';
 import TeamForm from '../../components/TeamForm';
 
 interface TeamSettingsProps {
@@ -148,9 +148,16 @@ const TeamSettings = ({ teams, users, allMemberships, refreshData }: TeamSetting
 
             <Modal isOpen={!!teamToView} onClose={() => setTeamToView(null)} titleId={viewModalTitleId}>
                 {teamToView && (
-                    <div className="p-2">
-                        <h3 id={viewModalTitleId} className="text-xl font-bold text-gray-800 mb-4">{teamToView.name}</h3>
-                        <div className="space-y-4">
+                    <div className="flex flex-col max-h-[85vh] p-2">
+                        <div className="flex justify-between items-start mb-4 pb-4 border-b border-gray-200 px-2">
+                            <h3 id={viewModalTitleId} className="text-xl font-bold text-[#3D2324] flex-1 truncate pr-4">
+                                {teamToView.name}
+                            </h3>
+                            <button onClick={() => setTeamToView(null)} className="p-1 rounded-full hover:bg-gray-200 flex-shrink-0">
+                                <CloseIcon className="w-6 h-6"/>
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto space-y-4 px-2 pr-2">
                             <div>
                                 <h4 className="font-semibold text-gray-700">ראשי צוות</h4>
                                 {teamToView.leadIds.length > 0 ? (
@@ -159,7 +166,7 @@ const TeamSettings = ({ teams, users, allMemberships, refreshData }: TeamSetting
                                             <li key={id}>{usersMap.get(id)?.fullName || 'משתמש לא ידוע'}</li>
                                         ))}
                                     </ul>
-                                ) : <p className="text-gray-500 text-sm mt-1">אין ראשי צוות משויכים.</p>}
+                                ): <p className="text-gray-500 text-sm mt-1">אין ראשי צוות משויכים.</p>}
                             </div>
                             <div>
                                 <h4 className="font-semibold text-gray-700">חברי צוות</h4>
@@ -169,13 +176,8 @@ const TeamSettings = ({ teams, users, allMemberships, refreshData }: TeamSetting
                                             <li key={id}>{usersMap.get(id)?.fullName || 'משתמש לא ידוע'}</li>
                                         ))}
                                     </ul>
-                                ) : <p className="text-gray-500 text-sm mt-1">אין חברים בצוות.</p>}
+                                ): <p className="text-gray-500 text-sm mt-1">אין חברים בצוות.</p>}
                             </div>
-                        </div>
-                        <div className="mt-6 flex justify-end">
-                            <button onClick={() => setTeamToView(null)} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
-                                סגור
-                            </button>
                         </div>
                     </div>
                 )}
