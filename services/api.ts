@@ -27,6 +27,7 @@ interface ImportMeta {
 }
 
 const BASE_URL = 'https://api.mypland.com/api';
+export const getApiBaseUrl = () => BASE_URL;
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('jwtToken');

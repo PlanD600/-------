@@ -15,8 +15,7 @@ interface ChatTabProps {
     socket: Socket | null;
 }
 
-
-
+// 💡 שים לב: הוצאתי מכאן את הבלוק של activeConversation שהיה פה בטעות
 const CreateConversationModal = ({ isOpen, onClose, users, currentUserId, onCreate, titleId }: { isOpen: boolean, onClose: () => void, users: User[], currentUserId: string, onCreate: (data: { type: 'private' | 'group', participantIds: string[], name?: string }) => void, titleId: string }) => {
     const [type, setType] = useState<'private' | 'group'>('private');
     const [selectedUser, setSelectedUser] = useState<string>('');
@@ -39,10 +38,6 @@ const CreateConversationModal = ({ isOpen, onClose, users, currentUserId, onCrea
         }
         onClose();
     };
-
-    const activeConversation = useMemo(() => {
-        return conversations.find(c => c.id === activeConversationId);
-    }, [conversations, activeConversationId]);
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} titleId={titleId}>
@@ -109,6 +104,11 @@ const ChatTab = ({ conversations, setConversations, users, socket }: ChatTabProp
     const [showChatOnMobile, setShowChatOnMobile] = useState(false);
     const [conversationToDelete, setConversationToDelete] = useState<Conversation | null>(null);
 
+    // 💡 החזרתי את הבלוק הזה לכאן, למקום הנכון שלו
+    const activeConversation = useMemo(() => {
+        return conversations.find(c => c.id === activeConversationId);
+    }, [conversations, activeConversationId]);
+
     useEffect(() => {
         if (!activeConversationId && conversations.length > 0) {
             setActiveConversationId(conversations[0].id);
@@ -122,7 +122,7 @@ const ChatTab = ({ conversations, setConversations, users, socket }: ChatTabProp
         if (messagesEndRef.current) {
             messagesEndRef.current.scrollIntoView();
         }
-    }, [activeConversation?.messages.length]);
+    }, [activeConversation?.messages.length]); // עכשיו השימוש כאן תקין
 
     useEffect(() => {
         if (socket && activeConversationId) {
