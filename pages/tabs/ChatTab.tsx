@@ -15,14 +15,28 @@ interface ChatTabProps {
     socket: Socket | null;
 }
 
-// 💡 שים לב: הוצאתי מכאן את הבלוק של activeConversation שהיה פה בטעות
-const CreateConversationModal = ({ isOpen, onClose, users, currentUserId, onCreate, titleId }: { isOpen: boolean, onClose: () => void, users: User[], currentUserId: string, onCreate: (data: { type: 'private' | 'group', participantIds: string[], name?: string }) => void, titleId: string }) => {
+// 💡 שינוי #1: הוספנו את 'conversations' לפרופס של המודאל
+const CreateConversationModal = ({ isOpen, onClose, users, currentUserId, onCreate, titleId, conversations }: { isOpen: boolean, onClose: () => void, users: User[], currentUserId: string, onCreate: (data: { type: 'private' | 'group', participantIds: string[], name?: string }) => void, titleId: string, conversations: Conversation[] }) => {
     const [type, setType] = useState<'private' | 'group'>('private');
     const [selectedUser, setSelectedUser] = useState<string>('');
     const [selectedGroupMembers, setSelectedGroupMembers] = useState<string[]>([]);
     const [groupName, setGroupName] = useState('');
 
-    const otherUsers = users.filter(u => u.id !== currentUserId);
+    // 💡 שינוי #1 (המשך): לוגיקה לסינון משתמשים שכבר קיימת איתם שיחה
+    const otherUsers = useMemo(() => {
+        // נמצא את כל המזהים של משתמשים שכבר יש לנו שיחה פרטית איתם
+        const userIdsInPrivateChats = conversations
+            .filter(c => c.type === 'private')
+            .flatMap(c => c.participants.map(p => p.id))
+            .filter(id => id !== currentUserId);
+
+        // נסנן את רשימת המשתמשים הכללית
+        return users.filter(u =>
+            u.id !== currentUserId && // נסנן את המשתמש הנוכחי
+            !userIdsInPrivateChats.includes(u.id) // נסנן משתמשים שכבר יש שיחה איתם
+        );
+    }, [users, currentUserId, conversations]);
+
 
     const handleMemberToggle = (id: string) => {
         setSelectedGroupMembers(prev => prev.includes(id) ? prev.filter(mId => mId !== id) : [...prev, id]);
@@ -64,7 +78,7 @@ const CreateConversationModal = ({ isOpen, onClose, users, currentUserId, onCrea
                         <fieldset>
                             <legend className="block text-sm font-medium text-gray-700">בחר חברים</legend>
                             <div className="mt-1 max-h-40 overflow-y-auto space-y-2 rounded-md border border-gray-300 p-3 bg-gray-50">
-                                {otherUsers.map(u => (
+                                {users.filter(u => u.id !== currentUserId).map(u => ( // כאן נשתמש ברשימה המלאה (בלי המשתמש הנוכחי) כי לקבוצה אפשר להוסיף כל אחד
                                     <label key={u.id} className="flex items-center space-x-3 space-x-reverse cursor-pointer">
                                         <input type="checkbox" checked={selectedGroupMembers.includes(u.id)} onChange={() => handleMemberToggle(u.id)} className="w-4 h-4 rounded border-gray-300 text-[#4A2B2C] focus:ring-[#4A2B2C]" />
                                         <span className="text-gray-800">{u.fullName}</span>
@@ -85,6 +99,9 @@ const CreateConversationModal = ({ isOpen, onClose, users, currentUserId, onCrea
 
 const formatDate = (dateString: string) => {
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) { // בדיקה שהתאריך תקין
+        return '';
+    }
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
@@ -104,7 +121,6 @@ const ChatTab = ({ conversations, setConversations, users, socket }: ChatTabProp
     const [showChatOnMobile, setShowChatOnMobile] = useState(false);
     const [conversationToDelete, setConversationToDelete] = useState<Conversation | null>(null);
 
-    // 💡 החזרתי את הבלוק הזה לכאן, למקום הנכון שלו
     const activeConversation = useMemo(() => {
         return conversations.find(c => c.id === activeConversationId);
     }, [conversations, activeConversationId]);
@@ -118,18 +134,16 @@ const ChatTab = ({ conversations, setConversations, users, socket }: ChatTabProp
     }, [conversations, activeConversationId]);
 
     useEffect(() => {
-        // Scroll to bottom on new message, but not on initial load
         if (messagesEndRef.current) {
-            messagesEndRef.current.scrollIntoView();
+            messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
         }
-    }, [activeConversation?.messages.length]); // עכשיו השימוש כאן תקין
+    }, [activeConversation?.messages.length]);
 
     useEffect(() => {
         if (socket && activeConversationId) {
             socket.emit('join_conversation', activeConversationId);
         }
     }, [socket, activeConversationId]);
-
 
     const handleSelectConversation = (id: string) => {
         setActiveConversationId(id);
@@ -144,13 +158,9 @@ const ChatTab = ({ conversations, setConversations, users, socket }: ChatTabProp
             setActiveConversationId(newConversation.id);
             setShowChatOnMobile(true);
         } catch (error: any) {
-            if (error.response?.status === 409 && error.response?.data?.errors?.conversation) {
-                const existingConversation = error.response.data.errors.conversation;
-                if (!conversations.some(c => c.id === existingConversation.id)) {
-                    setConversations(prev => [existingConversation, ...prev]);
-                }
-                setActiveConversationId(existingConversation.id);
-                setShowChatOnMobile(true);
+            // שדרוג הטיפול בשגיאה: אם השיחה כבר קיימת, פשוט נעבור אליה
+            if (error.message.includes("Conversation already exists")) {
+                alert("שיחה עם משתמש זה כבר קיימת.");
             } else {
                 console.error("Failed to create conversation:", error);
                 alert(`שגיאה ביצירת השיחה: ${error.message}`);
@@ -167,7 +177,6 @@ const ChatTab = ({ conversations, setConversations, users, socket }: ChatTabProp
             text: newMessage,
             senderId: currentUser.id
         });
-
         setNewMessage('');
     };
 
@@ -269,9 +278,13 @@ const ChatTab = ({ conversations, setConversations, users, socket }: ChatTabProp
                             <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-gray-50">
                                 {(activeConversation.messages || []).map((msg, index) => {
                                     if (!currentUser || !msg.sender) return null;
+                                    // 💡 שינוי #2: שימוש ב-timestamp או ב-createdAt
+                                    const messageDate = msg.timestamp || msg.createdAt;
+                                    const prevMessageDate = index > 0 ? activeConversation.messages[index - 1].timestamp || activeConversation.messages[index - 1].createdAt : null;
+
                                     const isMe = msg.sender.id === currentUser?.id;
-                                    const time = new Date(msg.createdAt).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
-                                    const showDate = index === 0 || new Date(msg.createdAt).toDateString() !== new Date(activeConversation.messages[index - 1].createdAt).toDateString();
+                                    const time = new Date(messageDate).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+                                    const showDate = index === 0 || (prevMessageDate && (new Date(messageDate).toDateString() !== new Date(prevMessageDate).toDateString()));
 
                                     const senderAvatar = msg.sender?.profilePictureUrl
                                         ? <img src={api.getApiBaseUrl() + msg.sender.profilePictureUrl} alt={msg.sender.fullName} className="w-8 h-8 rounded-full object-cover self-start" />
@@ -282,7 +295,7 @@ const ChatTab = ({ conversations, setConversations, users, socket }: ChatTabProp
                                             {showDate && (
                                                 <div className="text-center my-4">
                                                     <span className="text-xs text-gray-500 bg-gray-200 rounded-full px-3 py-1">
-                                                        {formatDate(msg.createdAt)}
+                                                        {formatDate(messageDate)}
                                                     </span>
                                                 </div>
                                             )}
@@ -314,6 +327,7 @@ const ChatTab = ({ conversations, setConversations, users, socket }: ChatTabProp
                     )}
                 </div>
             </div>
+            {/* 💡 שינוי #1 (המשך): העברת רשימת השיחות למודאל */}
             <CreateConversationModal
                 isOpen={isCreateModalOpen}
                 onClose={() => setIsCreateModalOpen(false)}
@@ -321,6 +335,7 @@ const ChatTab = ({ conversations, setConversations, users, socket }: ChatTabProp
                 currentUserId={currentUser!.id}
                 onCreate={handleCreateConversation}
                 titleId={createModalTitleId}
+                conversations={conversations}
             />
             <ConfirmationModal
                 isOpen={!!conversationToDelete}
