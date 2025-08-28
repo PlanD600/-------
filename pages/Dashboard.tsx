@@ -185,7 +185,8 @@ const Dashboard = () => {
                 id: newMessagePayload.id,
                 text: newMessagePayload.text,
                 createdAt: newMessagePayload.timestamp,
-                updatedAt: newMessagePayload.updatedAt || newMessagePayload.timestamp,
+                updatedAt: newMessagePayload.timestamp, // 💡 הוספנו את השורה הזו
+
                 sender: newMessagePayload.sender,
             };
 
