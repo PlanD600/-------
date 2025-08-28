@@ -175,35 +175,43 @@ const Dashboard = () => {
         });
 
         const handleNewMessage = (newMessagePayload: any) => {
-            console.log('New message received:', newMessagePayload);
+            console.log('Handling new message with updated logic:', newMessagePayload);
 
-            // 💡 שינוי: שומרים את conversationId במשתנה נפרד
             const conversationId = newMessagePayload.conversationId;
 
-            // 💡 שינוי: הסרנו את conversationId מהאובייקט הזה
+            // שלב 1: התאמת ההודעה החדשה לפורמט אחיד
             const formattedMessage: Message = {
                 id: newMessagePayload.id,
                 text: newMessagePayload.text,
                 createdAt: newMessagePayload.timestamp,
-                updatedAt: newMessagePayload.timestamp, // 💡 הוספנו את השורה הזו
-
+                updatedAt: newMessagePayload.timestamp,
                 sender: newMessagePayload.sender,
             };
 
-            setConversations(prevConversations =>
-                prevConversations.map(conversation => {
-                    // 💡 שינוי: משתמשים במשתנה הנפרד להשוואה
-                    if (conversation.id === conversationId) {
-                        const existingMessages = conversation.messages || [];
-                        return {
-                            ...conversation,
-                            messages: [...existingMessages, formattedMessage],
-                            unreadCount: (conversation.id === activeConversationId) ? 0 : (conversation.unreadCount || 0) + 1,
-                        };
-                    }
-                    return conversation;
-                })
-            );
+            setConversations(prevConversations => {
+                // שלב 2: מצא את השיחה שאנחנו צריכים לעדכן
+                const targetConversation = prevConversations.find(c => c.id === conversationId);
+
+                // אם מסיבה כלשהי השיחה לא קיימת בצד הלקוח, אל תעשה כלום
+                if (!targetConversation) {
+                    return prevConversations;
+                }
+
+                // שלב 3: צור אובייקט חדש ומעודכן עבור השיחה
+                const updatedConversation = {
+                    ...targetConversation,
+                    // צור מערך הודעות חדש שמכיל את כל ההודעות הקודמות + החדשה
+                    messages: [...(targetConversation.messages || []), formattedMessage],
+                    // עדכן מונה הודעות שלא נקראו (אם זו לא השיחה הפעילה)
+                    unreadCount: (targetConversation.id === activeConversationId) ? 0 : (targetConversation.unreadCount || 0) + 1,
+                };
+
+                // שלב 4: צור רשימה חדשה של כל שאר השיחות (בלי הגרסה הישנה של השיחה שעדכנו)
+                const otherConversations = prevConversations.filter(c => c.id !== conversationId);
+
+                // שלב 5 (המשימה החדשה): החזר מערך חדש עם השיחה המעודכנת בראש הרשימה
+                return [updatedConversation, ...otherConversations];
+            });
         };
 
         newSocket.on('new_message', handleNewMessage);
