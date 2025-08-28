@@ -477,6 +477,13 @@ export const getConversations = (
   }).then(handleResponse);
 }
 
+export const deleteConversationMessages = (conversationId: string): Promise<void> => {
+  return fetch(`${BASE_URL}/conversations/${conversationId}/messages`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  }).then(handleResponse);
+};
+
 export const createConversation = (data: { type: 'private' | 'group', participantIds: string[], name?: string, avatarUrl?: string }): Promise<Conversation> =>
   fetch(`${BASE_URL}/conversations`, {
       method: 'POST',
