@@ -13,6 +13,9 @@ interface ChatTabProps {
     setConversations: React.Dispatch<React.SetStateAction<Conversation[]>>;
     users: User[];
     socket: Socket | null;
+    // 💡 אלה ה-props החדשים שצריך להוסיף
+    activeConversationId: string | null;
+    setActiveConversationId: React.Dispatch<React.SetStateAction<string | null>>;
 }
 
 // 💡 שינוי #1: הוספנו את 'conversations' לפרופס של המודאל
@@ -111,9 +114,8 @@ const formatDate = (dateString: string) => {
     return date.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' });
 };
 
-const ChatTab = ({ conversations, setConversations, users, socket }: ChatTabProps) => {
+const ChatTab = ({ conversations, setConversations, users, socket, activeConversationId, setActiveConversationId }: ChatTabProps) => {
     const { user: currentUser } = useAuth();
-    const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [newMessage, setNewMessage] = useState('');
     const messagesEndRef = useRef<HTMLDivElement>(null);

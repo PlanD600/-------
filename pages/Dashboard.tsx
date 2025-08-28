@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo, useCallback, Dispatch, SetStateAction } from 'react';
-import { Project, User, Team, Conversation, Notification, Membership } from '../types';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { Project, User, Team, Conversation, Notification, Membership, Message } from '../types';
 import * as api from '../services/api';
 import Header from '../components/Header';
 import TabView from '../components/TabView';
@@ -41,33 +41,24 @@ const useDashboardData = (currentOrgId: string | null, user: User | null, curren
                 api.getUsersInOrg(user.id, currentUserRole, { page: 1, limit: 100, signal }),
                 api.getConversations(user.id, currentUserRole, { signal }),
             ]);
-                        
-            // שומרים את כל הצוותים במפה (Map) לגישה מהירה ויעילה לפי ID
+
             const teamsMap = new Map<string, Team>(teamsResponse.data.map(team => [team.id, team]));
 
-            // פונקציית עזר שמעשירה פרויקט בודד עם נתוני הצוותים המלאים
             const enrichProjectData = (project: Project): Project => {
-                // מזהים את הצוותים המשויכים לפרויקט הנוכחי
                 const associatedTeams = (project.teams || [])
-                    // משתמשים במפה כדי לקבל את אובייקט הצוות המלא (עם חברים וראשי צוותים)
                     .map(teamRef => teamsMap.get(teamRef.id))
-                    // מסננים החוצה צוותים שלא נמצאו במפה (למקרה של חוסר התאמה בנתונים)
                     .filter((team): team is Team => !!team);
 
                 return {
                     ...project,
-                    // ממפים את ראשי הצוותים מהתשובה של השרת
                     teamLeads: project.projectTeamLeads?.map(leadRelation => leadRelation.user) || [],
-                    // מחליפים את מערך הצוותים החלקי במערך הצוותים המלא והמעושר
                     teams: associatedTeams,
                 };
             };
-            
-            // מפעילים את פונקציית העזר על כל הפרויקטים הפעילים והמאורכבים
+
             const projectsWithCorrectData = projectsResponse.data.map(enrichProjectData);
             const archivedProjectsWithCorrectData = archivedProjectsResponse.data.map(enrichProjectData);
 
-            
             setProjects(projectsWithCorrectData);
             setArchivedProjects(archivedProjectsWithCorrectData);
             setTeams(teamsResponse.data);
@@ -91,22 +82,22 @@ const useDashboardData = (currentOrgId: string | null, user: User | null, curren
         await fetchData(abortController.signal);
     }, [fetchData]);
 
-    return { 
-        projects, 
+    return {
+        projects,
         archivedProjects,
-        teams, 
-        orgMembers, 
-        conversations, 
-        notifications, 
-        setNotifications, 
-        setConversations, 
-        setTeams, 
-        setProjects, 
+        teams,
+        orgMembers,
+        conversations,
+        notifications,
+        setNotifications,
+        setConversations,
+        setTeams,
+        setProjects,
         setArchivedProjects,
-        loading, 
-        error, 
-        setError, 
-        refreshData 
+        loading,
+        error,
+        setError,
+        refreshData
     };
 };
 
@@ -151,6 +142,9 @@ const Dashboard = () => {
 
     const [projectsView, setProjectsView] = useState<'active' | 'archived'>('active');
 
+    // 💡 שינוי #1: הרמנו את ה-state של השיחה הפעילה לכאן
+    const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+
     useEffect(() => {
         if (currentOrgId && user) {
             refreshData();
@@ -161,6 +155,7 @@ const Dashboard = () => {
         localStorage.setItem(LAST_ACTIVE_TAB_KEY, activeTab);
     }, [activeTab]);
 
+    // 💡 שינוי #2: כל הלוגיקה של הסוקט שופרה
     useEffect(() => {
         if (!currentOrgId || !user) return;
 
@@ -179,47 +174,61 @@ const Dashboard = () => {
             setNotifications(prev => [payload, ...prev]);
         });
 
-        newSocket.on('new_message', (payload) => {
-            console.log('New message received:', payload);
-            const { conversationId, ...message } = payload;
-            setConversations(prev => prev.map(c =>
-                c.id === conversationId
-                    ? { ...c, messages: [...(c.messages || []), message] }
-                    : c
-            ));
-        });
+        const handleNewMessage = (newMessagePayload: any) => {
+            console.log('New message received:', newMessagePayload);
 
-        newSocket.on('disconnect', () => {
-            console.log('Socket.IO disconnected');
-        });
+            // 💡 שינוי: שומרים את conversationId במשתנה נפרד
+            const conversationId = newMessagePayload.conversationId;
 
-        newSocket.on('connect_error', (error) => {
-            console.error('Socket.IO connection error:', error);
-        });
+            // 💡 שינוי: הסרנו את conversationId מהאובייקט הזה
+            const formattedMessage: Message = {
+                id: newMessagePayload.id,
+                text: newMessagePayload.text,
+                createdAt: newMessagePayload.timestamp,
+                updatedAt: newMessagePayload.updatedAt || newMessagePayload.timestamp,
+                sender: newMessagePayload.sender,
+            };
 
-        newSocket.on('error_message', (data) => {
-            console.error('Server error message:', data.message);
-        });
+            setConversations(prevConversations =>
+                prevConversations.map(conversation => {
+                    // 💡 שינוי: משתמשים במשתנה הנפרד להשוואה
+                    if (conversation.id === conversationId) {
+                        const existingMessages = conversation.messages || [];
+                        return {
+                            ...conversation,
+                            messages: [...existingMessages, formattedMessage],
+                            unreadCount: (conversation.id === activeConversationId) ? 0 : (conversation.unreadCount || 0) + 1,
+                        };
+                    }
+                    return conversation;
+                })
+            );
+        };
+
+        newSocket.on('new_message', handleNewMessage);
+
+        newSocket.on('disconnect', () => console.log('Socket.IO disconnected'));
+        newSocket.on('connect_error', (err) => console.error('Socket.IO connection error:', err));
+        newSocket.on('error_message', (data) => console.error('Server error message:', data.message));
 
         return () => {
+            newSocket.off('new_message', handleNewMessage);
             newSocket.disconnect();
         };
-    }, [currentOrgId, user, setNotifications, setConversations]);
+    }, [currentOrgId, user, setNotifications, setConversations, activeConversationId]);
 
     const { usersInOrg, teamLeads, teamMembers } = useMemo(() => {
         if (!orgMembers || orgMembers.length === 0) {
             return { usersInOrg: [], teamLeads: [], teamMembers: [] };
         }
-        
+
         const validOrgMembers = orgMembers.filter((m): m is Membership & { user: User } => m.user != null);
-
         const uniqueUsers = Array.from(new Map(validOrgMembers.map(m => [m.user.id, m.user])).values());
-
         const leads = Array.from(new Map(validOrgMembers
             .filter(m => m.role === 'TEAM_LEADER' || m.role === 'ADMIN' || m.role === 'SUPER_ADMIN')
             .map(m => [m.user.id, m.user])
         ).values());
-        
+
         const members = uniqueUsers.map(u => ({ id: u.id, name: u.fullName }));
 
         return {
@@ -274,6 +283,9 @@ const Dashboard = () => {
                     projectsView={projectsView}
                     setProjectsView={setProjectsView}
                     allMemberships={orgMembers}
+                    // 💡 שינוי #3: מעבירים את ה-state וה-setter לקומפוננטת הילד
+                    activeConversationId={activeConversationId}
+                    setActiveConversationId={setActiveConversationId}
                 />
             </main>
             {error && <ErrorPopup message={error} onClose={() => setError(null)} />}

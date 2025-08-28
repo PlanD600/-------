@@ -30,6 +30,10 @@ interface TabViewProps {
     refreshData: () => void;
     projectsView: 'active' | 'archived';
     setProjectsView: Dispatch<SetStateAction<'active' | 'archived'>>;
+    activeConversationId: string | null;
+    setActiveConversationId: React.Dispatch<React.SetStateAction<string | null>>;
+
+
 }
 
 const TabButton = ({ label, isActive, onClick, id, controlsId }: { label: string, isActive: boolean, onClick: () => void, id: string, controlsId: string }) => (
@@ -49,7 +53,8 @@ const TabButton = ({ label, isActive, onClick, id, controlsId }: { label: string
 );
 
 
-const TabView = ({ activeTab, onTabChange, projects, archivedProjects, teamMembers, teamLeads, users, teams, allMemberships, conversations, setConversations, socket, refreshData, projectsView, setProjectsView }: TabViewProps) => {
+const TabView = ({ activeTab, onTabChange, projects, archivedProjects, teamMembers, teamLeads, users, teams, allMemberships, conversations, setConversations, socket, refreshData, projectsView, setProjectsView, activeConversationId,
+    setActiveConversationId }: TabViewProps) => {
     const { memberships, currentOrgId } = useAuth();
 
     const currentUserRole = useMemo(() => {
@@ -79,7 +84,7 @@ const TabView = ({ activeTab, onTabChange, projects, archivedProjects, teamMembe
         { id: 'tasks', label: 'משימות', component: <TasksTab projects={projects} teamMembers={teamMembers} refreshData={refreshData} users={users} /> },
         canViewFinance ? { id: 'finance', label: 'כספים', component: <FinanceTab projects={projects} refreshData={refreshData} /> } : null,
         { id: 'gantt', label: 'גאנט', component: <GanttTab projects={projects} users={users} refreshData={refreshData} /> },
-        { id: 'chat', label: 'הודעות', component: <ChatTab conversations={conversations} setConversations={setConversations} users={users} socket={socket} /> }
+        { id: 'chat', label: 'הודעות', component: <ChatTab conversations={conversations} setConversations={setConversations} users={users} socket={socket} activeConversationId={activeConversationId} setActiveConversationId={setActiveConversationId} /> }
 
     ].filter(Boolean) as { id: string, label: string, component: React.ReactNode }[], [projects, archivedProjects, teamMembers, teamLeads, users, teams, conversations, socket, refreshData, canViewFinance, projectsView, setProjectsView, allMemberships]);
 
