@@ -11,6 +11,35 @@ import ConfirmationModal from '../../components/ConfirmationModal';
 import TeamForm from '../../components/TeamForm';
 import { useAuth } from '../../hooks/useAuth';
 
+// 💡 תיקון: פונקציה לחישוב סטטוס פרויקט על בסיס המשימות
+const calculateProjectStatus = (project: Project): Project => {
+    if (!project.tasks || project.tasks.length === 0) {
+        return {
+            ...project,
+            completionPercentage: 0,
+            status: 'מתוכנן' as const
+        };
+    }
+
+    const completedTasks = project.tasks.filter(task => task.status === 'הושלם');
+    const completionPercentage = Math.round((completedTasks.length / project.tasks.length) * 100);
+    
+    let status: Project['status'] = 'בתהליך';
+    if (completionPercentage === 100) {
+        status = 'הושלם';
+    } else if (project.tasks.some(task => task.status === 'תקוע')) {
+        status = 'בסיכון';
+    } else if (completionPercentage === 0) {
+        status = 'מתוכנן';
+    }
+
+    return {
+        ...project,
+        completionPercentage,
+        status
+    };
+};
+
 
 interface OverviewTabProps {
     projects: Project[];
@@ -155,7 +184,35 @@ const OverviewTab = ({ projects, archivedProjects, teamLeads, users, teams, allM
     const handleUpdateProjectDetails = async (updatedData: Partial<ProjectPayload>) => {
         if (!projectToEdit) return;
         try {
-            await api.updateProject(projectToEdit.id, updatedData);
+            // 💡 תיקון: נשלח רק שדות שהשתנו
+            const changedData: Partial<ProjectPayload> = {};
+            
+            if (updatedData.title !== projectToEdit.title) changedData.title = updatedData.title;
+            if (updatedData.description !== projectToEdit.description) changedData.description = updatedData.description;
+            if (updatedData.startDate !== projectToEdit.startDate) changedData.startDate = updatedData.startDate;
+            if (updatedData.endDate !== projectToEdit.endDate) changedData.endDate = updatedData.endDate;
+            if (updatedData.isArchived !== undefined && updatedData.isArchived !== projectToEdit.isArchived) {
+                changedData.isArchived = updatedData.isArchived;
+            }
+            
+            // בדיקה אם יש שינויים בצוותים או ראשי צוותים
+            const currentTeamLeadIds = projectToEdit.teamLeads?.map(u => u.id) || [];
+            const currentTeamIds = projectToEdit.teams?.map(t => t.id) || [];
+            
+            if (JSON.stringify(updatedData.teamLeads?.sort()) !== JSON.stringify(currentTeamLeadIds.sort())) {
+                changedData.teamLeads = updatedData.teamLeads;
+            }
+            if (JSON.stringify(updatedData.teamIds?.sort()) !== JSON.stringify(currentTeamIds.sort())) {
+                changedData.teamIds = updatedData.teamIds;
+            }
+            
+            // אם אין שינויים, לא נשלח כלום
+            if (Object.keys(changedData).length === 0) {
+                setProjectToEdit(null);
+                return;
+            }
+            
+            await api.updateProject(projectToEdit.id, changedData);
             refreshData();
             setProjectToEdit(null);
             setProjectsView('active');

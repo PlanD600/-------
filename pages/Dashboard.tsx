@@ -59,8 +59,40 @@ const useDashboardData = (currentOrgId: string | null, user: User | null, curren
             const projectsWithCorrectData = projectsResponse.data.map(enrichProjectData);
             const archivedProjectsWithCorrectData = archivedProjectsResponse.data.map(enrichProjectData);
 
-            setProjects(projectsWithCorrectData);
-            setArchivedProjects(archivedProjectsWithCorrectData);
+            // 💡 תיקון: חישוב סטטוס ואחוז השלמה על בסיס המשימות
+            const calculateProjectStatus = (project: Project): Project => {
+                if (!project.tasks || project.tasks.length === 0) {
+                    return {
+                        ...project,
+                        completionPercentage: 0,
+                        status: 'מתוכנן' as const
+                    };
+                }
+
+                const completedTasks = project.tasks.filter(task => task.status === 'הושלם');
+                const completionPercentage = Math.round((completedTasks.length / project.tasks.length) * 100);
+                
+                let status: Project['status'] = 'בתהליך';
+                if (completionPercentage === 100) {
+                    status = 'הושלם';
+                } else if (project.tasks.some(task => task.status === 'תקוע')) {
+                    status = 'בסיכון';
+                } else if (completionPercentage === 0) {
+                    status = 'מתוכנן';
+                }
+
+                return {
+                    ...project,
+                    completionPercentage,
+                    status
+                };
+            };
+
+            const projectsWithCalculatedStatus = projectsWithCorrectData.map(calculateProjectStatus);
+            const archivedProjectsWithCalculatedStatus = archivedProjectsWithCorrectData.map(calculateProjectStatus);
+
+            setProjects(projectsWithCalculatedStatus);
+            setArchivedProjects(archivedProjectsWithCalculatedStatus);
             setTeams(teamsResponse.data);
             setOrgMembers(orgMembersResponse.data);
             setConversations(conversationsData);

@@ -364,6 +364,8 @@ const GanttTab = ({ projects, users, refreshData }: { projects: Project[], users
             const optimisticUpdate = (currentTask: Task): Task => ({ ...currentTask, comments: [...(currentTask.comments || []), newComment] });
             setLocalProjects(prev => prev.map(p => p.id === project.id ? { ...p, tasks: (p.tasks || []).map(t => t.id === task.id ? optimisticUpdate(t) : t) } : p));
             setViewingTask(prev => prev ? { ...prev, task: optimisticUpdate(prev.task) } : null);
+            // 💡 תיקון: רענון נתוני הפרויקט כדי לעדכן סטטוס ואחוז השלמה
+            refreshData();
         } catch (error) {
             console.error("Failed to add comment", error);
             alert("שגיאה בהוספת תגובה.");
@@ -378,6 +380,8 @@ const GanttTab = ({ projects, users, refreshData }: { projects: Project[], users
             if (viewingTask?.task.id === taskId) {
                 setViewingTask(prev => prev ? { ...prev, task: updatedTask } : null);
             }
+            // 💡 תיקון: רענון נתוני הפרויקט כדי לעדכן סטטוס ואחוז השלמה
+            refreshData();
         } catch (e) {
             console.error(e);
             alert("שגיאה בעדכון המשימה. סנכרון מחדש...");

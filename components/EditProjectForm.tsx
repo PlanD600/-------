@@ -128,17 +128,16 @@ const EditProjectForm = ({ project, onSubmit, onCancel, teamLeads, teams, titleI
             });
         }
         
+        // 💡 תיקון: נשלח רק שדות שהשתנו או שדות חובה
         const payload: Partial<ProjectPayload> = {
             title,
             description,
-            // 💡 שינוי: נשלח את המערך של מזהי ראשי הצוותים שנאספו.
             teamLeads: teamLeadsToSend,
-            // 💡 שינוי: נשלח את המערך של מזהי הצוותים שנבחרו.
             teamIds: teamIdsToSend,
             startDate,
             endDate,
-            isArchived,
-            // 💡 תיקון: budget לא הוגדר בקוד שלך. נחליף אותו בשדות התקציב החודשי.
+            // 💡 תיקון: נשלח isArchived רק אם הוא השתנה מהערך המקורי
+            ...(isArchived !== project.isArchived && { isArchived }),
             monthlyBudgets: monthlyBudgetsPayload.length > 0 ? monthlyBudgetsPayload : undefined,
         };
         
