@@ -195,6 +195,8 @@ const OverviewTab = ({ projects, archivedProjects, teamLeads, users, teams, allM
             console.log('Sending project update payload:', payload);
             console.log('Original project isArchived:', projectToEdit.isArchived);
             console.log('Updated data isArchived:', updatedData.isArchived);
+            console.log('Final payload isArchived:', payload.isArchived);
+            console.log('Final payload JSON:', JSON.stringify(payload));
             
             await api.updateProject(projectToEdit.id, payload);
             refreshData();

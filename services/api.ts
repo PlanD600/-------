@@ -288,6 +288,8 @@ export const updateProject = (projectId: string, projectData: Partial<ProjectPay
   // 💡 לוג לבדיקה: הדפסת ה-payload שנשלח לשרת
   console.log('API updateProject - projectId:', projectId);
   console.log('API updateProject - projectData:', projectData);
+  console.log('API updateProject - projectData.isArchived:', projectData.isArchived);
+  console.log('API updateProject - JSON.stringify(projectData):', JSON.stringify(projectData));
   
   return fetch(`${BASE_URL}/projects/${projectId}`, {
       method: 'PUT',

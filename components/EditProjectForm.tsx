@@ -151,13 +151,15 @@ const EditProjectForm = ({ project, onSubmit, onCancel, teamLeads, teams, titleI
             startDate,
             endDate,
             // 💡 תיקון: נשלח תמיד את השדה isArchived כדי למנוע שגיאות בשרת
-            isArchived,
+            isArchived: isArchived,
             monthlyBudgets: monthlyBudgetsPayload,
         };
         
         // 💡 לוג לבדיקה: הדפסת ה-payload שנשלח מהטופס
         console.log('EditProjectForm - sending payload:', payload);
         console.log('EditProjectForm - isArchived value:', isArchived);
+        console.log('EditProjectForm - payload.isArchived:', payload.isArchived);
+        console.log('EditProjectForm - JSON.stringify(payload):', JSON.stringify(payload));
         
         onSubmit(payload);
     };
