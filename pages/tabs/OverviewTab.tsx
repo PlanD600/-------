@@ -190,7 +190,7 @@ const OverviewTab = ({ projects, archivedProjects, teamLeads, users, teams, allM
                 description: updatedData.description || projectToEdit.description,
                 startDate: updatedData.startDate || projectToEdit.startDate,
                 endDate: updatedData.endDate || projectToEdit.endDate,
-                isArchived: updatedData.isArchived !== undefined ? updatedData.isArchived : projectToEdit.isArchived,
+                isArchived: projectToEdit.isArchived, // 💡 תיקון: תמיד נשלח את הערך הקיים
                 teamLeads: updatedData.teamLeads || projectToEdit.teamLeads?.map(u => u.id) || [],
                 teamIds: updatedData.teamIds || projectToEdit.teams?.map(t => t.id) || [],
             };
@@ -308,10 +308,12 @@ const OverviewTab = ({ projects, archivedProjects, teamLeads, users, teams, allM
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                     {filteredProjects.map(project => {
                         const permissions = getProjectPermissions(project);
+                        // 💡 תיקון: חישוב סטטוס הפרויקט לפני הצגתו
+                        const projectWithCalculatedStatus = calculateProjectStatus(project);
                         return (
                             <ProjectCard
                                 key={project.id}
-                                project={project}
+                                project={projectWithCalculatedStatus}
                                 onClick={() => {
                                     const fullProject = projects.find(p => p.id === project.id) || archivedProjects.find(p => p.id === project.id);
                                     if (fullProject) {

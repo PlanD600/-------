@@ -128,6 +128,16 @@ const EditProjectForm = ({ project, onSubmit, onCancel, teamLeads, teams, titleI
             });
         }
         
+        // אם אין תקציבים, נשלח מערך ריק כדי לאפס את התקציבים הקיימים
+        if (monthlyBudgetsPayload.length === 0 && (project.monthlyBudgets && project.monthlyBudgets.length > 0)) {
+            monthlyBudgetsPayload.push({
+                year: new Date().getFullYear(),
+                month: new Date().getMonth() + 1,
+                incomeBudget: 0,
+                expenseBudget: 0,
+            });
+        }
+        
         // 💡 תיקון: נשלח רק שדות שהשתנו או שדות חובה
         const payload: Partial<ProjectPayload> = {
             title,
@@ -138,7 +148,7 @@ const EditProjectForm = ({ project, onSubmit, onCancel, teamLeads, teams, titleI
             endDate,
             // 💡 תיקון: נשלח תמיד את השדה isArchived כדי למנוע שגיאות בשרת
             isArchived,
-            monthlyBudgets: monthlyBudgetsPayload.length > 0 ? monthlyBudgetsPayload : undefined,
+            monthlyBudgets: monthlyBudgetsPayload,
         };
         
         onSubmit(payload);

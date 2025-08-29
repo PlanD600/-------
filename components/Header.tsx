@@ -6,6 +6,7 @@ import { MenuIcon, BellIcon } from './icons';
 import { Notification } from '../types';
 import NotificationsPopover from './NotificationsPopover';
 import Avatar from './Avatar'; // --- ייבוא הקומפוננטה החדשה ---
+import * as api from '../services/api';
 
 interface HeaderProps {
     onNavigate: (view: 'settings' | 'dashboard') => void;
@@ -70,7 +71,7 @@ const Header = ({ onNavigate, notifications, setNotifications }: HeaderProps) =>
                 {/* --- שינוי כאן: בדיקה אם יש תמונת פרופיל או שימוש ברכיב Avatar --- */}
                 {user?.profilePictureUrl ? (
                     <img 
-                        src={user.profilePictureUrl} 
+                        src={api.getFullUrl(user.profilePictureUrl)} 
                         alt={`תמונת פרופיל של ${user.fullName || 'משתמש'}`} 
                         className="w-10 h-10 rounded-full object-cover border-2 border-gray-200"
                     />

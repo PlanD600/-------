@@ -29,6 +29,33 @@ interface ImportMeta {
 const BASE_URL = 'https://api.mypland.com/api';
 export const getApiBaseUrl = () => BASE_URL;
 
+// Utility function to construct full URLs for uploads
+export const getFullUrl = (path: string): string => {
+  if (!path) return '';
+  
+  // If it's already a full URL, return as is
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    return path;
+  }
+  
+  // If it's a relative path starting with /uploads, construct full URL
+  if (path.startsWith('/uploads')) {
+    // Extract the domain from BASE_URL (remove /api part)
+    const domain = BASE_URL.replace('/api', '');
+    return `${domain}${path}`;
+  }
+  
+  // If it's a relative path without /uploads, assume it's relative to domain root
+  if (path.startsWith('/')) {
+    const domain = BASE_URL.replace('/api', '');
+    return `${domain}${path}`;
+  }
+  
+  // If it's just a filename, assume it's in uploads folder
+  const domain = BASE_URL.replace('/api', '');
+  return `${domain}/uploads/${path}`;
+};
+
 const getAuthHeaders = () => {
   const token = localStorage.getItem('jwtToken');
   const orgId = localStorage.getItem('currentOrgId');

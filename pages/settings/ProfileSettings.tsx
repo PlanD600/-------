@@ -27,12 +27,8 @@ const ProfileSettings = () => {
     const [profilePictureFile, setProfilePictureFile] = useState<File | null>(null);
     const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-    // שינוי סיסמה
+    // שינוי סיסמה - לא זמין כרגע
     const [showPasswordModal, setShowPasswordModal] = useState(false);
-    const [newPassword, setNewPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
-    const [passwordError, setPasswordError] = useState('');
-    const [passwordSuccess, setPasswordSuccess] = useState('');
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -107,35 +103,10 @@ const ProfileSettings = () => {
         }
     };
 
-    // שינוי סיסמה
-    const handlePasswordChange = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setPasswordError('');
-        setPasswordSuccess('');
-
-        if (!newPassword || !confirmPassword) {
-            setPasswordError('יש למלא את כל השדות');
-            return;
-        }
-        if (newPassword.length < 6) {
-            setPasswordError('הסיסמה חייבת לכלול לפחות 6 תווים');
-            return;
-        }
-        if (newPassword !== confirmPassword) {
-            setPasswordError('הסיסמה החדשה אינה תואמת לאישור');
-            return;
-        }
-
-        try {
-            await api.changeMyPassword(newPassword);
-            setPasswordSuccess('הסיסמה עודכנה בהצלחה!');
-            setNewPassword('');
-            setConfirmPassword('');
-            setShowPasswordModal(false);
-        } catch (err: any) {
-            setPasswordError(err.message || 'עדכון הסיסמה נכשל');
-        }
-    };
+    // שינוי סיסמה - לא זמין כרגע
+    // const handlePasswordChange = async (e: React.FormEvent) => {
+    //     // פונקציה זו הוסרה כי נקודת הקצה לא קיימת בשרת
+    // };
     
     return (
         <div>
@@ -188,7 +159,7 @@ const ProfileSettings = () => {
                         {profilePictureFile ? (
                             <img src={URL.createObjectURL(profilePictureFile)} alt="פרופיל זמני" className="w-16 h-16 rounded-full object-cover" />
                         ) : user?.profilePictureUrl ? (
-                            <img src={user.profilePictureUrl} alt="פרופיל" className="w-16 h-16 rounded-full object-cover" />
+                            <img src={api.getFullUrl(user.profilePictureUrl)} alt="פרופיל" className="w-16 h-16 rounded-full object-cover" />
                         ) : (
                             <div className="w-16 h-16 rounded-full flex items-center justify-center bg-[#4A2B2C] text-white font-bold text-2xl">
                                 {user?.fullName?.charAt(0) || ''}
@@ -213,11 +184,14 @@ const ProfileSettings = () => {
                 <div>
                     <button
                         type="button"
-                        className="mt-2 px-4 py-2 bg-gray-200 rounded-md"
+                        className="mt-2 px-4 py-2 bg-gray-200 rounded-md cursor-not-allowed opacity-50"
                         onClick={() => setShowPasswordModal(true)}
+                        disabled
+                        title="פיצ'ר זה לא זמין כרגע"
                     >
-                        שנה סיסמה
+                        שנה סיסמה (לא זמין)
                     </button>
+                    <p className="mt-1 text-xs text-gray-500">שינוי סיסמה יזמין בקרוב.</p>
                 </div>
                 <div className="pt-4 flex justify-end items-center space-x-4 space-x-reverse">
                     {error && <p className="text-sm text-red-600">{error}</p>}
@@ -237,35 +211,25 @@ const ProfileSettings = () => {
                                 <CloseIcon className="w-6 h-6"/>
                             </button>
                         </div>
-                        <form onSubmit={handlePasswordChange} className="space-y-4">
-                            <div>
-                                <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">סיסמה חדשה</label>
-                                <input
-                                    type="password"
-                                    id="newPassword"
-                                    value={newPassword}
-                                    onChange={e => setNewPassword(e.target.value)}
-                                    className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#4A2B2C] focus:border-[#4A2B2C]"
-                                />
+                        <div className="text-center py-8">
+                            <div className="text-gray-500 mb-4">
+                                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                </svg>
                             </div>
-                            <div>
-                                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">אשר סיסמה חדשה</label>
-                                <input
-                                    type="password"
-                                    id="confirmPassword"
-                                    value={confirmPassword}
-                                    onChange={e => setConfirmPassword(e.target.value)}
-                                    className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#4A2B2C] focus:border-[#4A2B2C]"
-                                />
-                            </div>
-                            {passwordError && <p className="text-sm text-red-600">{passwordError}</p>}
-                            {passwordSuccess && <p className="text-sm text-green-600">{passwordSuccess}</p>}
-                            <div className="flex justify-end">
-                                <button type="submit" className="px-4 py-2 bg-[#4A2B2C] text-white rounded-md hover:bg-opacity-90">
-                                    שנה סיסמה
-                                </button>
-                            </div>
-                        </form>
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">פיצ'ר לא זמין</h3>
+                            <p className="text-gray-600 mb-4">
+                                שינוי סיסמה אינו זמין כרגע במערכת. 
+                                <br />
+                                פיצ'ר זה יזמין בקרוב עם עדכון השרת.
+                            </p>
+                            <button 
+                                onClick={() => setShowPasswordModal(false)}
+                                className="px-4 py-2 bg-[#4A2B2C] text-white rounded-md hover:bg-opacity-90"
+                            >
+                                הבנתי
+                            </button>
+                        </div>
                     </div>
                 </Modal>
             )}

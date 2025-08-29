@@ -108,14 +108,15 @@ export interface MonthlyBudget extends BaseModel {
 }
 
 export interface ProjectPayload {
-    title: string;
-    description: string;
-    teamLeads: string[];
-    startDate: string;
-    endDate: string;
+    title?: string;
+    description?: string;
+    teamLeads?: string[];
+    startDate?: string;
+    endDate?: string;
     teamIds?: string[];
     monthlyBudgets?: MonthlyBudgetPayload[];
     isArchived?: boolean;
+    status?: ProjectStatus;
 }
 
 export interface MonthlyBudgetPayload {
