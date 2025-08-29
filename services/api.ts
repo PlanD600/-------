@@ -285,6 +285,10 @@ export const createProject = (projectData: ProjectPayload): Promise<Project> => 
 };
 
 export const updateProject = (projectId: string, projectData: Partial<ProjectPayload>): Promise<Project> => {
+  // 💡 לוג לבדיקה: הדפסת ה-payload שנשלח לשרת
+  console.log('API updateProject - projectId:', projectId);
+  console.log('API updateProject - projectData:', projectData);
+  
   return fetch(`${BASE_URL}/projects/${projectId}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
