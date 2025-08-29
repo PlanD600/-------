@@ -204,12 +204,15 @@ const Dashboard = () => {
                     messages: [...(targetConversation.messages || []), formattedMessage],
                     // עדכן מונה הודעות שלא נקראו (אם זו לא השיחה הפעילה)
                     unreadCount: (targetConversation.id === activeConversationId) ? 0 : (targetConversation.unreadCount || 0) + 1,
+                    // 💡 שינוי: עדכן את זמן העדכון האחרון כדי שהמיון יעבוד כראוי
+                    updatedAt: new Date().toISOString(),
                 };
 
                 // שלב 4: צור רשימה חדשה של כל שאר השיחות (בלי הגרסה הישנה של השיחה שעדכנו)
                 const otherConversations = prevConversations.filter(c => c.id !== conversationId);
 
-                // שלב 5 (המשימה החדשה): החזר מערך חדש עם השיחה המעודכנת בראש הרשימה
+                // 💡 שינוי: במקום להחזיר את השיחה המעודכנת בראש הרשימה,
+                // נחזיר את הרשימה המלאה והקומפוננטה תמיין אותה אוטומטית
                 return [updatedConversation, ...otherConversations];
             });
         };

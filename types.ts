@@ -171,6 +171,7 @@ export interface Message extends BaseModel {
   sender: User; // Populated User object
   text: string;
   timestamp?: string; // From WebSocket, may differ slightly from createdAt.
+  // 💡 הערה: timestamp הוא השדה שמגיע מ-WebSocket, אם הוא לא קיים נשתמש ב-createdAt
 }
 
 export interface Conversation extends BaseModel {

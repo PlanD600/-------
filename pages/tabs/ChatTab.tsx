@@ -122,18 +122,67 @@ const ChatTab = ({ conversations, setConversations, users, socket, activeConvers
     const createModalTitleId = useId();
     const [showChatOnMobile, setShowChatOnMobile] = useState(false);
     const [conversationToDelete, setConversationToDelete] = useState<Conversation | null>(null);
+    const [loadingMessages, setLoadingMessages] = useState(false);
+
+    // 💡 שינוי #1: מיון השיחות לפי זמן ההודעה האחרונה
+    const sortedConversations = useMemo(() => {
+        return [...conversations].sort((a, b) => {
+            const aLastMessage = a.messages?.[a.messages.length - 1];
+            const bLastMessage = b.messages?.[b.messages.length - 1];
+            
+            // אם יש הודעות, נמיין לפי זמן ההודעה האחרונה
+            if (aLastMessage && bLastMessage) {
+                const aTime = new Date(aLastMessage.timestamp || aLastMessage.createdAt).getTime();
+                const bTime = new Date(bLastMessage.timestamp || bLastMessage.createdAt).getTime();
+                return bTime - aTime; // סדר יורד - החדש ביותר קודם
+            }
+            
+            // אם יש הודעה רק באחת השיחות, השיחה עם ההודעה תהיה קודם
+            if (aLastMessage && !bLastMessage) return -1;
+            if (!aLastMessage && bLastMessage) return 1;
+            
+            // אם אין הודעות בשתי השיחות, נמיין לפי זמן העדכון האחרון
+            const aUpdateTime = new Date(a.updatedAt).getTime();
+            const bUpdateTime = new Date(b.updatedAt).getTime();
+            return bUpdateTime - aUpdateTime;
+        });
+    }, [conversations]);
 
     const activeConversation = useMemo(() => {
-        return conversations.find(c => c.id === activeConversationId);
-    }, [conversations, activeConversationId]);
+        return sortedConversations.find(c => c.id === activeConversationId);
+    }, [sortedConversations, activeConversationId]);
+
+    // 💡 שינוי #2: טעינת הודעות כאשר משתנה השיחה הפעילה
+    useEffect(() => {
+        const loadMessagesForConversation = async () => {
+            if (!activeConversationId || !currentUser) return;
+            
+            setLoadingMessages(true);
+            try {
+                const messagesData = await api.getMessagesForConversation(activeConversationId, 1, 100);
+                
+                setConversations(prev => prev.map(conv => 
+                    conv.id === activeConversationId 
+                        ? { ...conv, messages: messagesData.messages }
+                        : conv
+                ));
+            } catch (error) {
+                console.error('Failed to load messages:', error);
+            } finally {
+                setLoadingMessages(false);
+            }
+        };
+
+        loadMessagesForConversation();
+    }, [activeConversationId, currentUser, setConversations]);
 
     useEffect(() => {
-        if (!activeConversationId && conversations.length > 0) {
-            setActiveConversationId(conversations[0].id);
-        } else if (activeConversationId && !conversations.some(c => c.id === activeConversationId)) {
-            setActiveConversationId(conversations.length > 0 ? conversations[0].id : null);
+        if (!activeConversationId && sortedConversations.length > 0) {
+            setActiveConversationId(sortedConversations[0].id);
+        } else if (activeConversationId && !sortedConversations.some(c => c.id === activeConversationId)) {
+            setActiveConversationId(sortedConversations.length > 0 ? sortedConversations[0].id : null);
         }
-    }, [conversations, activeConversationId]);
+    }, [sortedConversations, activeConversationId, setActiveConversationId]);
 
     useEffect(() => {
         if (messagesEndRef.current) {
@@ -240,7 +289,7 @@ const ChatTab = ({ conversations, setConversations, users, socket, activeConvers
                         </button>
                     </div>
                     <div className="flex-1 overflow-y-auto">
-                        {conversations.map(conv => {
+                        {sortedConversations.map(conv => {
                             const display = getConversationDisplay(conv);
                             const lastMessage = conv.messages?.[conv.messages.length - 1];
                             const isActive = conv.id === activeConversationId;
@@ -278,40 +327,48 @@ const ChatTab = ({ conversations, setConversations, users, socket, activeConvers
                                 </button>
                             </div>
                             <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-gray-50">
-                                {(activeConversation.messages || []).map((msg, index) => {
-                                    if (!currentUser || !msg.sender) return null;
-                                    // 💡 שינוי #2: שימוש ב-timestamp או ב-createdAt
-                                    const messageDate = msg.timestamp || msg.createdAt;
-                                    const prevMessageDate = index > 0 ? activeConversation.messages[index - 1].timestamp || activeConversation.messages[index - 1].createdAt : null;
+                                {loadingMessages ? (
+                                    <div className="flex items-center justify-center h-32">
+                                        <div className="text-gray-500">טוען הודעות...</div>
+                                    </div>
+                                ) : (
+                                    <>
+                                        {(activeConversation.messages || []).map((msg, index) => {
+                                            if (!currentUser || !msg.sender) return null;
+                                            // 💡 שינוי #2: שימוש ב-timestamp או ב-createdAt
+                                            const messageDate = msg.timestamp || msg.createdAt;
+                                            const prevMessageDate = index > 0 ? activeConversation.messages[index - 1].timestamp || activeConversation.messages[index - 1].createdAt : null;
 
-                                    const isMe = msg.sender.id === currentUser?.id;
-                                    const time = new Date(messageDate).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
-                                    const showDate = index === 0 || (prevMessageDate && (new Date(messageDate).toDateString() !== new Date(prevMessageDate).toDateString()));
+                                            const isMe = msg.sender.id === currentUser?.id;
+                                            const time = new Date(messageDate).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+                                            const showDate = index === 0 || (prevMessageDate && (new Date(messageDate).toDateString() !== new Date(prevMessageDate).toDateString()));
 
-                                    const senderAvatar = msg.sender?.profilePictureUrl
-                                        ? <img src={api.getApiBaseUrl() + msg.sender.profilePictureUrl} alt={msg.sender.fullName} className="w-8 h-8 rounded-full object-cover self-start" />
-                                        : <InitialAvatar name={msg.sender?.fullName || '?'} sizeClasses="w-8 h-8" />;
+                                            const senderAvatar = msg.sender?.profilePictureUrl
+                                                ? <img src={api.getApiBaseUrl() + msg.sender.profilePictureUrl} alt={msg.sender.fullName} className="w-8 h-8 rounded-full object-cover self-start" />
+                                                : <InitialAvatar name={msg.sender?.fullName || '?'} sizeClasses="w-8 h-8" />;
 
-                                    return (
-                                        <React.Fragment key={msg.id}>
-                                            {showDate && (
-                                                <div className="text-center my-4">
-                                                    <span className="text-xs text-gray-500 bg-gray-200 rounded-full px-3 py-1">
-                                                        {formatDate(messageDate)}
-                                                    </span>
-                                                </div>
-                                            )}
-                                            <div className={`flex items-end gap-3 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
-                                                {senderAvatar}
-                                                <div className={`max-w-xs lg:max-w-md p-3 rounded-2xl ${isMe ? 'bg-[#4A2B2C] text-white rounded-br-none' : 'bg-white text-gray-800 rounded-bl-none border'}`}>
-                                                    <p className="text-sm" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{msg.text}</p>
-                                                    <p className={`text-xs mt-1 text-right ${isMe ? 'text-stone-300' : 'text-gray-400'}`}>{time}</p>
-                                                </div>
-                                            </div>
-                                        </React.Fragment>
-                                    )
-                                })}
-                                <div ref={messagesEndRef} />
+                                            return (
+                                                <React.Fragment key={msg.id}>
+                                                    {showDate && (
+                                                        <div className="text-center my-4">
+                                                            <span className="text-xs text-gray-500 bg-gray-200 rounded-full px-3 py-1">
+                                                                {formatDate(messageDate)}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                    <div className={`flex items-end gap-3 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
+                                                        {senderAvatar}
+                                                        <div className={`max-w-xs lg:max-w-md p-3 rounded-2xl ${isMe ? 'bg-[#4A2B2C] text-white rounded-br-none' : 'bg-white text-gray-800 rounded-bl-none border'}`}>
+                                                            <p className="text-sm" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{msg.text}</p>
+                                                            <p className={`text-xs mt-1 text-right ${isMe ? 'text-stone-300' : 'text-gray-400'}`}>{time}</p>
+                                                        </div>
+                                                    </div>
+                                                </React.Fragment>
+                                            )
+                                        })}
+                                        <div ref={messagesEndRef} />
+                                    </>
+                                )}
                             </div>
                             <div className="p-4 border-t bg-white">
                                 <form onSubmit={handleSendMessage} className="flex items-center space-x-2 space-x-reverse" key={activeConversationId || 'new-message'}>
