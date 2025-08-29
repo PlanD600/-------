@@ -51,6 +51,10 @@ const EditProjectForm = ({ project, onSubmit, onCancel, teamLeads, teams, titleI
         setAssignMethod((project.teams && project.teams.length > 0) ? 'team' : 'teamLeads');
         setIsArchived(project.isArchived || false);
         
+        // 💡 לוג לבדיקה: הדפסת ערך isArchived מהפרויקט
+        console.log('EditProjectForm - project.isArchived:', project.isArchived);
+        console.log('EditProjectForm - setting isArchived to:', project.isArchived || false);
+        
         const totalIncome = (project.monthlyBudgets || []).reduce((sum, b) => sum + b.incomeBudget, 0);
         const totalExpense = (project.monthlyBudgets || []).reduce((sum, b) => sum + b.expenseBudget, 0);
         setIncomeBudget(totalIncome);
@@ -150,6 +154,10 @@ const EditProjectForm = ({ project, onSubmit, onCancel, teamLeads, teams, titleI
             isArchived,
             monthlyBudgets: monthlyBudgetsPayload,
         };
+        
+        // 💡 לוג לבדיקה: הדפסת ה-payload שנשלח מהטופס
+        console.log('EditProjectForm - sending payload:', payload);
+        console.log('EditProjectForm - isArchived value:', isArchived);
         
         onSubmit(payload);
     };
@@ -293,7 +301,10 @@ const EditProjectForm = ({ project, onSubmit, onCancel, teamLeads, teams, titleI
                                 id="proj-edit-archived"
                                 type="checkbox"
                                 checked={isArchived}
-                                onChange={e => setIsArchived(e.target.checked)}
+                                onChange={e => {
+                                    console.log('EditProjectForm - isArchived changed to:', e.target.checked);
+                                    setIsArchived(e.target.checked);
+                                }}
                                 className="w-4 h-4 rounded border-gray-300 text-[#4A2B2C] focus:ring-[#4A2B2C]"
                             />
                             <span className="text-sm text-gray-700">העבר לארכיון</span>
