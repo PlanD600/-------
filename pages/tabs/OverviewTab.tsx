@@ -184,35 +184,18 @@ const OverviewTab = ({ projects, archivedProjects, teamLeads, users, teams, allM
     const handleUpdateProjectDetails = async (updatedData: Partial<ProjectPayload>) => {
         if (!projectToEdit) return;
         try {
-            // 💡 תיקון: נשלח רק שדות שהשתנו
-            const changedData: Partial<ProjectPayload> = {};
+            // 💡 תיקון: נשלח את כל השדות הנדרשים כדי למנוע שגיאות בשרת
+            const payload: Partial<ProjectPayload> = {
+                title: updatedData.title || projectToEdit.title,
+                description: updatedData.description || projectToEdit.description,
+                startDate: updatedData.startDate || projectToEdit.startDate,
+                endDate: updatedData.endDate || projectToEdit.endDate,
+                isArchived: updatedData.isArchived !== undefined ? updatedData.isArchived : projectToEdit.isArchived,
+                teamLeads: updatedData.teamLeads || projectToEdit.teamLeads?.map(u => u.id) || [],
+                teamIds: updatedData.teamIds || projectToEdit.teams?.map(t => t.id) || [],
+            };
             
-            if (updatedData.title !== projectToEdit.title) changedData.title = updatedData.title;
-            if (updatedData.description !== projectToEdit.description) changedData.description = updatedData.description;
-            if (updatedData.startDate !== projectToEdit.startDate) changedData.startDate = updatedData.startDate;
-            if (updatedData.endDate !== projectToEdit.endDate) changedData.endDate = updatedData.endDate;
-            if (updatedData.isArchived !== undefined && updatedData.isArchived !== projectToEdit.isArchived) {
-                changedData.isArchived = updatedData.isArchived;
-            }
-            
-            // בדיקה אם יש שינויים בצוותים או ראשי צוותים
-            const currentTeamLeadIds = projectToEdit.teamLeads?.map(u => u.id) || [];
-            const currentTeamIds = projectToEdit.teams?.map(t => t.id) || [];
-            
-            if (JSON.stringify(updatedData.teamLeads?.sort()) !== JSON.stringify(currentTeamLeadIds.sort())) {
-                changedData.teamLeads = updatedData.teamLeads;
-            }
-            if (JSON.stringify(updatedData.teamIds?.sort()) !== JSON.stringify(currentTeamIds.sort())) {
-                changedData.teamIds = updatedData.teamIds;
-            }
-            
-            // אם אין שינויים, לא נשלח כלום
-            if (Object.keys(changedData).length === 0) {
-                setProjectToEdit(null);
-                return;
-            }
-            
-            await api.updateProject(projectToEdit.id, changedData);
+            await api.updateProject(projectToEdit.id, payload);
             refreshData();
             setProjectToEdit(null);
             setProjectsView('active');

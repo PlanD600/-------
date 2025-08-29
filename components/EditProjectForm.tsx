@@ -136,8 +136,8 @@ const EditProjectForm = ({ project, onSubmit, onCancel, teamLeads, teams, titleI
             teamIds: teamIdsToSend,
             startDate,
             endDate,
-            // 💡 תיקון: נשלח isArchived רק אם הוא השתנה מהערך המקורי
-            ...(isArchived !== project.isArchived && { isArchived }),
+            // 💡 תיקון: נשלח תמיד את השדה isArchived כדי למנוע שגיאות בשרת
+            isArchived,
             monthlyBudgets: monthlyBudgetsPayload.length > 0 ? monthlyBudgetsPayload : undefined,
         };
         
