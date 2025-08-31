@@ -52,8 +52,8 @@ const EditTaskForm = ({ task, onSubmit, onCancel, users, titleId }: EditTaskForm
             title,
             description,
             assigneesIds,
-            startDate,
-            endDate,
+            startDate: startDate ? new Date(startDate).toISOString() : undefined,
+            endDate: endDate ? new Date(endDate).toISOString() : undefined,
             expense: Number(expense) || undefined,
             status,
             color

@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { HashRouter } from 'react-router-dom'; // שינוי ל-HashRouter
+import { BrowserRouter } from 'react-router-dom'; // שינוי ל-BrowserRouter
 import App from './App';
 import { AuthProvider } from './contexts/AuthContext';
 
@@ -12,10 +12,10 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <HashRouter> {/* שינוי ל-HashRouter */}
+    <BrowserRouter> {/* שינוי ל-BrowserRouter */}
       <AuthProvider>
         <App />
       </AuthProvider>
-    </HashRouter>
+    </BrowserRouter>
   </React.StrictMode>
 );

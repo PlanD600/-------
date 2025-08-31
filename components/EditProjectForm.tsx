@@ -137,13 +137,14 @@ const EditProjectForm = ({ project, onSubmit, onCancel, teamLeads, teams, titleI
         }
         
         // 💡 תיקון: נשלח רק שדות שהשתנו או שדות חובה
+        // 💡 תיקון קריטי: המרת תאריכים לפורמט ISO-8601 מלא
         const payload: Partial<ProjectPayload> = {
             title,
             description,
             teamLeads: teamLeadsToSend,
             teamIds: teamIdsToSend,
-            startDate,
-            endDate,
+            startDate: startDate ? new Date(startDate).toISOString() : undefined,
+            endDate: endDate ? new Date(endDate).toISOString() : undefined,
             monthlyBudgets: monthlyBudgetsPayload,
         };
         

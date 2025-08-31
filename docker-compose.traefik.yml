@@ -12,13 +12,7 @@ services:
       - "traefik.http.middlewares.frontend-spa.redirectregex.permanent=false"
       - "traefik.http.middlewares.frontend-spa.redirectregex.regex=^(?!.*\\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$).*$"
       - "traefik.http.middlewares.frontend-spa.redirectregex.replacement=/index.html"
-      - "traefik.http.middlewares.login-redirect.redirectregex.permanent=false"
-      - "traefik.http.middlewares.login-redirect.redirectregex.regex=^/login$"
-      - "traefik.http.middlewares.login-redirect.redirectregex.replacement=/#/login"
-      - "traefik.http.middlewares.dashboard-redirect.redirectregex.permanent=false"
-      - "traefik.http.middlewares.dashboard-redirect.redirectregex.regex=^/dashboard$"
-      - "traefik.http.middlewares.dashboard-redirect.redirectregex.replacement=/#/dashboard"
-      - "traefik.http.routers.frontend.middlewares=frontend-spa,login-redirect,dashboard-redirect"
+      - "traefik.http.routers.frontend.middlewares=frontend-spa"
     restart: unless-stopped
 
   traefik:

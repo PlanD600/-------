@@ -53,7 +53,7 @@ function App() {
     );
   }
 
-  // כאן השינוי המרכזי: מערכת ניווט מותאמת ל-HashRouter
+  // כאן השינוי המרכזי: מערכת ניווט מותאמת ל-BrowserRouter
   return (
     <div role="application" className="bg-[#F0EBE3] min-h-screen text-[#333]">
        <Routes>

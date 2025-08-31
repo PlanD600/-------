@@ -6,7 +6,7 @@ export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     return {
         plugins: [react()],
-        base: '/', // הוספת base path
+        base: '/', // base path
         server: {
             proxy: {
                 '/api': {
@@ -18,7 +18,7 @@ export default defineConfig(({ mode }) => {
                     ws: true,
                 },
             },
-            historyApiFallback: true, // הוספת fallback לניווט
+            historyApiFallback: true, // fallback לניווט SPA
         },
         define: {
             'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),

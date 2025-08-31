@@ -3,17 +3,6 @@ mypland.com {
     try_files {path} /index.html
     file_server
     
-    # Redirect old routes to new hash routes
-    @login {
-        path /login
-    }
-    redir @login /#/login 302
-    
-    @dashboard {
-        path /dashboard
-    }
-    redir @dashboard /#/dashboard 302
-    
     # Cache static assets
     @static {
         path *.js *.css *.png *.jpg *.jpeg *.gif *.ico *.svg *.woff *.woff2

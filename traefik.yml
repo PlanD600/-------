@@ -37,13 +37,3 @@ http:
         permanent: false
         regex: "^(?!.*\\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$).*$"
         replacement: "/index.html"
-    login-redirect:
-      redirectRegex:
-        permanent: false
-        regex: "^/login$"
-        replacement: "/#/login"
-    dashboard-redirect:
-      redirectRegex:
-        permanent: false
-        regex: "^/dashboard$"
-        replacement: "/#/dashboard"

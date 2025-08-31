@@ -313,8 +313,8 @@ const GanttTab = ({ projects, users, refreshData }: { projects: Project[], users
         justDragged.current = true;
 
         const updatedTaskData = {
-            startDate: task.start.toISOString().split('T')[0],
-            endDate: task.end.toISOString().split('T')[0],
+            startDate: task.start.toISOString(),
+            endDate: task.end.toISOString(),
         };
 
         setLocalProjects(prev => prev.map(p => p.id === project.id ? { ...p, tasks: (p.tasks || []).map(t => t.id === task.id ? { ...t, ...updatedTaskData } : t) } : p));

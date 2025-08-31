@@ -7,16 +7,6 @@
   to = "/index.html"
   status = 200
 
-[[redirects]]
-  from = "/login"
-  to = "/#/login"
-  status = 302
-
-[[redirects]]
-  from = "/dashboard"
-  to = "/#/dashboard"
-  status = 302
-
 [build.environment]
   NODE_VERSION = "18"
 
