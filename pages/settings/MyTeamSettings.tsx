@@ -1,6 +1,6 @@
 import React from 'react';
 import * as api from '../../services/api';
-import { Team, User } from '../../types';12
+import { Team, User } from '../../types';
 
 const MyTeamSettings = ({ teams, user, users }) => {
   const myLeadTeams = teams.filter(t => t.leadIds.includes(user.id));
