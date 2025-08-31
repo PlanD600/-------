@@ -313,8 +313,8 @@ const GanttTab = ({ projects, users, refreshData }: { projects: Project[], users
         justDragged.current = true;
 
         const updatedTaskData = {
-            startDate: task.start.toISOString().split('T')[0],
-            endDate: task.end.toISOString().split('T')[0],
+            startDate: task.start.toISOString(),
+            endDate: task.end.toISOString(),
         };
 
         setLocalProjects(prev => prev.map(p => p.id === project.id ? { ...p, tasks: (p.tasks || []).map(t => t.id === task.id ? { ...t, ...updatedTaskData } : t) } : p));
@@ -323,7 +323,7 @@ const GanttTab = ({ projects, users, refreshData }: { projects: Project[], users
         } catch (err) {
             console.error("Failed to update task dates", err);
             alert("שגיאה בעדכון המשימה.");
-            refreshData();
+            // 💡 הסרת refreshData() כדי למנוע רינדור מיותר של הדף
         }
     };
 
@@ -332,12 +332,12 @@ const GanttTab = ({ projects, users, refreshData }: { projects: Project[], users
         const { project, task } = editingTask;
         try {
             await api.updateTask(project.id, task.id, updatedTaskData);
-            refreshData();
+            // 💡 הסרת refreshData() כדי למנוע רינדור מיותר של הדף
             setEditingTask(null);
         } catch (err) {
             console.error("Failed to update task", err);
             alert("שגיאה בעדכון המשימה.");
-            refreshData();
+            // 💡 הסרת refreshData() כדי למנוע רינדור מיותר של הדף
         }
     };
 
@@ -346,13 +346,13 @@ const GanttTab = ({ projects, users, refreshData }: { projects: Project[], users
         const { task, project } = deletingTask;
         try {
             await api.deleteTask(project.id, task.id);
-            refreshData();
+            // 💡 הסרת refreshData() כדי למנוע רינדור מיותר של הדף
             setDeletingTask(null);
             setViewingTask(null);
         } catch (err) {
             console.error("Failed to delete task", err);
             alert("שגיאה במחיקת המשימה.");
-            refreshData();
+            // 💡 הסרת refreshData() כדי למנוע רינדור מיותר של הדף
         }
     };
 
@@ -364,12 +364,11 @@ const GanttTab = ({ projects, users, refreshData }: { projects: Project[], users
             const optimisticUpdate = (currentTask: Task): Task => ({ ...currentTask, comments: [...(currentTask.comments || []), newComment] });
             setLocalProjects(prev => prev.map(p => p.id === project.id ? { ...p, tasks: (p.tasks || []).map(t => t.id === task.id ? optimisticUpdate(t) : t) } : p));
             setViewingTask(prev => prev ? { ...prev, task: optimisticUpdate(prev.task) } : null);
-            // 💡 תיקון: רענון נתוני הפרויקט כדי לעדכן סטטוס ואחוז השלמה
-            refreshData();
+            // 💡 הסרת refreshData() כדי למנוע רינדור מיותר של הדף
         } catch (error) {
             console.error("Failed to add comment", error);
             alert("שגיאה בהוספת תגובה.");
-            refreshData();
+            // 💡 הסרת refreshData() כדי למנוע רינדור מיותר של הדף
         }
     };
 
@@ -380,12 +379,11 @@ const GanttTab = ({ projects, users, refreshData }: { projects: Project[], users
             if (viewingTask?.task.id === taskId) {
                 setViewingTask(prev => prev ? { ...prev, task: updatedTask } : null);
             }
-            // 💡 תיקון: רענון נתוני הפרויקט כדי לעדכן סטטוס ואחוז השלמה
-            refreshData();
+            // 💡 הסרת refreshData() כדי למנוע רינדור מיותר של הדף
         } catch (e) {
             console.error(e);
             alert("שגיאה בעדכון המשימה. סנכרון מחדש...");
-            refreshData();
+            // 💡 הסרת refreshData() כדי למנוע רינדור מיותר של הדף
         }
     };
 

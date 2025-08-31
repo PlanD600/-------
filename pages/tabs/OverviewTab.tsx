@@ -184,18 +184,12 @@ const OverviewTab = ({ projects, archivedProjects, teamLeads, users, teams, allM
     const handleUpdateProjectDetails = async (updatedData: Partial<ProjectPayload>) => {
         if (!projectToEdit) return;
         try {
-            // 💡 תיקון: וודא שהשדה isArchived תמיד נשלח
-            const payload = {
-                ...updatedData,
-                // 💡 תיקון: נשלח תמיד את הסטטוס isArchived מהפרויקט המקורי
-                isArchived: projectToEdit.isArchived,
-            };
+            // 💡 תיקון: לא נשלח את השדה isArchived ב-update רגיל, רק דרך archiveProject
+            const { isArchived, ...payload } = updatedData;
             
             // 💡 לוג לבדיקה: הדפסת ה-payload שנשלח
             console.log('Sending project update payload:', payload);
-            console.log('Original project isArchived:', projectToEdit.isArchived);
-            console.log('Updated data isArchived:', updatedData.isArchived);
-            console.log('Final payload isArchived:', payload.isArchived);
+            console.log('Removed isArchived from payload for regular update');
             console.log('Final payload JSON:', JSON.stringify(payload));
             
             await api.updateProject(projectToEdit.id, payload);
