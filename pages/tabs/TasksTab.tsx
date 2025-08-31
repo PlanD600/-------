@@ -157,8 +157,8 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
             const response = await api.getTasksForProject(selectedProjectId);
             setTasks(response.data);
             setIsAddTaskOpen(false);
-            // 💡 תיקון: רענון נתוני הפרויקט כדי לעדכן סטטוס ואחוז השלמה
-            refreshData();
+            // 💡 הסרת refreshData() כדי למנוע רינדור מיותר של הדף
+            // במקום זה, אנחנו מרעננים רק את המשימות של הפרויקט הנוכחי
         } catch (error) {
             console.error("Failed to create task", error);
             alert(`Error: ${(error as Error).message}`);
@@ -173,8 +173,8 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
             const response = await api.getTasksForProject(selectedProjectId);
             setTasks(response.data);
             setTaskToEdit(null);
-            // 💡 תיקון: רענון נתוני הפרויקט כדי לעדכן סטטוס ואחוז השלמה
-            refreshData();
+            // 💡 הסרת refreshData() כדי למנוע רינדור מיותר של הדף
+            // במקום זה, אנחנו מרעננים רק את המשימות של הפרויקט הנוכחי
         } catch (error) {
             console.error("Failed to update task", error);
             alert(`Error: ${(error as Error).message}`);
@@ -186,8 +186,8 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
         try {
             const updatedTask = await api.updateTask(selectedProjectId, taskId, updates);
             setTasks(prevTasks => prevTasks.map(t => t.id === taskId ? updatedTask : t));
-            // 💡 תיקון: רענון נתוני הפרויקט כדי לעדכן סטטוס ואחוז השלמה
-            refreshData();
+            // 💡 הסרת refreshData() כדי למנוע רינדור מיותר של הדף
+            // במקום זה, אנחנו מעדכנים רק את המשימה הספציפית ב-local state
         } catch (error) {
             console.error("Failed to update task field", error);
             alert(`Error: ${(error as Error).message}`);
@@ -203,8 +203,8 @@ const TasksTab = ({ projects, teamMembers, refreshData, users }: TasksTabProps) 
             setTasks(prevTasks => prevTasks.filter(t => t.id !== idToDelete));
             setTaskToDelete(null);
             setTaskToView(null);
-            // 💡 תיקון: רענון נתוני הפרויקט כדי לעדכן סטטוס ואחוז השלמה
-            refreshData();
+            // 💡 הסרת refreshData() כדי למנוע רינדור מיותר של הדף
+            // במקום זה, אנחנו מעדכנים רק את ה-local state
         } catch (error) {
             console.error("Failed to delete task", error);
             alert(`Error: ${(error as Error).message}`);
