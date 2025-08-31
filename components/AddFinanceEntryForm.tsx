@@ -68,7 +68,7 @@ const AddFinanceEntryForm = ({ titleId, type, projects, onCancel, onSubmit }: Fo
             status: formData.status || 'ממתין לתשלום',
             description: formData.description,
             notes: formData.notes || undefined,
-            date: formData.date,
+            date: new Date(formData.date).toISOString(),
             projectId: formData.projectId || undefined,
             taskId: formData.taskId || undefined,
         };

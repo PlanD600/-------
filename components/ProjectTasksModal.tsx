@@ -98,7 +98,7 @@ const ProjectTasksModal = ({ isOpen, project, onClose, users, refreshProject }: 
             }
 
             await fetchTasks();
-            refreshProject();
+            // 💡 הסרת refreshProject() כדי למנוע רינדור מיותר של הדף
             setIsAddTaskModalOpen(false);
         } catch (error) {
             console.error("Failed to add task:", error);
