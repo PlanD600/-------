@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom'; // 1. ייבוא הראוטר
+import { BrowserRouter } from 'react-router-dom'; // שינוי ל-BrowserRouter
 import App from './App';
 import { AuthProvider } from './contexts/AuthContext';
 
@@ -12,7 +12,7 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <BrowserRouter> {/* 2. הראוטר עוטף את הכל */}
+    <BrowserRouter> {/* שינוי ל-BrowserRouter */}
       <AuthProvider>
         <App />
       </AuthProvider>

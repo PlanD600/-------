@@ -1,0 +1,5 @@
+# Handle SPA routing
+/*    /index.html   200
+
+# Handle specific routes
+/api/*    https://api.mypland.com/api/:splat   200
