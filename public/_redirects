@@ -1,0 +1,9 @@
+# Handle SPA routing
+/*    /index.html   200
+
+# Redirect old routes to new ones
+/login    /#/login   302
+/dashboard    /#/dashboard   302
+
+# Handle specific routes
+/api/*    https://api.mypland.com/api/:splat   200

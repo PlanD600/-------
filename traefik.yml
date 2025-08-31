@@ -1,0 +1,49 @@
+api:
+  dashboard: true
+
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entrypoint:
+          to: websecure
+          scheme: https
+  websecure:
+    address: ":443"
+
+providers:
+  file:
+    directory: /etc/traefik
+    watch: true
+
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: your-email@example.com
+      storage: /etc/traefik/acme/acme.json
+      httpChallenge:
+        entryPoint: web
+
+# Middleware for SPA routing
+http:
+  middlewares:
+    spa-fallback:
+      headers:
+        customRequestHeaders:
+          X-Forwarded-Proto: "https"
+    spa-rewrite:
+      redirectRegex:
+        permanent: false
+        regex: "^(?!.*\\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$).*$"
+        replacement: "/index.html"
+    login-redirect:
+      redirectRegex:
+        permanent: false
+        regex: "^/login$"
+        replacement: "/#/login"
+    dashboard-redirect:
+      redirectRegex:
+        permanent: false
+        regex: "^/dashboard$"
+        replacement: "/#/dashboard"
